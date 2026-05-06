@@ -35,7 +35,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "ruff", specifier = ">=0.15.12" },
     { name = "syrupy", specifier = ">=4.7.0" },
-    { name = "ty", specifier = ">=0.0.1" },
+    { name = "ty", specifier = ">=0.0.34,<0.1" },
 ]
 
 [[package]]

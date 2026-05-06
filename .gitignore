@@ -7,3 +7,6 @@ __pycache__/
 dist/
 *.egg-info/
 .consistency-cache/
+build/
+.coverage
+htmlcov/

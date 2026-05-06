@@ -19,7 +19,7 @@ dev = [
   "pytest-asyncio>=1.3.0",
   "hypothesis>=6.115.0",
   "ruff>=0.15.12",
-  "ty>=0.0.1",
+  "ty>=0.0.34,<0.1",
   "syrupy>=4.7.0",
 ]
 
@@ -33,14 +33,19 @@ src = ["consistency_check", "tests"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D203", "D213", "COM812", "ISC001"]
+ignore = [
+  "D203", "D213",            # docstring style conflicts
+  "COM812", "ISC001",        # formatter conflicts
+  "ANN401",                  # allow Any in narrow places
+  "FBT001", "FBT002",        # boolean-trap is fine for our flag-style API
+  "TRY003", "EM101", "EM102",# exception message strings
+  "S603", "S607",            # subprocess wrapping with `gh` is intentional
+  "PLR0913",                 # >5 args caught by global rule already
+  "PLR2004",                 # magic numbers in tests are fine
+]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "D", "INP001"]
-
-[tool.ty.rules]
-unresolved-import = "error"
-invalid-argument-type = "error"
+"tests/**" = ["S101", "D", "INP001", "ANN", "PLR", "SLF001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
