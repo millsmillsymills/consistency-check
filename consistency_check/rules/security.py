@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from consistency_check._git import tracked_files
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -15,6 +16,7 @@ _FORBIDDEN_NAMES = (".env", "credentials.json", "secrets.json", "id_rsa", "priva
 _SKIP_DIRS = frozenset({
     ".git",
     ".consistency-cache",
+    ".worktrees",
     ".venv",
     "venv",
     "node_modules",
@@ -36,16 +38,21 @@ def _outside_skipped_dirs(hit: Path, repo_root: Path) -> bool:
 
 
 def _check_no_secrets(repo: Repo) -> str | None:
-    offenders = [
-        str(hit.relative_to(repo.path))
-        for name in _FORBIDDEN_NAMES
-        for hit in repo.path.rglob(name)
-        if _outside_skipped_dirs(hit, repo.path)
-    ] + [
-        str(hit.relative_to(repo.path))
-        for hit in [*repo.path.rglob("*.pem"), *repo.path.rglob("*.key")]
-        if _outside_skipped_dirs(hit, repo.path)
-    ]
+    tracked = tracked_files(repo.path)
+    candidates: list[Path] = []
+    for name in _FORBIDDEN_NAMES:
+        candidates.extend(repo.path.rglob(name))
+    candidates.extend(repo.path.rglob("*.pem"))
+    candidates.extend(repo.path.rglob("*.key"))
+
+    offenders: list[str] = []
+    for hit in candidates:
+        if not _outside_skipped_dirs(hit, repo.path):
+            continue
+        rel = hit.relative_to(repo.path).as_posix()
+        if tracked and rel not in tracked:
+            continue
+        offenders.append(rel)
     return f"secrets-shaped files in tree: {offenders[:5]}" if offenders else None
 
 
