@@ -21,6 +21,36 @@ _FORBIDDEN_GLOBS = (
     ".venv",
     "node_modules",
 )
+_SKIP_DIRS = frozenset({
+    ".git",
+    ".consistency-cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".ty_cache",
+    ".tox",
+    "build",
+})
+_SPDX_ALIASES: dict[str, tuple[tuple[str, ...], ...]] = {
+    "apache-2.0": (("apache-2.0",), ("apache license", "version 2.0")),
+    "mit": (("mit license",), ("permission is hereby granted, free of charge",)),
+    "bsd-3-clause": (("bsd 3-clause",), ("bsd-3-clause",), ("redistribution and use",)),
+    "bsd-2-clause": (("bsd 2-clause",), ("bsd-2-clause",)),
+    "gpl-3.0": (("gnu general public license", "version 3"), ("gpl-3.0",)),
+    "isc": (("isc license",), ("permission to use, copy, modify",)),
+    "mpl-2.0": (("mozilla public license", "version 2.0"), ("mpl-2.0",)),
+}
+
+
+def _license_matches(spdx: str, license_text: str) -> bool:
+    text_lower = license_text.lower()
+    alias_groups = _SPDX_ALIASES.get(spdx.lower())
+    if alias_groups is None:
+        return spdx.lower() in text_lower
+    return any(all(token in text_lower for token in group) for group in alias_groups)
 
 
 def _check_required_files(repo: Repo) -> str | None:
@@ -44,7 +74,7 @@ def _check_license_spdx(repo: Repo) -> str | None:
             return None
         py = pyproject.read_text(encoding="utf-8")
         match = re.search(r'license\s*=\s*"([^"]+)"', py)
-        if match and match.group(1).lower() not in text.lower():
+        if match and not _license_matches(match.group(1), text):
             return f"pyproject license {match.group(1)!r} not found in LICENSE text"
     return None
 
@@ -53,7 +83,11 @@ def _check_no_committed_artifacts(repo: Repo) -> str | None:
     offenders: list[str] = []
     for pattern in _FORBIDDEN_GLOBS:
         for hit in repo.path.rglob(pattern):
-            if ".git" in hit.parts or ".consistency-cache" in hit.parts:
+            try:
+                rel_parts = hit.relative_to(repo.path).parts
+            except ValueError:
+                continue
+            if any(part in _SKIP_DIRS for part in rel_parts):
                 continue
             offenders.append(str(hit.relative_to(repo.path)))
             if len(offenders) >= 5:
