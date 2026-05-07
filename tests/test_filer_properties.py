@@ -31,7 +31,7 @@ def _findings(draw):
 @given(_findings())
 @settings(max_examples=30, deadline=None)
 def test_double_apply_is_idempotent(findings) -> None:
-    repo = Repo(name="r", path=Path("/tmp"), language="python", github_slug="o/r")
+    repo = Repo(name="r", path=Path("/tmp"), language="python", github_slug="o/r")  # noqa: S108
 
     with patch("consistency_check.filer.subprocess.run") as mock:
         file_repo_findings(repo, findings, apply=False)
