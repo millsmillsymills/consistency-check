@@ -142,7 +142,7 @@ def _check_init_simple(repo: Repo) -> str | None:
             stmts = [
                 s for s in body.split("\n") if s.strip() and not s.strip().startswith("//")
             ]
-            if len(stmts) > 5:
+            if len(stmts) > 3:
                 bad.append(p.relative_to(repo.path).as_posix())
     return f"non-trivial init() functions: {bad[:3]}" if bad else None
 
