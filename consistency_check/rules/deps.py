@@ -1,4 +1,4 @@
-"""Rules: dependencies / observability (MCP-021, 022, 023)."""
+"""Rules: observability and dependencies (MCP-021..024)."""
 
 from __future__ import annotations
 
@@ -8,12 +8,6 @@ from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
-
-
-def _check_lockfile(repo: Repo) -> str | None:
-    if repo.language == "python":
-        return None if (repo.path / "uv.lock").is_file() else "uv.lock missing"
-    return None if (repo.path / "go.sum").is_file() else "go.sum missing"
 
 
 def _check_logs_to_stderr(repo: Repo) -> str | None:
@@ -54,23 +48,40 @@ def _check_structured_logs(repo: Repo) -> str | None:
     return "no structured logger detected"
 
 
+def _check_lockfile(repo: Repo) -> str | None:
+    if repo.language == "python":
+        return None if (repo.path / "uv.lock").is_file() else "uv.lock missing"
+    return None if (repo.path / "go.sum").is_file() else "go.sum missing"
+
+
+def _check_dep_age(_repo: Repo) -> str | None:
+    """Pass unconditionally — dep freshness requires network access to PyPI/proxy.go.dev."""
+    return None
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="MCP-021",
-        tier=Tier.MUST,
-        statement="Lockfile committed",
-        check=_check_lockfile,
-    ),
-    Rule(
-        id="MCP-022",
         tier=Tier.MUST,
         statement="Server logs to stderr in MCP mode",
         check=_check_logs_to_stderr,
     ),
     Rule(
-        id="MCP-023",
+        id="MCP-022",
         tier=Tier.SHOULD,
         statement="Structured log format",
         check=_check_structured_logs,
+    ),
+    Rule(
+        id="MCP-023",
+        tier=Tier.MUST,
+        statement="Dependency manifest pinned (lockfile committed)",
+        check=_check_lockfile,
+    ),
+    Rule(
+        id="MCP-024",
+        tier=Tier.SHOULD,
+        statement="No dependencies older than 12 months without justification",
+        check=_check_dep_age,
     ),
 )

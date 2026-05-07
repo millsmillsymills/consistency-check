@@ -1,4 +1,4 @@
-"""Tests for dependency rules."""
+"""Tests for dependency and observability rules."""
 
 from __future__ import annotations
 
@@ -25,6 +25,14 @@ def test_mcp_021_pass_go(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "go", "MCP-021") is None
 
 
-def test_mcp_021_fail_python_no_lock(good_python_repo: Path) -> None:
+def test_mcp_023_pass_python(good_python_repo: Path) -> None:
+    assert _check(good_python_repo, "python", "MCP-023") is None
+
+
+def test_mcp_023_pass_go(good_go_repo: Path) -> None:
+    assert _check(good_go_repo, "go", "MCP-023") is None
+
+
+def test_mcp_023_fail_python_no_lock(good_python_repo: Path) -> None:
     (good_python_repo / "uv.lock").unlink()
-    assert _check(good_python_repo, "python", "MCP-021") is not None
+    assert _check(good_python_repo, "python", "MCP-023") is not None
