@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.security import RULES
@@ -47,3 +48,34 @@ def test_mcp_019_skips_env_inside_node_modules(good_python_repo: Path) -> None:
     nm.mkdir(parents=True)
     (nm / ".env").write_text("X=y\n", encoding="utf-8")
     assert _check(good_python_repo, "MCP-019") is None
+
+
+def test_mcp_019_skips_gitignored_env_when_repo_is_git(
+    good_python_repo: Path,
+) -> None:
+    (good_python_repo / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
+    gi = good_python_repo / ".gitignore"
+    gi.write_text(gi.read_text() + ".env\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=good_python_repo, check=True)
+    subprocess.run(["git", "add", ".gitignore", "README.md"], cwd=good_python_repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=good_python_repo,
+        check=True,
+    )
+    assert _check(good_python_repo, "MCP-019") is None
+
+
+def test_mcp_019_flags_committed_env(good_python_repo: Path) -> None:
+    env = good_python_repo / ".env"
+    env.write_text("TOKEN=secret\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=good_python_repo, check=True)
+    subprocess.run(["git", "add", ".env", "README.md"], cwd=good_python_repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=good_python_repo,
+        check=True,
+    )
+    evidence = _check(good_python_repo, "MCP-019")
+    assert evidence is not None
+    assert ".env" in evidence

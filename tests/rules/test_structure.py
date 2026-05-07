@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.structure import RULES
@@ -64,3 +65,39 @@ def test_mcp_002_fails_when_license_text_does_not_match_spdx(good_python_repo: P
     evidence = _run(good_python_repo, "python", "MCP-002")
     assert evidence is not None
     assert "Apache-2.0" in evidence
+
+
+def test_mcp_005_skips_gitignored_pycache(good_python_repo: Path) -> None:
+    pkg = good_python_repo / "src" / "good_python"
+    (pkg / "__pycache__").mkdir()
+    (pkg / "__pycache__" / "x.pyc").write_bytes(b"")
+    gi = good_python_repo / ".gitignore"
+    gi.write_text(gi.read_text() + "__pycache__/\n*.pyc\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=good_python_repo, check=True)
+    subprocess.run(["git", "add", ".gitignore", "README.md"], cwd=good_python_repo, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=good_python_repo,
+        check=True,
+    )
+    assert _run(good_python_repo, "python", "MCP-005") is None
+
+
+def test_mcp_005_flags_committed_pycache(good_python_repo: Path) -> None:
+    pkg = good_python_repo / "src" / "good_python"
+    (pkg / "__pycache__").mkdir()
+    (pkg / "__pycache__" / "x.pyc").write_bytes(b"")
+    subprocess.run(["git", "init", "-q"], cwd=good_python_repo, check=True)
+    subprocess.run(
+        ["git", "add", "-f", "src/good_python/__pycache__/x.pyc", "README.md"],
+        cwd=good_python_repo,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=good_python_repo,
+        check=True,
+    )
+    evidence = _run(good_python_repo, "python", "MCP-005")
+    assert evidence is not None
+    assert "__pycache__" in evidence
