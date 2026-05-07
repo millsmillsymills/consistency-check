@@ -7,9 +7,32 @@ from typing import TYPE_CHECKING
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from consistency_check.types import Repo
 
 _FORBIDDEN_NAMES = (".env", "credentials.json", "secrets.json", "id_rsa", "private.pem")
+_SKIP_DIRS = frozenset({
+    ".git",
+    ".consistency-cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "dist",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".ty_cache",
+    ".tox",
+    "build",
+})
+
+
+def _outside_skipped_dirs(hit: Path, repo_root: Path) -> bool:
+    try:
+        rel_parts = hit.relative_to(repo_root).parts
+    except ValueError:
+        return False
+    return not any(part in _SKIP_DIRS for part in rel_parts)
 
 
 def _check_no_secrets(repo: Repo) -> str | None:
@@ -17,11 +40,11 @@ def _check_no_secrets(repo: Repo) -> str | None:
         str(hit.relative_to(repo.path))
         for name in _FORBIDDEN_NAMES
         for hit in repo.path.rglob(name)
-        if ".git" not in hit.parts
+        if _outside_skipped_dirs(hit, repo.path)
     ] + [
         str(hit.relative_to(repo.path))
         for hit in [*repo.path.rglob("*.pem"), *repo.path.rglob("*.key")]
-        if ".git" not in hit.parts
+        if _outside_skipped_dirs(hit, repo.path)
     ]
     return f"secrets-shaped files in tree: {offenders[:5]}" if offenders else None
 
