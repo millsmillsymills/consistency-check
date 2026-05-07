@@ -14,10 +14,19 @@ if TYPE_CHECKING:
 
 _GOLANGCI_REQUIRED = ("errcheck", "govet", "staticcheck", "unused", "gocritic")
 _GO_ONLY = frozenset({"go"})
+_SKIP_DIRS = frozenset({".git", ".worktrees", "vendor", "node_modules"})
 
 
 def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
+
+
+def _skipped(p: Path, root: Path) -> bool:
+    try:
+        rel_parts = p.relative_to(root).parts
+    except ValueError:
+        return True
+    return any(part in _SKIP_DIRS for part in rel_parts)
 
 
 def _check_layout(repo: Repo) -> str | None:
@@ -62,7 +71,7 @@ def _check_gofmt_in_ci(repo: Repo) -> str | None:
 
 
 def _check_table_driven(repo: Repo) -> str | None:
-    test_files = list(repo.path.rglob("*_test.go"))
+    test_files = [p for p in repo.path.rglob("*_test.go") if not _skipped(p, repo.path)]
     if not test_files:
         return "no *_test.go found"
     table_driven = sum(
@@ -87,6 +96,8 @@ def _check_integration_split(repo: Repo) -> str | None:
     if (repo.path / "integration").is_dir():
         return None
     for p in repo.path.rglob("*_test.go"):
+        if _skipped(p, repo.path):
+            continue
         if "//go:build integration" in _read(p):
             return None
     return "no integration/ directory and no //go:build integration tags"
@@ -95,7 +106,7 @@ def _check_integration_split(repo: Repo) -> str | None:
 def _check_error_wrapping(repo: Repo) -> str | None:
     bad: list[str] = []
     for p in repo.path.rglob("*.go"):
-        if p.name.endswith("_test.go") or ".git" in p.parts:
+        if p.name.endswith("_test.go") or _skipped(p, repo.path):
             continue
         text = _read(p)
         for _ in re.finditer(r"return\s+(\w+),?\s*err\s*$", text, re.MULTILINE):
@@ -134,7 +145,7 @@ def _check_context_first(repo: Repo) -> str | None:
 def _check_init_simple(repo: Repo) -> str | None:
     bad: list[str] = []
     for p in repo.path.rglob("*.go"):
-        if p.name.endswith("_test.go") or ".git" in p.parts:
+        if p.name.endswith("_test.go") or _skipped(p, repo.path):
             continue
         text = _read(p)
         for m in re.finditer(r"func\s+init\s*\(\)\s*\{([^}]*)\}", text, re.DOTALL):
@@ -156,11 +167,15 @@ def _check_errgroup(repo: Repo) -> str | None:
     has_goroutine = any(
         "go " in _read(p)
         for p in repo.path.rglob("*.go")
-        if not p.name.endswith("_test.go") and ".git" not in p.parts
+        if not p.name.endswith("_test.go") and not _skipped(p, repo.path)
     )
     if not has_goroutine:
         return None
-    has_errgroup = any("errgroup" in _read(p) for p in repo.path.rglob("*.go"))
+    has_errgroup = any(
+        "errgroup" in _read(p)
+        for p in repo.path.rglob("*.go")
+        if not _skipped(p, repo.path)
+    )
     return None if has_errgroup else "uses goroutines but no errgroup imported"
 
 
@@ -179,8 +194,9 @@ def _check_no_panic(repo: Repo) -> str | None:
 
 
 def _check_log_lib(repo: Repo) -> str | None:
-    has_slog = any("log/slog" in _read(p) for p in repo.path.rglob("*.go"))
-    has_zerolog = any('"github.com/rs/zerolog' in _read(p) for p in repo.path.rglob("*.go"))
+    sources = [p for p in repo.path.rglob("*.go") if not _skipped(p, repo.path)]
+    has_slog = any("log/slog" in _read(p) for p in sources)
+    has_zerolog = any('"github.com/rs/zerolog' in _read(p) for p in sources)
     if has_slog or has_zerolog:
         return None
     return "no slog or zerolog imported"

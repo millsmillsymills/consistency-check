@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from consistency_check._git import tracked_files
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -24,6 +25,7 @@ _FORBIDDEN_GLOBS = (
 _SKIP_DIRS = frozenset({
     ".git",
     ".consistency-cache",
+    ".worktrees",
     ".venv",
     "venv",
     "node_modules",
@@ -80,21 +82,32 @@ def _check_license_spdx(repo: Repo) -> str | None:
 
 
 def _check_no_committed_artifacts(repo: Repo) -> str | None:
+    tracked = tracked_files(repo.path)
     offenders: list[str] = []
     for pattern in _FORBIDDEN_GLOBS:
         for hit in repo.path.rglob(pattern):
             try:
-                rel_parts = hit.relative_to(repo.path).parts
+                rel = hit.relative_to(repo.path)
             except ValueError:
                 continue
-            if any(part in _SKIP_DIRS for part in rel_parts):
+            if any(part in _SKIP_DIRS for part in rel.parts):
                 continue
-            offenders.append(str(hit.relative_to(repo.path)))
+            rel_str = rel.as_posix()
+            if tracked and not _hit_is_tracked(rel_str, tracked):
+                continue
+            offenders.append(str(rel))
             if len(offenders) >= 5:
                 break
         if len(offenders) >= 5:
             break
     return f"committed build artifacts: {', '.join(offenders)}" if offenders else None
+
+
+def _hit_is_tracked(rel_str: str, tracked: frozenset[str]) -> bool:
+    if rel_str in tracked:
+        return True
+    prefix = rel_str + "/"
+    return any(t.startswith(prefix) for t in tracked)
 
 
 def _check_gitignore(repo: Repo) -> str | None:
