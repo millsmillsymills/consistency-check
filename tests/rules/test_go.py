@@ -34,6 +34,14 @@ def test_go_012_pass(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "GO-012") is None
 
 
+def test_go_012_pass_with_official_sdk(good_go_repo: Path) -> None:
+    (good_go_repo / "go.mod").write_text(
+        "module foo\ngo 1.22\nrequire github.com/modelcontextprotocol/go-sdk v1.0.0\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-012") is None
+
+
 def test_go_012_fail_when_mcp_go_missing(good_go_repo: Path) -> None:
     (good_go_repo / "go.mod").write_text("module foo\ngo 1.22\n", encoding="utf-8")
     assert _check(good_go_repo, "GO-012") is not None

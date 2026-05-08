@@ -159,8 +159,14 @@ def _check_init_simple(repo: Repo) -> str | None:
 
 
 def _check_mcp_go(repo: Repo) -> str | None:
+    # Either the original community SDK (mark3labs/mcp-go) or the official
+    # upstream SDK (modelcontextprotocol/go-sdk) satisfies the rule. The
+    # official SDK shipped after this rule was first authored and is the
+    # preferred choice for new servers; both are acceptable.
     text = _read(repo.path / "go.mod")
-    return None if "mark3labs/mcp-go" in text else "go.mod missing github.com/mark3labs/mcp-go"
+    if "mark3labs/mcp-go" in text or "modelcontextprotocol/go-sdk" in text:
+        return None
+    return "go.mod missing github.com/mark3labs/mcp-go or github.com/modelcontextprotocol/go-sdk"
 
 
 def _check_errgroup(repo: Repo) -> str | None:
@@ -283,7 +289,7 @@ RULES: tuple[Rule, ...] = (
     Rule(
         id="GO-012",
         tier=Tier.MUST,
-        statement="Use mark3labs/mcp-go SDK",
+        statement="Use a maintained MCP Go SDK (mark3labs/mcp-go or modelcontextprotocol/go-sdk)",
         check=_check_mcp_go,
         applies_to=_GO_ONLY,
     ),

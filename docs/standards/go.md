@@ -62,11 +62,16 @@ Applies to MCP servers written in Go. Built on top of `mcp.md`.
 
 **Mechanical check.** Each `init()` function in non-test code is ≤ 3 statements OR contains only `register()` / `flag.Var()` / similar registry calls.
 
-### GO-012 — Use `mark3labs/mcp-go` SDK [MUST]
+### GO-012 — Use a maintained MCP Go SDK [MUST]
 
-**Rationale.** Sole well-maintained Go MCP SDK.
+**Rationale.** New servers should not roll their own MCP wire format. Two
+SDKs are accepted: `github.com/mark3labs/mcp-go` (the original community
+SDK) and `github.com/modelcontextprotocol/go-sdk` (the official upstream
+SDK published by the MCP project). The official SDK is preferred for
+new servers; the community SDK remains acceptable.
 
-**Mechanical check.** `go.mod` requires `github.com/mark3labs/mcp-go`.
+**Mechanical check.** `go.mod` requires `github.com/mark3labs/mcp-go`
+**or** `github.com/modelcontextprotocol/go-sdk`.
 
 ### GO-013 — `errgroup.Group` for parallel fan-out work [SHOULD]
 
