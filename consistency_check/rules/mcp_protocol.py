@@ -25,10 +25,12 @@ def _python_sources(repo: Repo) -> list[Path]:
 
 
 def _go_sources(repo: Repo) -> list[Path]:
+    # Skip dot-prefix dirs (.git, .worktrees, .venv, etc.) so stale copies
+    # under git worktrees or vendor caches don't poison the heuristics.
     return [
         p
         for p in repo.path.rglob("*.go")
-        if ".git" not in p.parts and not p.name.endswith("_test.go")
+        if not any(part.startswith(".") for part in p.parts) and not p.name.endswith("_test.go")
     ]
 
 
