@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 import tomllib
 from typing import TYPE_CHECKING, Any
@@ -162,6 +163,19 @@ def _check_integration_dir(repo: Repo) -> str | None:
     )
 
 
+def _has_future_annotations(text: str) -> bool:
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return False
+    return any(
+        isinstance(node, ast.ImportFrom)
+        and node.module == "__future__"
+        and any(alias.name == "annotations" for alias in node.names)
+        for node in tree.body
+    )
+
+
 def _check_future_annotations(repo: Repo) -> str | None:
     pkg = _package_dir(repo)
     if pkg is None:
@@ -170,8 +184,7 @@ def _check_future_annotations(repo: Repo) -> str | None:
     for p in pkg.rglob("*.py"):
         if p.name == "__init__.py" and p.stat().st_size < 200:
             continue
-        head = p.read_text(encoding="utf-8", errors="replace")[:600]
-        if "from __future__ import annotations" not in head:
+        if not _has_future_annotations(p.read_text(encoding="utf-8", errors="replace")):
             bad.append(p.relative_to(repo.path).as_posix())
     return (
         f"missing 'from __future__ import annotations' in: {bad[:5]}" if bad else None
@@ -214,6 +227,11 @@ def _check_tenacity(repo: Repo) -> str | None:
     return None
 
 
+_LIFESPAN_DICT_YIELD = re.compile(
+    r"AsyncIterator\[\s*dict\[\s*str\s*,\s*Any\s*\]\s*\]",
+)
+
+
 def _check_server_context(repo: Repo) -> str | None:
     pkg = _package_dir(repo)
     if pkg is None:
@@ -224,7 +242,15 @@ def _check_server_context(repo: Repo) -> str | None:
     text = server.read_text(encoding="utf-8")
     if re.search(r"@dataclass[^\n]*\nclass\s+ServerContext\b", text):
         return None
-    return "server.py does not define @dataclass class ServerContext"
+    # FastMCP's composed lifespan merges contexts with ``{**left, **right}``,
+    # which ``TypeError``s on a dataclass. A lifespan that yields an explicit
+    # ``AsyncIterator[dict[str, Any]]`` is the documented equivalent.
+    if _LIFESPAN_DICT_YIELD.search(text):
+        return None
+    return (
+        "server.py defines neither @dataclass class ServerContext nor a typed "
+        "AsyncIterator[dict[str, Any]] lifespan yield"
+    )
 
 
 def _check_error_hierarchy(repo: Repo) -> str | None:

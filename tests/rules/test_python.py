@@ -48,3 +48,40 @@ def test_py_015_fail_when_module_lacks_future_import(good_python_repo: Path) -> 
         encoding="utf-8",
     )
     assert _check(good_python_repo, "PY-015") is not None
+
+
+def test_py_015_pass_with_long_docstring_before_future_import(good_python_repo: Path) -> None:
+    # Regression for the unraid-mcp #171 false positive: a >600-byte
+    # module docstring used to push the import out of the read window.
+    server = good_python_repo / "src" / "good_python" / "server.py"
+    long_doc = '"""' + ("Long contract note. " * 60) + '"""'
+    server.write_text(
+        long_doc + "\n\nfrom __future__ import annotations\n",
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "PY-015") is None
+
+
+def test_py_019_pass_with_dict_lifespan_yield(good_python_repo: Path) -> None:
+    # FastMCP composed lifespans require a plain dict; accept the typed
+    # AsyncIterator[dict[str, Any]] yield annotation as an equivalent.
+    server = good_python_repo / "src" / "good_python" / "server.py"
+    server.write_text(
+        "from __future__ import annotations\n"
+        "from collections.abc import AsyncIterator\n"
+        "from typing import Any\n\n"
+        "async def lifespan() -> AsyncIterator[dict[str, Any]]:\n"
+        "    yield {}\n",
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "PY-019") is None
+
+
+def test_py_019_fail_when_neither_dataclass_nor_dict_yield(good_python_repo: Path) -> None:
+    server = good_python_repo / "src" / "good_python" / "server.py"
+    server.write_text(
+        "from __future__ import annotations\n\n"
+        "def make_server(): return None\n",
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "PY-019") is not None

@@ -82,7 +82,7 @@ Applies to MCP servers written in Python. Built on top of `mcp.md`.
 
 **Rationale.** Forward-compatible with PEP 563 and avoids runtime cost of evaluating annotations.
 
-**Mechanical check.** Every `*.py` file under `src/` (excluding `__init__.py` files smaller than 5 lines) starts with this import (after the docstring).
+**Mechanical check.** Every `*.py` file under `src/` (excluding `__init__.py` files smaller than 200 bytes) contains a top-level `from __future__ import annotations`, detected by AST parse so module docstring length does not affect the check.
 
 ### PY-016 — FastMCP 3.x as the MCP framework [MUST]
 
@@ -96,11 +96,14 @@ Applies to MCP servers written in Python. Built on top of `mcp.md`.
 
 **Mechanical check.** Direct deps include `tenacity` if any client module uses retry logic.
 
-### PY-019 — Lifespan dataclass `ServerContext` [MUST]
+### PY-019 — Typed lifespan context [MUST]
 
-**Rationale.** All current servers converge on this; consistent context shape across the suite.
+**Rationale.** Consistent, typed context shape across the suite. Either a named container or an explicit dict annotation makes the lifespan contract reviewable.
 
-**Mechanical check.** `src/<package>/server.py` defines a `@dataclass`-decorated class named `ServerContext`.
+**Mechanical check.** `src/<package>/server.py` satisfies one of:
+
+- defines a `@dataclass`-decorated class named `ServerContext`, **or**
+- defines a lifespan with an explicit `AsyncIterator[dict[str, Any]]` yield annotation (required when composing with FastMCP's `{**left, **right}` lifespan merger, which `TypeError`s on a dataclass).
 
 ### PY-020 — Custom error hierarchy in `errors.py` [SHOULD]
 
