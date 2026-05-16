@@ -74,4 +74,4 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 ### PROTO-012 — Secrets never logged [MUST]
 
-**Mechanical check.** No log statement formats a variable whose name matches the regex above. Auditor inspects all `logger.*` / `log.*` call sites.
+**Mechanical check.** No log statement formats a variable whose name matches the regex above. Auditor inspects all `logger.*` / `log.*` call sites, stripping string-literal contents first so human-readable text inside the format string (e.g. `"...capture the API key."`) does not produce false positives.
