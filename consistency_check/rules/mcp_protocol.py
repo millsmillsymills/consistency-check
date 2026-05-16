@@ -183,8 +183,22 @@ def _check_no_secret_cli_args(repo: Repo) -> str | None:
     return _secret_in_go_flags(repo)
 
 
+_STRING_LITERAL = re.compile(
+    r"""
+    '''.*?'''               # triple single
+    | \"\"\".*?\"\"\"       # triple double
+    | "(?:\\.|[^"\\])*"     # double-quoted
+    | '(?:\\.|[^'\\])*'     # single-quoted
+    """,
+    re.VERBOSE | re.DOTALL,
+)
+
+
 def _secret_var_in_log_call(call: str) -> str | None:
-    for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b", call):
+    # Strip string-literal contents so the matcher only inspects argument
+    # identifiers, not human-readable text like "...capture the API key.".
+    stripped = _STRING_LITERAL.sub("", call)
+    for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b", stripped):
         if _SECRET_NAME.search(var):
             return var
     return None

@@ -44,3 +44,24 @@ def test_proto_011_fail_on_token_cli_arg(tmp_path: Path) -> None:
         'parser.add_argument("--api-key")\n', encoding="utf-8"
     )
     assert _check(tmp_path, "python", "PROTO-011") is not None
+
+
+def test_proto_012_pass_when_secret_word_only_in_string_literal(tmp_path: Path) -> None:
+    # Regression for the unraid-mcp #171 false positive: the warning text
+    # contains "API key" as human-readable text, not a variable name.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'logger.warning("an attacker can capture the API key.", config.base_url)\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is None
+
+
+def test_proto_012_fail_when_secret_var_actually_logged(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'logger.info("logging in with %s", api_key)\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is not None
