@@ -27,8 +27,11 @@ def test_mcp_017_pass(good_python_repo: Path) -> None:
 
 def test_mcp_017_fail_on_unpinned_action(good_python_repo: Path) -> None:
     ci = good_python_repo / ".github" / "workflows" / "ci.yml"
-    ci.write_text(ci.read_text().replace(
-        "actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791  # v4.1.7",
-        "actions/checkout@v4",
-    ), encoding="utf-8")
+    ci.write_text(
+        ci.read_text().replace(
+            "actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791  # v4.1.7",
+            "actions/checkout@v4",
+        ),
+        encoding="utf-8",
+    )
     assert _check(good_python_repo, "python", "MCP-017") is not None

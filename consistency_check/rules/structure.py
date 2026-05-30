@@ -22,20 +22,22 @@ _FORBIDDEN_GLOBS = (
     ".venv",
     "node_modules",
 )
-_SKIP_DIRS = frozenset({
-    ".git",
-    ".consistency-cache",
-    ".worktrees",
-    ".venv",
-    "venv",
-    "node_modules",
-    "dist",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".ty_cache",
-    ".tox",
-    "build",
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".consistency-cache",
+        ".worktrees",
+        ".venv",
+        "venv",
+        "node_modules",
+        "dist",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".ty_cache",
+        ".tox",
+        "build",
+    }
+)
 _SPDX_ALIASES: dict[str, tuple[tuple[str, ...], ...]] = {
     "apache-2.0": (("apache-2.0",), ("apache license", "version 2.0")),
     "mit": (("mit license",), ("permission is hereby granted, free of charge",)),

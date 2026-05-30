@@ -39,10 +39,7 @@ def _dev_deps(cfg: dict[str, Any]) -> list[str]:
     deps: list[str] = []
     deps.extend(cfg.get("dependency-groups", {}).get("dev", []))
     deps.extend(cfg.get("project", {}).get("optional-dependencies", {}).get("dev", []))
-    return [
-        d.split("[")[0].split(">")[0].split("=")[0].split("<")[0].strip()
-        for d in deps
-    ]
+    return [d.split("[")[0].split(">")[0].split("=")[0].split("<")[0].strip() for d in deps]
 
 
 def _has_dep(cfg: dict[str, Any], name: str) -> bool:
@@ -150,17 +147,11 @@ def _check_conftest(repo: Repo) -> str | None:
 
 
 def _check_property_dir(repo: Repo) -> str | None:
-    return (
-        None if (repo.path / "tests" / "property").is_dir() else "tests/property/ missing"
-    )
+    return None if (repo.path / "tests" / "property").is_dir() else "tests/property/ missing"
 
 
 def _check_integration_dir(repo: Repo) -> str | None:
-    return (
-        None
-        if (repo.path / "tests" / "integration").is_dir()
-        else "tests/integration/ missing"
-    )
+    return None if (repo.path / "tests" / "integration").is_dir() else "tests/integration/ missing"
 
 
 def _has_future_annotations(text: str) -> bool:
@@ -186,9 +177,7 @@ def _check_future_annotations(repo: Repo) -> str | None:
             continue
         if not _has_future_annotations(p.read_text(encoding="utf-8", errors="replace")):
             bad.append(p.relative_to(repo.path).as_posix())
-    return (
-        f"missing 'from __future__ import annotations' in: {bad[:5]}" if bad else None
-    )
+    return f"missing 'from __future__ import annotations' in: {bad[:5]}" if bad else None
 
 
 def _check_fastmcp(repo: Repo) -> str | None:
