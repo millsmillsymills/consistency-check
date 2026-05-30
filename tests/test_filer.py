@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-
 @pytest.fixture
 def repo(tmp_path: Path) -> Repo:
     return Repo(name="good", path=tmp_path, language="python", github_slug="o/good")
@@ -38,13 +37,16 @@ def test_apply_creates_umbrella_then_children(repo: Repo) -> None:
         Finding(rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL, evidence="x"),
         Finding(rule_id="MCP-018", tier=Tier.MAY, status=FindingStatus.FAIL, evidence="z"),
     ]
-    with patch("consistency_check.filer.subprocess.run", side_effect=[
-        _run(0, json.dumps([])),  # gh auth status
-        _run(0, json.dumps([])),  # search existing umbrellas
-        _run(0, "https://github.com/o/good/issues/1\n"),  # create umbrella
-        _run(0, json.dumps([])),  # search existing child for MCP-007
-        _run(0, "https://github.com/o/good/issues/2\n"),  # create child
-    ]) as mock:
+    with patch(
+        "consistency_check.filer.subprocess.run",
+        side_effect=[
+            _run(0, json.dumps([])),  # gh auth status
+            _run(0, json.dumps([])),  # search existing umbrellas
+            _run(0, "https://github.com/o/good/issues/1\n"),  # create umbrella
+            _run(0, json.dumps([])),  # search existing child for MCP-007
+            _run(0, "https://github.com/o/good/issues/2\n"),  # create child
+        ],
+    ) as mock:
         file_repo_findings(repo, findings, apply=True)
     create_calls = [
         c for c in mock.call_args_list if "issue" in c.args[0] and "create" in c.args[0]
@@ -55,14 +57,26 @@ def test_apply_creates_umbrella_then_children(repo: Repo) -> None:
 def test_apply_skips_existing_open_issue(repo: Repo) -> None:
     findings = [Finding(rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL, evidence="x")]
     existing = json.dumps([{"number": 5, "title": "[consistency] good: MCP-007", "state": "OPEN"}])
-    with patch("consistency_check.filer.subprocess.run", side_effect=[
-        _run(0),  # auth
-        _run(0, json.dumps([  # umbrella exists
-            {"number": 4, "title": "[consistency] good: audit umbrella", "state": "OPEN"},
-        ])),
-        _run(0),  # update umbrella body
-        _run(0, existing),  # child exists
-    ]) as mock:
+    with patch(
+        "consistency_check.filer.subprocess.run",
+        side_effect=[
+            _run(0),  # auth
+            _run(
+                0,
+                json.dumps(
+                    [  # umbrella exists
+                        {
+                            "number": 4,
+                            "title": "[consistency] good: audit umbrella",
+                            "state": "OPEN",
+                        },
+                    ]
+                ),
+            ),
+            _run(0),  # update umbrella body
+            _run(0, existing),  # child exists
+        ],
+    ) as mock:
         file_repo_findings(repo, findings, apply=True)
     create_calls = [
         c for c in mock.call_args_list if "issue" in c.args[0] and "create" in c.args[0]

@@ -66,10 +66,7 @@ def test_go_013_pass_when_only_comment_mentions_go(good_go_repo: Path) -> None:
 def test_go_013_fail_when_goroutine_without_errgroup(good_go_repo: Path) -> None:
     (good_go_repo / "internal" / "worker" / "worker.go").parent.mkdir(parents=True)
     (good_go_repo / "internal" / "worker" / "worker.go").write_text(
-        "package worker\n\n"
-        "func Start() {\n"
-        "\tgo func() { _ = 1 }()\n"
-        "}\n",
+        "package worker\n\nfunc Start() {\n\tgo func() { _ = 1 }()\n}\n",
         encoding="utf-8",
     )
     assert _check(good_go_repo, "GO-013") is not None
@@ -121,7 +118,7 @@ def test_go_006_pass_with_map_table(good_go_repo: Path) -> None:
 def test_go_013_pass_when_goroutine_with_errgroup(good_go_repo: Path) -> None:
     (good_go_repo / "internal" / "worker" / "worker.go").parent.mkdir(parents=True)
     (good_go_repo / "internal" / "worker" / "worker.go").write_text(
-        'package worker\n\n'
+        "package worker\n\n"
         'import "golang.org/x/sync/errgroup"\n\n'
         "func Start() {\n"
         "\tvar g errgroup.Group\n"

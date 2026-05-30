@@ -31,18 +31,14 @@ def test_proto_002_fail_on_unprefixed_tool(tmp_path: Path) -> None:
     repo_root = tmp_path / "good_python"
     pkg = repo_root / "src" / "good_python"
     pkg.mkdir(parents=True)
-    (pkg / "tools.py").write_text(
-        "@mcp.tool\ndef list_things(): pass\n", encoding="utf-8"
-    )
+    (pkg / "tools.py").write_text("@mcp.tool\ndef list_things(): pass\n", encoding="utf-8")
     assert _check(repo_root, "python", "PROTO-002") is not None
 
 
 def test_proto_011_fail_on_token_cli_arg(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
-    (pkg / "__main__.py").write_text(
-        'parser.add_argument("--api-key")\n', encoding="utf-8"
-    )
+    (pkg / "__main__.py").write_text('parser.add_argument("--api-key")\n', encoding="utf-8")
     assert _check(tmp_path, "python", "PROTO-011") is not None
 
 
@@ -61,7 +57,5 @@ def test_proto_012_pass_when_secret_word_only_in_string_literal(tmp_path: Path) 
 def test_proto_012_fail_when_secret_var_actually_logged(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
-    (pkg / "server.py").write_text(
-        'logger.info("logging in with %s", api_key)\n', encoding="utf-8"
-    )
+    (pkg / "server.py").write_text('logger.info("logging in with %s", api_key)\n', encoding="utf-8")
     assert _check(tmp_path, "python", "PROTO-012") is not None

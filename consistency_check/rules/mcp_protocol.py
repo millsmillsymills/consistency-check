@@ -12,9 +12,7 @@ if TYPE_CHECKING:
 
     from consistency_check.types import Repo
 
-_TOOL_DECORATOR = re.compile(
-    r"@mcp\.tool[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\("
-)
+_TOOL_DECORATOR = re.compile(r"@mcp\.tool[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(")
 _GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
 
@@ -136,9 +134,7 @@ def _check_capabilities(repo: Repo) -> str | None:
 
 
 def _check_stdio_default(repo: Repo) -> str | None:
-    if repo.language == "go" and not next(
-        (p for p in (repo.path / "cmd").rglob("main.go")), None
-    ):
+    if repo.language == "go" and not next((p for p in (repo.path / "cmd").rglob("main.go")), None):
         return "no cmd/.../main.go found"
     return None
 
