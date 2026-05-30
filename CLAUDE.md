@@ -61,7 +61,7 @@ Rule IDs are referenced verbatim in three places that must stay in sync:
 
 ## Testing
 
-Rule tests in `tests/rules/` exercise each module against two synthetic repos built by `tests/fixtures/build.py`: a `good_*` repo that passes every applicable rule and a `bad_*` repo that fails every one (fixtures in `tests/conftest.py`). When you add a rule, extend both builders so the good repo still passes and the bad repo triggers the new failure. `test_report.py` uses syrupy snapshots (`--snapshot-update` to regenerate). Property tests for the filer use hypothesis.
+Rule tests in `tests/rules/` exercise each module against synthetic good/bad fixture repos, one pair per language, built by `tests/fixtures/build.py` and exposed via `tests/conftest.py`: a `good_*` repo that passes every applicable rule and a `bad_*` repo that fails every one. When you add a rule, extend both builders for the relevant language so the good repo still passes and the bad repo triggers the new failure. `test_report.py` uses syrupy snapshots (`--snapshot-update` to regenerate). Property tests for the filer use hypothesis.
 
 ## Agent skills
 
