@@ -27,15 +27,26 @@ _GOROUTINE_RE = re.compile(
     re.MULTILINE,
 )
 
-# Matches the common Go table-driven test idioms. The variable name is
-# unconstrained (people use `tests`, `tt`, `tc`, `tcs`, `cases`, `table`,
-# `examples`, etc.); what matters is that there's a declared slice or map
-# of structs being iterated over with subtests. We also accept inline
-# range-over-literal form.
+# Matches the common Go table-driven test idioms where the table is an inline
+# struct (or pointer-to-struct) literal. The variable name is unconstrained
+# (people use `tests`, `tt`, `tc`, `tcs`, `cases`, `table`, `examples`, etc.);
+# what matters is that there's a slice or map of structs declared or ranged
+# over. The split declaration/range form is handled separately below.
 _TABLE_DRIVEN_RE = re.compile(
-    r"\w+\s*:=\s*\[\]struct\s*\{"
-    r"|\w+\s*:=\s*map\[\s*\w+\s*\]\s*struct\s*\{"
-    r"|for\s+[\w,\s]+:=\s*range\s*\[\]struct\s*\{",
+    r"\w+\s*:=\s*\[\]\*?struct\s*\{"
+    r"|\w+\s*:=\s*map\[\s*\w+\s*\]\s*\*?struct\s*\{"
+    r"|for\s+[\w,\s]+:=\s*range\s*\[\]\*?struct\s*\{",
+)
+
+# A struct table bound to a variable, capturing the variable name (group 1) and,
+# when the element is a named type rather than an anonymous struct, that type
+# name (group 2). Covers `:=`/`=`/`var x =`, slice/array/map containers, and
+# pointer elements. Used to detect the split form where the table is declared on
+# one line and ranged on another.
+_TABLE_DECL_RE = re.compile(
+    r"\b(\w+)\s*(?::=|=)\s*"
+    r"(?:\[\d*\]|map\[\s*\w+\s*\])\*?"
+    r"(?:struct\s*\{|(\w+)\s*\{)",
 )
 
 
@@ -92,6 +103,22 @@ def _check_gofmt_in_ci(repo: Repo) -> str | None:
     return "ci.yml does not invoke gofmt/goimports"
 
 
+def _is_table_driven(text: str) -> bool:
+    if _TABLE_DRIVEN_RE.search(text):
+        return True
+    # Split form: a struct table bound to a variable on one line and ranged on
+    # another. A named-type element only counts if that type is a struct defined
+    # in the same file, so `[]string{...}` and friends don't read as a table.
+    struct_types = set(re.findall(r"\btype\s+(\w+)\s+struct\b", text))
+    for m in _TABLE_DECL_RE.finditer(text):
+        ident, elem_type = m.group(1), m.group(2)
+        if elem_type is not None and elem_type not in struct_types:
+            continue
+        if re.search(rf"\brange\s+{re.escape(ident)}\b", text):
+            return True
+    return False
+
+
 def _check_table_driven(repo: Repo) -> str | None:
     # Fuzz and property-based tests use their own input-generation paradigm
     # and are not natural table-driven candidates; excluding them keeps the
@@ -105,7 +132,7 @@ def _check_table_driven(repo: Repo) -> str | None:
     ]
     if not test_files:
         return "no *_test.go found"
-    table_driven = sum(1 for p in test_files if _TABLE_DRIVEN_RE.search(_read(p)))
+    table_driven = sum(1 for p in test_files if _is_table_driven(_read(p)))
     if table_driven * 2 < len(test_files):
         return f"only {table_driven}/{len(test_files)} test files use table-driven pattern"
     return None
