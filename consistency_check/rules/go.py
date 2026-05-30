@@ -16,12 +16,14 @@ _GOLANGCI_REQUIRED = ("errcheck", "govet", "staticcheck", "unused", "gocritic")
 _GO_ONLY = frozenset({"go"})
 _SKIP_DIRS = frozenset({".git", ".worktrees", "vendor", "node_modules"})
 
-# Matches a real `go` statement on a source line: optional leading whitespace,
-# `go` keyword, then a function literal, identifier call, method call, or
-# composite-literal construction. Anchored to ^ in MULTILINE mode so it skips
-# `//` comments and prose mentions of "go through", "go.sum", etc.
+# Matches a real `go` statement on a source line: the `go` keyword at a point
+# where a statement can begin (line start, or after `{`/`;`), then a function
+# literal, identifier call, method call, or composite-literal construction.
+# Allowing `{`/`;` catches inline forms like `if cond { go run() }`; the
+# statement-boundary requirement still skips `//` comments and prose mentions
+# of "go through", "go.sum", etc.
 _GOROUTINE_RE = re.compile(
-    r"^\s*go\s+(func\b|\w+(\.\w+)*\(|&?\w+\{)",
+    r"(?:^|[{;])\s*go\s+(func\b|\w+(\.\w+)*\(|&?\w+\{)",
     re.MULTILINE,
 )
 

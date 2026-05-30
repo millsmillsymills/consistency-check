@@ -72,6 +72,16 @@ def test_go_013_fail_when_goroutine_without_errgroup(good_go_repo: Path) -> None
     assert _check(good_go_repo, "GO-013") is not None
 
 
+def test_go_013_fail_when_inline_goroutine(good_go_repo: Path) -> None:
+    # A goroutine launched mid-line (after `{`) must still be detected.
+    (good_go_repo / "internal" / "worker" / "worker.go").parent.mkdir(parents=True)
+    (good_go_repo / "internal" / "worker" / "worker.go").write_text(
+        "package worker\n\nfunc Start(cond bool) {\n\tif cond { go run() }\n}\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-013") is not None
+
+
 def test_go_006_excludes_fuzz_and_property_tests(good_go_repo: Path) -> None:
     # Fuzz / property tests should not drag down the table-driven percentage.
     (good_go_repo / "internal" / "tools" / "x_fuzz_test.go").write_text(
