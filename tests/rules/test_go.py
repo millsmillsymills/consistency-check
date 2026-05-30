@@ -78,11 +78,11 @@ def test_go_013_fail_when_goroutine_without_errgroup(good_go_repo: Path) -> None
 def test_go_006_excludes_fuzz_and_property_tests(good_go_repo: Path) -> None:
     # Fuzz / property tests should not drag down the table-driven percentage.
     (good_go_repo / "internal" / "tools" / "x_fuzz_test.go").write_text(
-        "package tools\nimport \"testing\"\nfunc FuzzX(f *testing.F) {}\n",
+        'package tools\nimport "testing"\nfunc FuzzX(f *testing.F) {}\n',
         encoding="utf-8",
     )
     (good_go_repo / "internal" / "tools" / "x_property_test.go").write_text(
-        "package tools\nimport \"testing\"\nfunc TestXProperty(t *testing.T) {}\n",
+        'package tools\nimport "testing"\nfunc TestXProperty(t *testing.T) {}\n',
         encoding="utf-8",
     )
     assert _check(good_go_repo, "GO-006") is None
@@ -93,9 +93,9 @@ def test_go_006_pass_with_cases_variable_name(good_go_repo: Path) -> None:
     # the variable name is incidental.
     for i in range(3):
         (good_go_repo / "internal" / "tools" / f"more_{i}_test.go").write_text(
-            "package tools\nimport \"testing\"\n"
+            'package tools\nimport "testing"\n'
             "func TestX(t *testing.T) {\n"
-            "\tcases := []struct{ name string }{{\"a\"}, {\"b\"}}\n"
+            '\tcases := []struct{ name string }{{"a"}, {"b"}}\n'
             "\tfor _, tc := range cases { t.Run(tc.name, func(t *testing.T) {}) }\n"
             "}\n",
             encoding="utf-8",
@@ -106,9 +106,9 @@ def test_go_006_pass_with_cases_variable_name(good_go_repo: Path) -> None:
 def test_go_006_pass_with_map_table(good_go_repo: Path) -> None:
     for i in range(3):
         (good_go_repo / "internal" / "tools" / f"map_{i}_test.go").write_text(
-            "package tools\nimport \"testing\"\n"
+            'package tools\nimport "testing"\n'
             "func TestX(t *testing.T) {\n"
-            "\ttests := map[string]struct{ in int }{\"a\": {1}}\n"
+            '\ttests := map[string]struct{ in int }{"a": {1}}\n'
             "\tfor name, tc := range tests {\n"
             "\t\tt.Run(name, func(t *testing.T) { _ = tc.in })\n"
             "\t}\n"
