@@ -16,6 +16,26 @@ _GOLANGCI_REQUIRED = ("errcheck", "govet", "staticcheck", "unused", "gocritic")
 _GO_ONLY = frozenset({"go"})
 _SKIP_DIRS = frozenset({".git", ".worktrees", "vendor", "node_modules"})
 
+# Matches a real `go` statement on a source line: optional leading whitespace,
+# `go` keyword, then a function literal, identifier call, method call, or
+# composite-literal construction. Anchored to ^ in MULTILINE mode so it skips
+# `//` comments and prose mentions of "go through", "go.sum", etc.
+_GOROUTINE_RE = re.compile(
+    r"^\s*go\s+(func\b|\w+(\.\w+)*\(|&?\w+\{)",
+    re.MULTILINE,
+)
+
+# Matches the common Go table-driven test idioms. The variable name is
+# unconstrained (people use `tests`, `tt`, `tc`, `tcs`, `cases`, `table`,
+# `examples`, etc.); what matters is that there's a declared slice or map
+# of structs being iterated over with subtests. We also accept inline
+# range-over-literal form.
+_TABLE_DRIVEN_RE = re.compile(
+    r"\w+\s*:=\s*\[\]struct\s*\{"
+    r"|\w+\s*:=\s*map\[\s*\w+\s*\]\s*struct\s*\{"
+    r"|for\s+[\w,\s]+:=\s*range\s*\[\]struct\s*\{",
+)
+
 
 def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
@@ -71,17 +91,19 @@ def _check_gofmt_in_ci(repo: Repo) -> str | None:
 
 
 def _check_table_driven(repo: Repo) -> str | None:
-    test_files = [p for p in repo.path.rglob("*_test.go") if not _skipped(p, repo.path)]
+    # Fuzz and property-based tests use their own input-generation paradigm
+    # and are not natural table-driven candidates; excluding them keeps the
+    # signal focused on unit + integration tests where the pattern applies.
+    test_files = [
+        p
+        for p in repo.path.rglob("*_test.go")
+        if not _skipped(p, repo.path)
+        and not (p.name == "fuzz_test.go" or p.name.endswith("_fuzz_test.go"))
+        and not (p.name == "property_test.go" or p.name.endswith("_property_test.go"))
+    ]
     if not test_files:
         return "no *_test.go found"
-    table_driven = sum(
-        1
-        for p in test_files
-        if re.search(
-            r"tests\s*:=\s*\[\]struct\s*\{|tt\s*:=\s*\[\]struct\s*\{",
-            _read(p),
-        )
-    )
+    table_driven = sum(1 for p in test_files if _TABLE_DRIVEN_RE.search(_read(p)))
     if table_driven * 2 < len(test_files):
         return f"only {table_driven}/{len(test_files)} test files use table-driven pattern"
     return None
@@ -171,7 +193,7 @@ def _check_mcp_go(repo: Repo) -> str | None:
 
 def _check_errgroup(repo: Repo) -> str | None:
     has_goroutine = any(
-        "go " in _read(p)
+        _GOROUTINE_RE.search(_read(p))
         for p in repo.path.rglob("*.go")
         if not p.name.endswith("_test.go") and not _skipped(p, repo.path)
     )
