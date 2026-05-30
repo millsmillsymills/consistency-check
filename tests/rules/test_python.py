@@ -80,8 +80,7 @@ def test_py_019_pass_with_dict_lifespan_yield(good_python_repo: Path) -> None:
 def test_py_019_fail_when_neither_dataclass_nor_dict_yield(good_python_repo: Path) -> None:
     server = good_python_repo / "src" / "good_python" / "server.py"
     server.write_text(
-        "from __future__ import annotations\n\n"
-        "def make_server(): return None\n",
+        "from __future__ import annotations\n\ndef make_server(): return None\n",
         encoding="utf-8",
     )
     assert _check(good_python_repo, "PY-019") is not None

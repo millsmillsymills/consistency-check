@@ -13,20 +13,22 @@ if TYPE_CHECKING:
     from consistency_check.types import Repo
 
 _FORBIDDEN_NAMES = (".env", "credentials.json", "secrets.json", "id_rsa", "private.pem")
-_SKIP_DIRS = frozenset({
-    ".git",
-    ".consistency-cache",
-    ".worktrees",
-    ".venv",
-    "venv",
-    "node_modules",
-    "dist",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".ty_cache",
-    ".tox",
-    "build",
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".consistency-cache",
+        ".worktrees",
+        ".venv",
+        "venv",
+        "node_modules",
+        "dist",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".ty_cache",
+        ".tox",
+        "build",
+    }
+)
 
 
 def _outside_skipped_dirs(hit: Path, repo_root: Path) -> bool:

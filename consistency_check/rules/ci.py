@@ -13,12 +13,8 @@ if TYPE_CHECKING:
     from consistency_check.types import Repo
 
 # Documents the desired SHA-pinned-with-comment pattern for reference.
-_SHA_PINNED = re.compile(
-    r"uses:\s*([a-z0-9_.\-]+/[a-z0-9_.\-]+)@([a-f0-9]{40})\s*(#\s*v\d|$)"
-)
-_TAG_USED = re.compile(
-    r"uses:\s*([a-z0-9_.\-]+/[a-z0-9_.\-]+)@(?!([a-f0-9]{40}\b))[^\s]+"
-)
+_SHA_PINNED = re.compile(r"uses:\s*([a-z0-9_.\-]+/[a-z0-9_.\-]+)@([a-f0-9]{40})\s*(#\s*v\d|$)")
+_TAG_USED = re.compile(r"uses:\s*([a-z0-9_.\-]+/[a-z0-9_.\-]+)@(?!([a-f0-9]{40}\b))[^\s]+")
 
 
 def _read_workflows(repo: Repo) -> list[Path]:
@@ -66,9 +62,10 @@ def _check_release_workflow(repo: Repo) -> str | None:
     if (repo.path / ".github" / "workflows" / "release.yml").is_file():
         return None
     contributing = repo.path / "CONTRIBUTING.md"
-    if contributing.is_file() and "release" in contributing.read_text(
-        encoding="utf-8", errors="replace"
-    ).lower():
+    if (
+        contributing.is_file()
+        and "release" in contributing.read_text(encoding="utf-8", errors="replace").lower()
+    ):
         return None
     return "no release.yml and no documented release process"
 

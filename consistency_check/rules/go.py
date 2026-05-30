@@ -172,9 +172,7 @@ def _check_init_simple(repo: Repo) -> str | None:
         text = _read(p)
         for m in re.finditer(r"func\s+init\s*\(\)\s*\{([^}]*)\}", text, re.DOTALL):
             body = m.group(1).strip()
-            stmts = [
-                s for s in body.split("\n") if s.strip() and not s.strip().startswith("//")
-            ]
+            stmts = [s for s in body.split("\n") if s.strip() and not s.strip().startswith("//")]
             if len(stmts) > 3:
                 bad.append(p.relative_to(repo.path).as_posix())
     return f"non-trivial init() functions: {bad[:3]}" if bad else None
@@ -200,9 +198,7 @@ def _check_errgroup(repo: Repo) -> str | None:
     if not has_goroutine:
         return None
     has_errgroup = any(
-        "errgroup" in _read(p)
-        for p in repo.path.rglob("*.go")
-        if not _skipped(p, repo.path)
+        "errgroup" in _read(p) for p in repo.path.rglob("*.go") if not _skipped(p, repo.path)
     )
     return None if has_errgroup else "uses goroutines but no errgroup imported"
 
