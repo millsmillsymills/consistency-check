@@ -115,6 +115,51 @@ def test_go_006_pass_with_map_table(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "GO-006") is None
 
 
+def test_go_006_pass_with_pointer_slice_table(good_go_repo: Path) -> None:
+    # `tests := []*struct{...}` is a real table-driven idiom.
+    for i in range(3):
+        (good_go_repo / "internal" / "tools" / f"ptr_{i}_test.go").write_text(
+            'package tools\nimport "testing"\n'
+            "func TestX(t *testing.T) {\n"
+            '\ttests := []*struct{ name string }{{"a"}}\n'
+            "\tfor _, tc := range tests { t.Run(tc.name, func(t *testing.T) {}) }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+    assert _check(good_go_repo, "GO-006") is None
+
+
+def test_go_006_pass_with_split_named_type_table(good_go_repo: Path) -> None:
+    # Table declared as a named struct-type slice on one line, ranged on another.
+    for i in range(3):
+        (good_go_repo / "internal" / "tools" / f"named_{i}_test.go").write_text(
+            'package tools\nimport "testing"\n'
+            "type tc struct{ name string }\n"
+            "func TestX(t *testing.T) {\n"
+            '\tcases := []tc{{"a"}, {"b"}}\n'
+            "\tfor _, c := range cases {\n"
+            "\t\tt.Run(c.name, func(t *testing.T) {})\n"
+            "\t}\n"
+            "}\n",
+            encoding="utf-8",
+        )
+    assert _check(good_go_repo, "GO-006") is None
+
+
+def test_go_006_fail_when_ranged_slice_is_not_struct(good_go_repo: Path) -> None:
+    # A ranged `[]string` is not a table; it must not read as table-driven.
+    for i in range(3):
+        (good_go_repo / "internal" / "tools" / f"str_{i}_test.go").write_text(
+            'package tools\nimport "testing"\n'
+            "func TestX(t *testing.T) {\n"
+            '\tnames := []string{"a", "b"}\n'
+            "\tfor _, n := range names { _ = n }\n"
+            "}\n",
+            encoding="utf-8",
+        )
+    assert _check(good_go_repo, "GO-006") is not None
+
+
 def test_go_013_pass_when_goroutine_with_errgroup(good_go_repo: Path) -> None:
     (good_go_repo / "internal" / "worker" / "worker.go").parent.mkdir(parents=True)
     (good_go_repo / "internal" / "worker" / "worker.go").write_text(
