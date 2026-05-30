@@ -13,7 +13,9 @@ def _findings() -> list[Finding]:
     return [
         Finding(rule_id="MCP-001", tier=Tier.MUST, status=FindingStatus.PASS),
         Finding(
-            rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL,
+            rule_id="MCP-007",
+            tier=Tier.MUST,
+            status=FindingStatus.FAIL,
             evidence="README missing 'Configuration'",
         ),
         Finding(

@@ -121,11 +121,20 @@ def _upsert_issue(
 
 
 def _list_issues_by_title(slug: str, title: str) -> list[dict[str, object]]:
-    result = _run_gh([
-        "issue", "list", "--repo", slug, "--state", "all",
-        "--search", f'in:title "{title}"',
-        "--json", "number,title,state",
-    ])
+    result = _run_gh(
+        [
+            "issue",
+            "list",
+            "--repo",
+            slug,
+            "--state",
+            "all",
+            "--search",
+            f'in:title "{title}"',
+            "--json",
+            "number,title,state",
+        ]
+    )
     return [i for i in json.loads(result.stdout or "[]") if i["title"] == title]
 
 

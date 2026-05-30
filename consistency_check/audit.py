@@ -36,12 +36,14 @@ def all_rules() -> tuple[Rule, ...]:
 def audit_repo(repo: Repo) -> list[Finding]:
     """Run all applicable rules against ``repo`` and return findings, isolating crashes."""
     if not repo.path.exists():
-        return [Finding(
-            rule_id="REPO-MISSING",
-            tier=Tier.MUST,
-            status=FindingStatus.ERROR,
-            evidence=f"path does not exist: {repo.path}",
-        )]
+        return [
+            Finding(
+                rule_id="REPO-MISSING",
+                tier=Tier.MUST,
+                status=FindingStatus.ERROR,
+                evidence=f"path does not exist: {repo.path}",
+            )
+        ]
 
     findings: list[Finding] = []
     for rule in all_rules():
@@ -51,19 +53,26 @@ def audit_repo(repo: Repo) -> list[Finding]:
         try:
             evidence = rule.check(repo)
         except Exception as exc:  # noqa: BLE001 — isolation by design
-            findings.append(Finding(
-                rule_id=rule.id,
-                tier=rule.tier,
-                status=FindingStatus.ERROR,
-                evidence=f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=2)}",
-            ))
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.ERROR,
+                    evidence=f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=2)}",
+                )
+            )
             continue
         if evidence is None:
             findings.append(Finding(rule_id=rule.id, tier=rule.tier, status=FindingStatus.PASS))
         else:
-            findings.append(Finding(
-                rule_id=rule.id, tier=rule.tier, status=FindingStatus.FAIL, evidence=evidence,
-            ))
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.FAIL,
+                    evidence=evidence,
+                )
+            )
 
     return findings
 
