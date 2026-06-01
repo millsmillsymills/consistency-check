@@ -59,3 +59,34 @@ def test_proto_012_fail_when_secret_var_actually_logged(tmp_path: Path) -> None:
     pkg.mkdir(parents=True)
     (pkg / "server.py").write_text('logger.info("logging in with %s", api_key)\n', encoding="utf-8")
     assert _check(tmp_path, "python", "PROTO-012") is not None
+
+
+def test_proto_012_pass_when_logging_key_names_not_values(tmp_path: Path) -> None:
+    # Regression for the unifi-mcp false positive: ``keys`` is a list of body
+    # field *names* (value-free), not a credential. Plural/compound key names
+    # must not trip the secret-variable check.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        'logger.info("PATCH %s keys=[%s]", path, ", ".join(keys))\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is None
+
+
+def test_proto_005_pass_with_writes_enabled_gate(tmp_path: Path) -> None:
+    # A ``writes_enabled`` mode gate separates read tools from write tools even
+    # when both register through a single entry point.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "def register_all_tools(mcp, config):\n    if not config.writes_enabled:\n        return\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-005") is None
+
+
+def test_proto_005_fail_without_separation(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text("def register_all_tools(mcp):\n    pass\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-005") is not None

@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 _TOOL_DECORATOR = re.compile(r"@mcp\.tool[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(")
 _GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
+# Anchored variant for whole Python identifiers in log calls: a credential
+# name ends in the secret word (key, api_key, secret_key, access_token, ...).
+# Plural/compound names like ``keys`` or ``key_names`` carry field-name labels,
+# not values, and must not trip the check.
+_SECRET_IDENTIFIER = re.compile(r"(?i)(?:^|_)(?:api_?)?(?:token|secret|password|passwd|key)$")
 
 
 def _python_sources(repo: Repo) -> list[Path]:
@@ -110,8 +115,7 @@ def _combined_source_text(repo: Repo) -> str:
 def _check_read_write_split(repo: Repo) -> str | None:
     text = _combined_source_text(repo)
     if (
-        "ENABLE_WRITE" in text
-        or "AllowWrites" in text
+        re.search(r"(?i)(enable_?writes?|allow_?writes?|writes?_enabled)", text)
         or "register_read" in text
         or "register_write" in text
     ):
@@ -195,7 +199,7 @@ def _secret_var_in_log_call(call: str) -> str | None:
     # identifiers, not human-readable text like "...capture the API key.".
     stripped = _STRING_LITERAL.sub("", call)
     for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b", stripped):
-        if _SECRET_NAME.search(var):
+        if _SECRET_IDENTIFIER.search(var):
             return var
     return None
 
