@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 _GOLANGCI_REQUIRED = ("errcheck", "govet", "staticcheck", "unused", "gocritic")
 _GO_ONLY = frozenset({"go"})
-_SKIP_DIRS = frozenset({".git", ".worktrees", "vendor", "node_modules"})
+_SKIP_DIRS = frozenset({"vendor", "node_modules"})
 
 # Matches a real `go` statement on a source line: the `go` keyword at a point
 # where a statement can begin (line start, or after `{`/`;`), then a function
@@ -59,7 +59,9 @@ def _skipped(p: Path, root: Path) -> bool:
         rel_parts = p.relative_to(root).parts
     except ValueError:
         return True
-    return any(part in _SKIP_DIRS for part in rel_parts)
+    # Skip dot-prefixed dirs (.git, .claude/worktrees, .venv, ...) so stale
+    # repo copies under agent worktrees or caches don't poison the heuristics.
+    return any(part.startswith(".") or part in _SKIP_DIRS for part in rel_parts)
 
 
 def _check_layout(repo: Repo) -> str | None:
