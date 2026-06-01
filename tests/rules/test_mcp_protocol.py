@@ -73,6 +73,51 @@ def test_proto_012_pass_when_logging_key_names_not_values(tmp_path: Path) -> Non
     assert _check(tmp_path, "python", "PROTO-012") is None
 
 
+def test_proto_012_pass_when_secret_name_in_string_with_inner_paren(tmp_path: Path) -> None:
+    # Regression for the shortcut-mcp false positive: a ``)`` inside the format
+    # string used to truncate the log-call match before the literal was stripped,
+    # leaving the secret-shaped word visible to the identifier scan.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'logger.error("Shortcut tools disabled: SHORTCUT_API_TOKEN not set (see README)")\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is None
+
+
+def test_proto_012_pass_when_bare_key_loop_var_logged(tmp_path: Path) -> None:
+    # Regression for the flipperzero-mcp false positive: ``key`` here is a device
+    # property name iterated in a loop, not a credential. Only qualified forms
+    # (api_key, secret_key, ...) name secrets.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "rpc.py").write_text(
+        'logger.debug("property.get(%s) failed", key, exc_info=True)\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is None
+
+
+def test_proto_012_fail_when_qualified_key_logged(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('logger.info("using %s", api_key)\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-012") is not None
+
+
+def test_proto_012_pass_when_redaction_helper_called_in_log(tmp_path: Path) -> None:
+    # Regression for the unifi-mcp false positive: ``_scrub_secret`` is a
+    # redaction helper invoked in the log call, not a logged credential.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "base.py").write_text(
+        'logger.debug("response: %s", self._scrub_secret(str(payload)))\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is None
+
+
 def test_proto_005_pass_with_writes_enabled_gate(tmp_path: Path) -> None:
     # A ``writes_enabled`` mode gate separates read tools from write tools even
     # when both register through a single entry point.
