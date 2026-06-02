@@ -53,3 +53,15 @@ A repo declares its stage inside the `## Status` section already required by
 MCP-007 (e.g. a line `Stage: S2`). The accepted token set is `S0`–`S4`. A repo
 whose `## Status` section carries no `S`-token is **unstaged**: the auditor runs
 every rule (no stage filtering) and emits the MCP-STAGE-DECL warning.
+
+## Meta-rules
+
+### MCP-STAGE-DECL — README declares a maturity stage [MAY]
+
+Fires when the `## Status` section carries no `S0`-`S4` token. MAY-tier, so it
+surfaces in the report without setting a nonzero exit code.
+
+### MCP-STAGE-DRIFT — declared stage matches repo signals [MAY]
+
+Fires when the declared stage contradicts the cheap structural signals (e.g. an
+`S0` repo with a `src/` tree, or an `S2`+ repo with no CI). MAY-tier.
