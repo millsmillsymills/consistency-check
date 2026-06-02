@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
@@ -65,18 +65,21 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Server logs to stderr in MCP mode",
         check=_check_logs_to_stderr,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="MCP-022",
         tier=Tier.SHOULD,
         statement="Structured log format",
         check=_check_structured_logs,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="MCP-023",
         tier=Tier.MUST,
         statement="Dependency manifest pinned (lockfile committed)",
         check=_check_lockfile,
+        min_stage=Stage.S2,
     ),
     Rule(
         id="MCP-024",
