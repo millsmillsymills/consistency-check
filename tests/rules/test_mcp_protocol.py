@@ -154,6 +154,13 @@ def test_proto_013_pass_when_print_routed_to_stderr(tmp_path: Path) -> None:
     assert _check(tmp_path, "python", "PROTO-013") is None
 
 
+def test_proto_013_pass_on_console_print_method(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("console.print('hello')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-013") is None
+
+
 def test_proto_013_fail_on_go_fmt_println(tmp_path: Path) -> None:
     (tmp_path / "internal").mkdir(parents=True)
     (tmp_path / "internal" / "srv.go").write_text(
@@ -178,6 +185,16 @@ def test_proto_014_pass_when_timeout_set(tmp_path: Path) -> None:
         "import httpx\nc = httpx.AsyncClient(base_url=url, timeout=10.0)\n", encoding="utf-8"
     )
     assert _check(tmp_path, "python", "PROTO-014") is None
+
+
+def test_proto_014_fail_when_timeout_only_in_identifier(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        "import httpx\nc = httpx.AsyncClient(headers=build_timeout_headers())\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-014") is not None
 
 
 def test_proto_014_fail_on_go_client_without_timeout(tmp_path: Path) -> None:
@@ -259,6 +276,16 @@ def test_proto_017_fail_on_sse_without_auth(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
     (pkg / "server.py").write_text("mcp.run(transport='sse', host='0.0.0.0')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-017") is not None
+
+
+def test_proto_017_fail_when_guard_words_only_substrings(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        "mcp.run(transport='sse', host='0.0.0.0')\noriginator = author = 'x'\n",
+        encoding="utf-8",
+    )
     assert _check(tmp_path, "python", "PROTO-017") is not None
 
 

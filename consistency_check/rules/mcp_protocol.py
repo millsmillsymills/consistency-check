@@ -234,7 +234,7 @@ def _code_only(text: str, line_comment: str) -> str:
     return re.sub(rf"{re.escape(line_comment)}.*", "", text)
 
 
-_PY_PRINT = re.compile(r"\bprint\s*\(")
+_PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
 _GO_STDOUT = re.compile(r"\bfmt\.(?:Print|Printf|Println)\s*\(|\bos\.Stdout\b")
 
 
@@ -276,7 +276,7 @@ def _untimed_http_clients(repo: Repo) -> list[str]:
             bad.extend(
                 p.name
                 for m in _PY_HTTP_CLIENT.finditer(text)
-                if "timeout" not in _balanced(text, m.end() - 1, "(", ")")
+                if "timeout=" not in _balanced(text, m.end() - 1, "(", ")")
             )
         return bad
     for p in _go_sources(repo):
@@ -284,7 +284,7 @@ def _untimed_http_clients(repo: Repo) -> list[str]:
         bad.extend(
             p.name
             for m in _GO_HTTP_CLIENT.finditer(text)
-            if "Timeout" not in _balanced(text, m.end() - 1, "{", "}")
+            if "Timeout:" not in _balanced(text, m.end() - 1, "{", "}")
         )
     return bad
 
@@ -343,8 +343,8 @@ _HTTP_TRANSPORT = re.compile(
     r"(?i)transport\s*[=:]\s*['\"](?:sse|streamable-?http|http)"
     r"|streamable[_-]?http|sse[_-]?(?:server|mux|listener)|serveSSE|MCP_TRANSPORT"
 )
-_TRANSPORT_AUTH = re.compile(r"(?i)bearer|authorization|\bauth\b")
-_TRANSPORT_HOST_GUARD = re.compile(r"(?i)127\.0\.0\.1|localhost|loopback|origin")
+_TRANSPORT_AUTH = re.compile(r"(?i)\bbearer\b|\bauthorization\b|\bauth\b")
+_TRANSPORT_HOST_GUARD = re.compile(r"(?i)127\.0\.0\.1|localhost|loopback|\borigin\b")
 
 
 def _check_http_transport_security(repo: Repo) -> str | None:
