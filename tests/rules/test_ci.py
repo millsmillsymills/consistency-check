@@ -35,3 +35,25 @@ def test_mcp_017_fail_on_unpinned_action(good_python_repo: Path) -> None:
         encoding="utf-8",
     )
     assert _check(good_python_repo, "python", "MCP-017") is not None
+
+
+def test_mcp_025_pass_on_coverage_floor(good_python_repo: Path) -> None:
+    assert _check(good_python_repo, "python", "MCP-025") is None
+
+
+def test_mcp_025_fail_without_coverage_floor(good_python_repo: Path) -> None:
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace(" --cov=good_python --cov-fail-under=90", ""), encoding="utf-8"
+    )
+    assert _check(good_python_repo, "python", "MCP-025") is not None
+
+
+def test_mcp_026_pass_on_vuln_scan(good_python_repo: Path) -> None:
+    assert _check(good_python_repo, "python", "MCP-026") is None
+
+
+def test_mcp_026_fail_without_vuln_scan(good_python_repo: Path) -> None:
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(ci.read_text().replace("- run: uv run pip-audit\n", ""), encoding="utf-8")
+    assert _check(good_python_repo, "python", "MCP-026") is not None
