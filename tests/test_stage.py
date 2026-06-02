@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from consistency_check.stage import declared_stage, next_stage, stage_rank
+from consistency_check.stage import (
+    declared_stage,
+    has_scope_exception,
+    next_stage,
+    stage_rank,
+    surface_operations,
+)
 from consistency_check.types import Repo, Stage
 
 if TYPE_CHECKING:
@@ -51,3 +57,32 @@ def test_stage_rank_orders_s0_below_s4() -> None:
 def test_next_stage_returns_successor_and_none_at_top() -> None:
     assert next_stage(Stage.S2) is Stage.S3
     assert next_stage(Stage.S4) is None
+
+
+def test_surface_operations_parses_bullets(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "SCOPE.md").write_text(
+        "# Scope\n\n## Surface\n- list_devices\n- create_wlan\n\n## Auth\nAPI key.\n",
+        encoding="utf-8",
+    )
+    assert surface_operations(_repo(tmp_path)) == ["list_devices", "create_wlan"]
+
+
+def test_surface_operations_empty_without_scope_file(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    assert surface_operations(_repo(tmp_path)) == []
+
+
+def test_has_scope_exception_detects_heading(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "SCOPE.md").write_text(
+        "## Surface\n- x\n\n## Scope exception\nWLAN only; rest out of scope.\n",
+        encoding="utf-8",
+    )
+    assert has_scope_exception(_repo(tmp_path)) is True
+
+
+def test_has_scope_exception_false_without_heading(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "SCOPE.md").write_text("## Surface\n- x\n", encoding="utf-8")
+    assert has_scope_exception(_repo(tmp_path)) is False
