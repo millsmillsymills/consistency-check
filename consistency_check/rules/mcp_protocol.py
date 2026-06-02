@@ -123,20 +123,22 @@ def _combined_source_text(repo: Repo) -> str:
     return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sources)
 
 
+# Shared so PROTO-005 (split) and PROTO-006 (gate) recognise the same env-flag
+# spellings. PROTO-005 additionally accepts structural separation (register_read
+# / register_write); PROTO-006 requires the flag itself.
+_WRITE_FLAG = re.compile(r"(?i)(enable_?writes?|allow_?writes?|writes?_enabled)")
+
+
 def _check_read_write_split(repo: Repo) -> str | None:
     text = _combined_source_text(repo)
-    if (
-        re.search(r"(?i)(enable_?writes?|allow_?writes?|writes?_enabled)", text)
-        or "register_read" in text
-        or "register_write" in text
-    ):
+    if _WRITE_FLAG.search(text) or "register_read" in text or "register_write" in text:
         return None
     return "no read/write tool separation detected"
 
 
 def _check_write_gate(repo: Repo) -> str | None:
     text = _combined_source_text(repo)
-    if re.search(r"(?i)(ENABLE_WRITE|ALLOW_WRITE|writes?_enabled)", text):
+    if _WRITE_FLAG.search(text):
         return None
     return "no env-flag write-gate detected"
 
