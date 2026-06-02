@@ -13,6 +13,7 @@ from consistency_check.report import (
     render_umbrella,
     umbrella_issue_title,
 )
+from consistency_check.stage import declared_stage
 from consistency_check.types import FindingStatus, Tier
 
 if TYPE_CHECKING:
@@ -48,7 +49,7 @@ def file_repo_findings(repo: Repo, findings: list[Finding], *, apply: bool) -> N
         msg = "gh auth status failed; run `gh auth login` first."
         raise RuntimeError(msg)
 
-    umbrella_body = render_umbrella(repo.name, findings)
+    umbrella_body = render_umbrella(repo.name, findings, declared_stage=declared_stage(repo))
     _upsert_issue(
         repo.github_slug,
         umbrella_issue_title(repo.name),

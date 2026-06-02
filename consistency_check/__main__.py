@@ -10,6 +10,7 @@ from consistency_check import repos as repos_mod
 from consistency_check.audit import audit_repo
 from consistency_check.filer import file_repo_findings
 from consistency_check.report import render_umbrella
+from consistency_check.stage import declared_stage
 from consistency_check.types import FindingStatus, Tier
 
 
@@ -44,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     for repo in repos:
         findings = audit_repo(repo)
-        body = render_umbrella(repo.name, findings)
+        body = render_umbrella(repo.name, findings, declared_stage=declared_stage(repo))
         if args.out:
             args.out.mkdir(parents=True, exist_ok=True)
             (args.out / f"{repo.name}.md").write_text(body, encoding="utf-8")
