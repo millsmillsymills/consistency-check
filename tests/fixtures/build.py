@@ -133,7 +133,8 @@ def build_good_python(root: Path) -> Path:
             steps:
               - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791  # v4.1.7
               - run: uv run ruff check .
-              - run: uv run pytest -q
+              - run: uv run pip-audit
+              - run: uv run pytest -q --cov=good_python --cov-fail-under=90
     """,
     )
     _write(root / ".github" / "workflows" / "security.yml", "name: security\non: schedule\n")
@@ -249,7 +250,8 @@ def build_good_go(root: Path) -> Path:
             steps:
               - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791  # v4.1.7
               - run: gofmt -d .
-              - run: go test ./... -race -count=1
+              - run: govulncheck ./...
+              - run: go test ./... -race -count=1 -covermode=atomic -coverprofile=cover.out
     """,
     )
     _write(root / ".github" / "dependabot.yml", "version: 2\nupdates: []\n")
