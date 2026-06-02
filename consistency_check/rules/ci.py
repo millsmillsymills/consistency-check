@@ -1,4 +1,4 @@
-"""Rules: CI / release (MCP-014, 015, 016, 017, 018)."""
+"""Rules: CI / release (MCP-014, 015, 016, 017, 018, 025, 026)."""
 
 from __future__ import annotations
 
@@ -58,6 +58,33 @@ def _check_actions_pinned(repo: Repo) -> str | None:
     return None
 
 
+_COVERAGE_GATE = re.compile(r"(?i)cov-fail-under|fail_under|covermode|coverprofile")
+_VULN_SCAN = re.compile(
+    r"(?i)pip-audit|govulncheck|osv-scanner|\btrivy\b|\bgrype\b|safety check"
+    r"|dependency-review|\bsnyk\b"
+)
+
+
+def _ci_corpus(repo: Repo) -> str:
+    parts = [wf.read_text(encoding="utf-8", errors="replace") for wf in _read_workflows(repo)]
+    pyproject = repo.path / "pyproject.toml"
+    if pyproject.is_file():
+        parts.append(pyproject.read_text(encoding="utf-8", errors="replace"))
+    return "\n".join(parts)
+
+
+def _check_coverage_threshold(repo: Repo) -> str | None:
+    if _COVERAGE_GATE.search(_ci_corpus(repo)):
+        return None
+    return "CI does not enforce a coverage threshold (cov-fail-under / -covermode)"
+
+
+def _check_vuln_scan(repo: Repo) -> str | None:
+    if _VULN_SCAN.search(_ci_corpus(repo)):
+        return None
+    return "CI runs no dependency vulnerability scan (pip-audit / govulncheck)"
+
+
 def _check_release_workflow(repo: Repo) -> str | None:
     if (repo.path / ".github" / "workflows" / "release.yml").is_file():
         return None
@@ -100,5 +127,17 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MAY,
         statement="Release workflow exists",
         check=_check_release_workflow,
+    ),
+    Rule(
+        id="MCP-025",
+        tier=Tier.SHOULD,
+        statement="CI enforces a coverage threshold",
+        check=_check_coverage_threshold,
+    ),
+    Rule(
+        id="MCP-026",
+        tier=Tier.MUST,
+        statement="CI runs a dependency vulnerability scan",
+        check=_check_vuln_scan,
     ),
 )
