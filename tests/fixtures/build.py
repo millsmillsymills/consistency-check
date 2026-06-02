@@ -24,7 +24,7 @@ def build_good_python(root: Path) -> Path:
         # good-python
 
         ## Status
-        Alpha.
+        Alpha. Stage: S3.
 
         ## Quick Start
         Install: ``pip install good-python``.
@@ -245,7 +245,7 @@ def build_good_go(root: Path) -> Path:
         # good-go
 
         ## Status
-        Alpha.
+        Alpha. Stage: S3.
 
         ## Install
         ``go install`` it.
