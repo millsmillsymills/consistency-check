@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from consistency_check.types import FindingStatus, Repo, Rule, Tier
+from consistency_check.types import Finding, FindingStatus, Repo, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -26,3 +26,17 @@ def test_repo_dataclass_is_frozen(tmp_path: Path) -> None:
     except Exception:  # noqa: BLE001
         return
     raise AssertionError("Repo should be frozen")
+
+
+def test_stage_enum_values() -> None:
+    assert [s.value for s in Stage] == ["S0", "S1", "S2", "S3", "S4"]
+
+
+def test_rule_min_stage_defaults_to_s3() -> None:
+    rule = Rule(id="X-001", tier=Tier.MUST, statement="x", check=lambda _r: None)
+    assert rule.min_stage is Stage.S3
+
+
+def test_finding_min_stage_defaults_to_s3() -> None:
+    finding = Finding(rule_id="X-001", tier=Tier.MUST, status=FindingStatus.PASS)
+    assert finding.min_stage is Stage.S3
