@@ -12,7 +12,15 @@ if TYPE_CHECKING:
 
     from consistency_check.types import Repo
 
-_TOOL_DECORATOR = re.compile(r"@mcp\.tool[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(")
+# The optional ``(...)`` block (one level of nesting) lets the decorator args
+# span multiple lines; without it a split ``@mcp.tool(\n  name=...\n)`` decorator
+# matched nothing and the tool was invisible to every PROTO-* tool check. group(0)
+# therefore spans the whole decorator, so PROTO-015's ``description=`` test sees
+# args on their own line too.
+_TOOL_DECORATOR = re.compile(
+    r"@mcp\.tool(?:\s*\((?:[^()]|\([^()]*\))*\))?"
+    r"[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\("
+)
 _GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
 # Anchored variant for whole Python identifiers in log calls. ``token``,

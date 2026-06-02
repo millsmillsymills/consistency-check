@@ -35,6 +35,39 @@ def test_proto_002_fail_on_unprefixed_tool(tmp_path: Path) -> None:
     assert _check(repo_root, "python", "PROTO-002") is not None
 
 
+def test_proto_002_detects_multiline_decorator_tool(tmp_path: Path) -> None:
+    # A decorator whose args span lines used to match nothing, hiding the tool.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(\n    name="x",\n)\ndef list_things(): pass\n', encoding="utf-8"
+    )
+    assert _check(repo_root, "python", "PROTO-002") is not None
+
+
+def test_proto_015_pass_with_multiline_decorator_description(tmp_path: Path) -> None:
+    # ``description=`` on its own decorator line must satisfy PROTO-015.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(\n    description="List things",\n)\n'
+        'def good_python_list(x: int) -> str:\n    return ""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is None
+
+
+def test_proto_015_fail_on_undescribed_multiline_tool(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(\n    name="x",\n)\ndef good_python_list(x: int) -> str:\n    return ""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is not None
+
+
 def test_proto_011_fail_on_token_cli_arg(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
