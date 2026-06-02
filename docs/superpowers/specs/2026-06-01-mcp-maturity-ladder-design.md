@@ -51,6 +51,11 @@ Each rung is defined by: its definition, the artifacts it requires, the
 promotion gate to the next rung, and which `consistency-check` rules apply at
 that rung.
 
+The per-rung rule citations below are **illustrative**, not exhaustive. The
+authoritative `min_stage` assignment for all 43 rules (MCP-001–026,
+PROTO-001–017) is produced during implementation and lives in `stages.md`; it
+must cover every rule, not just the representative ones named here.
+
 ### S0 — Documented
 
 Docs-first repo, **no `src/`**. The repo *is* the deliverable: it teaches an
@@ -68,9 +73,15 @@ agent (or human) to drive the target API/CLI by hand.
 **Gate to S1:** an agent can complete every runbook by hand using only the repo
 contents — no external knowledge of the API required.
 
-**Rules that apply:** file/hygiene/license MUSTs (MCP-001, MCP-002, MCP-005,
-MCP-006) and README sections (MCP-007). PROTO-* tool rules are **N/A at S0** — a
-docs-only repo must not be dinged for "no tools."
+**Rules that apply:** the repo/file/security MUSTs that bind regardless of code —
+MCP-001 (top-level files, which also requires `LICENSE`, `CLAUDE.md`, and
+`SECURITY.md`, not just the artifacts listed above), MCP-002 (LICENSE/SPDX),
+MCP-005/006 (no build artifacts, `.gitignore`), MCP-007 (README sections),
+MCP-009 (CLAUDE.md references standards), MCP-019 (no committed secrets),
+MCP-020 (SECURITY.md disclosure path) — plus MCP-010 (`docs/` exists, SHOULD,
+trivially met by a docs-first repo). PROTO-* tool rules and the test/CI/logging
+MUSTs (MCP-011/014/021…) are **N/A at S0** — a docs-only repo must not be dinged
+for "no tools," "no tests," or "no server."
 
 ### S1 — Walking skeleton
 
@@ -144,7 +155,10 @@ as net-new auditor work.
 
 The accepted token set is `S0`–`S4`. A repo whose `## Status` section carries a
 release/maturity word but no `S`-token is treated as **unstaged** and the auditor
-emits a warning rather than guessing.
+emits a warning rather than guessing. Verified against the current suite: all six
+servers use prose Status lines ("v1.", "Feature-complete", "Under active
+development") with no `S`-token, so on rollout every existing repo parses as
+unstaged until its README is annotated — the intended, non-crashing default.
 
 ## consistency-check integration
 
