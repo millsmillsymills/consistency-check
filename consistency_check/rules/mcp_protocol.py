@@ -204,11 +204,15 @@ def _check_no_secret_logging(repo: Repo) -> str | None:
         # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
         # "...not set (see README)") cannot truncate the log-call match.
         text = _STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
-        for m in re.finditer(r"(?:logger|log)\.\w+\(([^)]*)\)", text):
+        for m in re.finditer(r"(?:logger|log)\.\w+\(", text):
+            # Balanced extraction (not ``[^)]*``) so a credential logged after a
+            # nested call — ``logger.info("%s", redact(x), api_key)`` — is still
+            # seen; ``[^)]*`` would stop at the first inner ``)``.
+            args = _balanced(text, m.end() - 1, "(", ")")
             # The negative lookahead skips identifiers in call position, so a
             # redaction helper (``_scrub_secret(...)``) is not mistaken for a
             # logged credential; only value identifiers are inspected.
-            for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\()", m.group(1)):
+            for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\()", args):
                 if _SECRET_IDENTIFIER.search(var):
                     return f"possible secret-shaped variable in log call: {var} ({p.name})"
     return None
