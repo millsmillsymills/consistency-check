@@ -10,7 +10,11 @@
 
 **Source of truth:** `docs/superpowers/specs/2026-06-01-mcp-maturity-ladder-design.md`.
 
-**Branch:** `docs/mcp-maturity-ladder` (already checked out; the spec lives here).
+**Branch:** create a fresh feature branch off `main` before executing (`git checkout -b feat/mcp-maturity-ladder`). The spec and this plan are already on `main` (merged via PRs #30/#32). **Do not commit task work to `main` directly.**
+
+**Per-task hygiene (every task):** before each `git commit`, run `uv run ruff format <touched files> && uv run ruff check <touched files> && uv run ty check` and fix all findings. Lint is part of green-at-every-commit, not just the Task 10 sweep.
+
+> **Starting-state note:** Task 1 may already be applied in the working tree (a `Stage` enum + `min_stage` fields in `types.py`, with tests in `test_types.py`). If so, verify it matches Task 1 below, commit it on the feature branch, and start from Task 2. Do not re-add it.
 
 ---
 
@@ -354,7 +358,8 @@ def has_scope_exception(repo: Repo) -> bool:
     scope = repo.path / "SCOPE.md"
     if not scope.is_file():
         return False
-    return _EXCEPTION_HEADING.search(scope.read_text(encoding="utf-8", errors="replace")) is not None
+    text = scope.read_text(encoding="utf-8", errors="replace")
+    return _EXCEPTION_HEADING.search(text) is not None
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -926,7 +931,12 @@ Replace the body of the `for rule in all_rules():` loop in `audit_repo` so it st
     for rule in all_rules():
         if repo.language not in rule.applies_to:
             findings.append(
-                Finding(rule_id=rule.id, tier=rule.tier, status=FindingStatus.NA, min_stage=rule.min_stage)
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.NA,
+                    min_stage=rule.min_stage,
+                )
             )
             continue
         if declared is not None and stage_rank(rule.min_stage) > stage_rank(declared):
