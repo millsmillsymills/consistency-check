@@ -424,6 +424,27 @@ def test_drift_go_source_tree_accepts_cmd(tmp_path: Path) -> None:
     (tmp_path / ".github" / "workflows").mkdir(parents=True)
     (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
     assert drift_signal(_repo(tmp_path, language="go"), Stage.S2) is None
+
+
+def test_drift_ceiling_ci_below_s2(tmp_path: Path) -> None:
+    from consistency_check.stage import drift_signal
+
+    (tmp_path / "src").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    # Declared S1 but CI present -> looks like S2+.
+    assert drift_signal(_repo(tmp_path), Stage.S1) is not None
+
+
+def test_drift_ceiling_integration_below_s3(tmp_path: Path) -> None:
+    from consistency_check.stage import drift_signal
+
+    (tmp_path / "src").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    (tmp_path / "tests" / "integration").mkdir(parents=True)
+    # Declared S2 but integration tests present -> looks like S3+.
+    assert drift_signal(_repo(tmp_path), Stage.S2) is not None
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -476,8 +497,17 @@ def drift_signal(repo: Repo, declared: Stage) -> str | None:
         return "declared S3+ but no integration-test directory found"
     if declared is Stage.S4 and not _has_release_path(repo):
         return "declared S4 but no release pipeline or deployment manifest found"
+    # Ceiling signals: structure exceeds the declared stage (catches under-declaration).
+    if stage_rank(declared) < stage_rank(Stage.S2) and _has_ci(repo):
+        return f"declared {declared.value} but a CI workflow is present (looks S2+)"
+    if stage_rank(declared) < stage_rank(Stage.S3) and _has_integration_marker(repo):
+        return f"declared {declared.value} but integration tests are present (looks S3+)"
+    if stage_rank(declared) < stage_rank(Stage.S4) and _has_release_path(repo):
+        return f"declared {declared.value} but a release pipeline is present (looks S4)"
     return None
 ```
+
+The ceiling clauses are why the good fixtures (which carry a `tests/integration/` dir) declare **S3**, not S2 — at S3 the integration-presence ceiling does not fire. See Task 6 Step 7.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -738,17 +768,17 @@ In `tests/fixtures/build.py`, change the good-Python README `## Status` body (li
 
 ```
         ## Status
-        Alpha. Stage: S2.
+        Alpha. Stage: S3.
 ```
 
 and the good-Go README `## Status` body (line ~248) from `Alpha.` to:
 
 ```
         ## Status
-        Alpha. Stage: S2.
+        Alpha. Stage: S3.
 ```
 
-(The good fixtures have a source tree and a `ci.yml`, so `S2` produces no drift. Leave the bad fixtures unstaged.)
+Declare **S3** (not S2): both good fixtures carry a `tests/integration/` (Python) or `integration/` (Go) dir, so the ceiling drift clause would fire "integration present, looks S3+" at any stage below S3. At S3 the fixtures have source tree + CI + integration dir and no release path, so `drift_signal` returns None. Leave the bad fixtures unstaged.
 
 - [ ] **Step 8: Exempt MCP-STAGE-DRIFT on the unstaged bad fixtures**
 
@@ -1251,6 +1281,7 @@ git add <path-to-SKILL.md> && git commit -m "Add S0 docs-first Phase 0 to build-
 ## Self-review notes (already reconciled in this plan)
 
 - **Spec coverage:** three orthogonal axes (Task 1 `Stage`), the S0–S4 ladder + `min_stage` (Tasks 5, 7), stage declaration via README `## Status` (Task 2), SCOPE.md format (Task 3), drift signals / risk table (Task 4), MCP-STAGE-DECL/DRIFT as MAY findings reusing the Finding model (Task 6), stage-aware evaluation + next-gate reporting (Tasks 8, 9), doctrine + on-ramp (Tasks 11, 12).
+- **Under-declaration footgun (addressed):** Task 4's `drift_signal` includes **ceiling** clauses (CI present below S2, integration tests below S3, release path below S4) so MCP-STAGE-DRIFT warns when a repo claims a lower stage than its structure implies — closing the "declare S1 to turn S2+ MUSTs into n/a" gaming vector. MAY-tier, so it never fails an audit.
 - **Deferred (named, not silently dropped):** the **quantitative S3 coverage check** (count wrapped tools vs `## Surface` bullets) is *not* implemented here. `surface_operations()` (Task 3) provides the parser, but cross-language tool-counting is a project of its own and no current repo declares a stage, so the coverage comparison is left as a follow-up. The S3 drift signal (integration-test presence) is the coarse stand-in. Flag this to the user.
 - **Naming reconciliation:** the spec's `MCP-STAGE-DECL`/`MCP-STAGE-DRIFT` names are kept verbatim by extending the meta-test heading regex (Task 6), rather than renumbering them as `MCP-027/028`.
 - **Backward compatibility:** all six current repos parse as unstaged → no rules filtered, one new MAY finding each (MCP-STAGE-DECL), exit codes unchanged.
