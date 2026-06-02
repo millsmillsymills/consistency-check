@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -384,36 +384,42 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Tool names use snake_case",
         check=_check_snake_case,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="PROTO-002",
         tier=Tier.MUST,
         statement="Tool names prefixed with namespace",
         check=_check_namespace_prefix,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="PROTO-003",
         tier=Tier.MUST,
         statement="Each tool has a typed input schema",
         check=_check_typed_inputs,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="PROTO-004",
         tier=Tier.MUST,
         statement="Each tool has Args/Returns docstring",
         check=_check_docstrings,
+        min_stage=Stage.S1,
     ),
     Rule(
         id="PROTO-005",
         tier=Tier.SHOULD,
         statement="Read tools and write tools separated",
         check=_check_read_write_split,
+        min_stage=Stage.S2,
     ),
     Rule(
         id="PROTO-006",
         tier=Tier.MUST,
         statement="Write tools require explicit env-flag opt-in",
         check=_check_write_gate,
+        min_stage=Stage.S2,
     ),
     Rule(
         id="PROTO-007",

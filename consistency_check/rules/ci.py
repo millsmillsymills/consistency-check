@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -145,6 +145,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="ci.yml triggers on push and pull_request",
         check=_check_ci_workflow,
+        min_stage=Stage.S2,
     ),
     Rule(
         id="MCP-015",
@@ -163,12 +164,14 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="GitHub Actions pinned to SHA",
         check=_check_actions_pinned,
+        min_stage=Stage.S2,
     ),
     Rule(
         id="MCP-018",
         tier=Tier.MAY,
         statement="Release workflow exists",
         check=_check_release_workflow,
+        min_stage=Stage.S4,
     ),
     Rule(
         id="MCP-025",
