@@ -75,3 +75,35 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 ### PROTO-012 — Secrets never logged [MUST]
 
 **Mechanical check.** No log statement formats a variable whose name matches the regex above. Auditor inspects all `logger.*` / `log.*` call sites, stripping string-literal contents first so human-readable text inside the format string (e.g. `"...capture the API key."`) does not produce false positives.
+
+## Transport and runtime safety
+
+### PROTO-013 — stdout reserved for JSON-RPC [MUST]
+
+**Rationale.** Under the stdio transport, stdout carries the JSON-RPC frame stream. Any stray byte written to stdout corrupts the protocol and disconnects the host.
+
+**Mechanical check.** Source contains no stdout write. Python: no `print(...)` call without `file=` routing it elsewhere. Go: no `fmt.Print`/`Printf`/`Println` and no `os.Stdout` write. Diagnostics go to stderr (see MCP-021).
+
+### PROTO-014 — Outbound HTTP clients set an explicit timeout [MUST]
+
+**Rationale.** A client with no timeout can hang indefinitely and stall the host waiting on the tool. Go's `http.Client` has no default timeout; an explicit one is mandatory and is required everywhere for clarity.
+
+**Mechanical check.** Every HTTP client construction sets a timeout. Python: `httpx.Client(...)` / `httpx.AsyncClient(...)` includes a `timeout=` argument. Go: `http.Client{...}` includes a `Timeout:` field.
+
+### PROTO-015 — Each tool has a description summary [MUST]
+
+**Rationale.** The host model selects tools from their description. A tool with typed Args but no summary line (see PROTO-004) ships blind to the model.
+
+**Mechanical check.** Each `@mcp.tool` function either passes `description=` to the decorator or opens with a docstring whose first non-empty line is a summary (not an `Args:`/`Returns:` section header).
+
+### PROTO-016 — Tools declare MCP annotations [SHOULD]
+
+**Rationale.** MCP tool annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) let a host gate or auto-approve calls — read-only tools can run unattended, destructive ones can demand confirmation. Without them the client must treat every tool as opaque and equally dangerous.
+
+**Mechanical check.** A repo that defines at least one tool also references a tool-annotation marker somewhere in its source: one of `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint` (or their snake_case forms) or a `ToolAnnotations` constructor. A server that exposes no tools passes vacuously.
+
+### PROTO-017 — HTTP/SSE transport requires auth and a loopback guard [MUST]
+
+**Rationale.** PROTO-008 keeps stdio the default and puts HTTP/SSE behind a flag, but once a network transport is enabled the server is reachable by other processes and, via DNS rebinding, by web pages. The MCP spec requires local HTTP servers to authenticate requests and to validate the `Origin`/`Host` header (or bind to loopback) so a browser cannot drive the server.
+
+**Mechanical check.** Only fires when the source enables a network transport (an `sse`/`streamable-http`/`http` transport selection, an SSE server/mux/listener, or an `MCP_TRANSPORT` switch). When it does, the source must also show **both** an auth marker (`bearer` / `authorization` / `auth`) **and** a host-guard marker (`127.0.0.1` / `localhost` / `loopback` / `origin`). stdio-only servers pass vacuously.
