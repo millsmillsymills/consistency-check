@@ -80,7 +80,18 @@ def test_mcp_026_fail_when_safety_check_only_in_comment(good_python_repo: Path) 
     # Prose mentioning a safety check is not a scan; only a run: command counts.
     ci = good_python_repo / ".github" / "workflows" / "ci.yml"
     ci.write_text(
-        ci.read_text().replace("- run: uv run pip-audit", "# TODO: improve safety checks here"),
+        ci.read_text().replace("- run: uv run pip-audit", "# TODO: improve safety check here"),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "python", "MCP-026") is not None
+
+
+def test_mcp_026_fail_when_safety_check_commented_in_block_scalar(good_python_repo: Path) -> None:
+    # A shell comment inside a ``run: |`` block scalar is not a scan either.
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    block = "- run: |\n          echo build\n          # safety check here"
+    ci.write_text(
+        ci.read_text().replace("- run: uv run pip-audit", block),
         encoding="utf-8",
     )
     assert _check(good_python_repo, "python", "MCP-026") is not None
