@@ -49,8 +49,41 @@ def test_mcp_025_fail_without_coverage_floor(good_python_repo: Path) -> None:
     assert _check(good_python_repo, "python", "MCP-025") is not None
 
 
+def test_mcp_025_pass_on_go_coverage_gate(good_go_repo: Path) -> None:
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
+def test_mcp_025_fail_on_bare_coverprofile(good_go_repo: Path) -> None:
+    # A coverprofile report with no threshold gate must not clear MCP-025.
+    ci = good_go_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace("go-test-coverage --config .testcoverage.yml", "true"),
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
 def test_mcp_026_pass_on_vuln_scan(good_python_repo: Path) -> None:
     assert _check(good_python_repo, "python", "MCP-026") is None
+
+
+def test_mcp_026_pass_on_safety_check_run_step(good_python_repo: Path) -> None:
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace("- run: uv run pip-audit", "- run: uv run safety check"),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "python", "MCP-026") is None
+
+
+def test_mcp_026_fail_when_safety_check_only_in_comment(good_python_repo: Path) -> None:
+    # Prose mentioning a safety check is not a scan; only a run: command counts.
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace("- run: uv run pip-audit", "# TODO: improve safety checks here"),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "python", "MCP-026") is not None
 
 
 def test_mcp_026_fail_without_vuln_scan(good_python_repo: Path) -> None:

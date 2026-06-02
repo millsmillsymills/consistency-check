@@ -58,11 +58,21 @@ def _check_actions_pinned(repo: Repo) -> str | None:
     return None
 
 
-_COVERAGE_GATE = re.compile(r"(?i)cov-fail-under|fail_under|covermode|coverprofile")
-_VULN_SCAN = re.compile(
-    r"(?i)pip-audit|govulncheck|osv-scanner|\btrivy\b|\bgrype\b|safety check"
-    r"|dependency-review|\bsnyk\b"
+# A bare ``-coverprofile`` / ``-covermode`` only emits a report; it does not
+# gate the build. Require a real coverage floor: pytest-cov's
+# ``--cov-fail-under`` (Python) or a Go coverage-gate (``go-test-coverage`` /
+# a ``threshold-total`` check).
+_COVERAGE_GATE = re.compile(
+    r"(?i)cov-fail-under|fail_under|go-test-coverage|threshold[-_]?(?:total|file|package)"
 )
+_VULN_SCAN = re.compile(
+    r"(?i)pip-audit|govulncheck|osv-scanner|\btrivy\b|\bgrype\b|dependency-review|\bsnyk\b"
+)
+# ``safety check`` is two ordinary words, so a comment like ``# improves safety
+# checks`` used to clear this MUST. Count it only inside a workflow ``run:``
+# command body — the inline form or an indented ``run: |`` block scalar.
+_RUN_STEP = re.compile(r"(?im)^[ \t]*-?[ \t]*run:[ \t]*\|?(.*(?:\n[ \t]+.*)*)")
+_SAFETY_CHECK = re.compile(r"(?i)\bsafety\s+check\b")
 
 
 def _ci_corpus(repo: Repo) -> str:
@@ -79,8 +89,13 @@ def _check_coverage_threshold(repo: Repo) -> str | None:
     return "CI does not enforce a coverage threshold (cov-fail-under / -covermode)"
 
 
+def _runs_safety_check(corpus: str) -> bool:
+    return any(_SAFETY_CHECK.search(m.group(1)) for m in _RUN_STEP.finditer(corpus))
+
+
 def _check_vuln_scan(repo: Repo) -> str | None:
-    if _VULN_SCAN.search(_ci_corpus(repo)):
+    corpus = _ci_corpus(repo)
+    if _VULN_SCAN.search(corpus) or _runs_safety_check(corpus):
         return None
     return "CI runs no dependency vulnerability scan (pip-audit / govulncheck)"
 
