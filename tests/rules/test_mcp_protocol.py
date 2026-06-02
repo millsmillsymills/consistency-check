@@ -118,6 +118,17 @@ def test_proto_012_pass_when_redaction_helper_called_in_log(tmp_path: Path) -> N
     assert _check(tmp_path, "python", "PROTO-012") is None
 
 
+def test_proto_012_fail_when_secret_after_nested_call(tmp_path: Path) -> None:
+    # The matcher used to stop at the first ``)``, so a credential logged after
+    # a nested call (here ``redact(other)``) went unseen.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'logger.info("auth %s %s", redact(other), api_key)\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is not None
+
+
 def test_proto_005_pass_with_writes_enabled_gate(tmp_path: Path) -> None:
     # A ``writes_enabled`` mode gate separates read tools from write tools even
     # when both register through a single entry point.
