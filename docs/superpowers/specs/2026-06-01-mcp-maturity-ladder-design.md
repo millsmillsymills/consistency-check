@@ -135,18 +135,21 @@ docs.
 
 ## Stage declaration
 
-A repo declares its stage via the **`Status` line already required by MCP-007**
-in `README.md` (e.g. `Status: S2`). No new metadata file is introduced — single
-source of truth, and the auditor already parses the README.
+A repo declares its stage inside the **`## Status` section already required by
+MCP-007** in `README.md` (e.g. a `Status: S2` line under that heading). No new
+metadata file is introduced — single source of truth. Note MCP-007 today only
+checks that the `## Status` heading *exists*; it does not read the section body.
+This design adds the token-parsing step (extract an `S`-token from the section)
+as net-new auditor work.
 
-The accepted token set is `S0`–`S4`. A repo whose `Status` line carries a
+The accepted token set is `S0`–`S4`. A repo whose `## Status` section carries a
 release/maturity word but no `S`-token is treated as **unstaged** and the auditor
 emits a warning rather than guessing.
 
 ## consistency-check integration
 
 - Each rule gains a **`min_stage`** tag (`S0`–`S4`).
-- The auditor reads the repo's declared stage from the README `Status` line.
+- The auditor reads the repo's declared stage from the README `## Status` section.
 - It evaluates only rules whose `min_stage ≤ declared stage`, and **separately**
   reports "next-gate" rules — those at `declared stage + 1` — as the explicit
   promotion checklist.
