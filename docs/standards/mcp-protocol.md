@@ -32,7 +32,7 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Rationale.** Lets clients gate destructive ops independently.
 
-**Mechanical check.** Source contains either (a) two separate registration functions/maps named for read vs write, or (b) a runtime gate (e.g. `if ENABLE_WRITES:` / `if cfg.AllowWrites`) around every state-changing tool registration.
+**Mechanical check.** Source contains either (a) two separate registration functions/maps named for read vs write, or (b) a runtime gate (e.g. `if ENABLE_WRITES:` / `if cfg.AllowWrites` / `if config.writes_enabled:`) around every state-changing tool registration.
 
 ### PROTO-006 — Write tools require explicit env-flag opt-in [MUST]
 
