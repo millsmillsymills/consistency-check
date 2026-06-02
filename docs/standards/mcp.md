@@ -150,10 +150,10 @@ These rules apply to every MCP server in the suite regardless of language.
 
 **Rationale.** A test suite with no coverage floor silently rots: new code lands untested and the suite still goes green. A gate makes the regression visible at PR time rather than in production.
 
-**Mechanical check.** A workflow file or `pyproject.toml` references a coverage-floor token: `--cov-fail-under` / `fail_under` (Python) or `-covermode` / `-coverprofile` feeding a threshold check (Go).
+**Mechanical check.** A workflow file or `pyproject.toml` references a coverage-floor token: `--cov-fail-under` / `fail_under` (Python) or a Go coverage-gate (`go-test-coverage` or a `threshold-total`/`threshold-file`/`threshold-package` check). A bare `-coverprofile` / `-covermode` only emits a report and does not satisfy the gate.
 
 ### MCP-026 — CI runs a dependency vulnerability scan [MUST]
 
 **Rationale.** Dependencies are the largest attack surface in a small server. Dependabot (MCP-016) opens upgrade PRs but does not fail the build on a known-vulnerable pin; an explicit scan does, catching CVEs before merge.
 
-**Mechanical check.** A workflow file runs a vulnerability scanner: `pip-audit` (Python), `govulncheck` (Go), GitHub's `dependency-review` action, or a general scanner (`osv-scanner` / `trivy` / `grype` / `snyk` / `safety check`).
+**Mechanical check.** A workflow file runs a vulnerability scanner: `pip-audit` (Python), `govulncheck` (Go), GitHub's `dependency-review` action, or a general scanner (`osv-scanner` / `trivy` / `grype` / `snyk`, or a `safety check` invoked in a `run:` step). `safety check` is only counted inside a `run:` command, not in prose or comments.
