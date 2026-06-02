@@ -351,6 +351,7 @@ def build_good_go(root: Path) -> Path:
               - run: gofmt -d .
               - run: govulncheck ./...
               - run: go test ./... -race -count=1 -covermode=atomic -coverprofile=cover.out
+              - run: go-test-coverage --config .testcoverage.yml
     """,
     )
     _write(root / ".github" / "dependabot.yml", "version: 2\nupdates: []\n")
