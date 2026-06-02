@@ -72,3 +72,65 @@ def has_scope_exception(repo: Repo) -> bool:
         return False
     text = scope.read_text(encoding="utf-8", errors="replace")
     return _EXCEPTION_HEADING.search(text) is not None
+
+
+def _has_source_tree(repo: Repo) -> bool:
+    if repo.language == "go":
+        return (repo.path / "cmd").is_dir() or (repo.path / "internal").is_dir()
+    return (repo.path / "src").is_dir()
+
+
+def _has_ci(repo: Repo) -> bool:
+    workflows = repo.path / ".github" / "workflows"
+    return workflows.is_dir() and any(
+        p.suffix in {".yml", ".yaml"} for p in workflows.iterdir() if p.is_file()
+    )
+
+
+def _has_integration_marker(repo: Repo) -> bool:
+    return (repo.path / "tests" / "integration").is_dir() or (repo.path / "integration").is_dir()
+
+
+def _has_release_path(repo: Repo) -> bool:
+    workflows = repo.path / ".github" / "workflows"
+    if workflows.is_dir() and any("release" in p.name.lower() for p in workflows.iterdir()):
+        return True
+    return (repo.path / "mcpb").exists()
+
+
+def _floor_drift(repo: Repo, declared: Stage, has_src: bool) -> str | None:
+    """Floor checks: declared stage implies structure that is absent."""
+    if declared is Stage.S0 and has_src:
+        return "declared S0 but a source tree exists"
+    if stage_rank(declared) >= stage_rank(Stage.S1) and not has_src:
+        return "declared S1+ but no source tree found"
+    if stage_rank(declared) >= stage_rank(Stage.S2) and not _has_ci(repo):
+        return "declared S2+ but no CI workflow present"
+    if stage_rank(declared) >= stage_rank(Stage.S3) and not _has_integration_marker(repo):
+        return "declared S3+ but no integration-test directory found"
+    if declared is Stage.S4 and not _has_release_path(repo):
+        return "declared S4 but no release pipeline or deployment manifest found"
+    return None
+
+
+def _ceiling_drift(repo: Repo, declared: Stage) -> str | None:
+    """Ceiling signals: structure exceeds the declared stage (catches under-declaration)."""
+    if stage_rank(declared) < stage_rank(Stage.S2) and _has_ci(repo):
+        return f"declared {declared.value} but a CI workflow is present (looks S2+)"
+    if stage_rank(declared) < stage_rank(Stage.S3) and _has_integration_marker(repo):
+        return f"declared {declared.value} but integration tests are present (looks S3+)"
+    if stage_rank(declared) < stage_rank(Stage.S4) and _has_release_path(repo):
+        return f"declared {declared.value} but a release pipeline is present (looks S4)"
+    return None
+
+
+def drift_signal(repo: Repo, declared: Stage) -> str | None:
+    """Return a one-line drift description when cheap signals contradict ``declared``.
+
+    Coarse static checks only; catches obvious contradictions, not a full re-audit.
+    """
+    has_src = _has_source_tree(repo)
+    floor = _floor_drift(repo, declared, has_src)
+    if floor is not None:
+        return floor
+    return _ceiling_drift(repo, declared)

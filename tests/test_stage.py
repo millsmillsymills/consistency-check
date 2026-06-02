@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from consistency_check.stage import (
     declared_stage,
+    drift_signal,
     has_scope_exception,
     next_stage,
     stage_rank,
@@ -86,3 +87,49 @@ def test_has_scope_exception_false_without_heading(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "SCOPE.md").write_text("## Surface\n- x\n", encoding="utf-8")
     assert has_scope_exception(_repo(tmp_path)) is False
+
+
+def test_drift_s0_with_src_tree(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir(parents=True)
+    assert drift_signal(_repo(tmp_path), Stage.S0) is not None
+
+
+def test_drift_s1_without_src_tree(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    assert drift_signal(_repo(tmp_path), Stage.S1) is not None
+
+
+def test_drift_s2_without_ci(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir(parents=True)
+    assert drift_signal(_repo(tmp_path), Stage.S2) is not None
+
+
+def test_no_drift_for_staged_s2_repo(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    assert drift_signal(_repo(tmp_path), Stage.S2) is None
+
+
+def test_drift_go_source_tree_accepts_cmd(tmp_path: Path) -> None:
+    (tmp_path / "cmd").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    assert drift_signal(_repo(tmp_path, language="go"), Stage.S2) is None
+
+
+def test_drift_ceiling_ci_below_s2(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    # Declared S1 but CI present -> looks like S2+.
+    assert drift_signal(_repo(tmp_path), Stage.S1) is not None
+
+
+def test_drift_ceiling_integration_below_s3(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows").mkdir(parents=True)
+    (tmp_path / ".github" / "workflows" / "ci.yml").write_text("name: ci\n", encoding="utf-8")
+    (tmp_path / "tests" / "integration").mkdir(parents=True)
+    # Declared S2 but integration tests present -> looks like S3+.
+    assert drift_signal(_repo(tmp_path), Stage.S2) is not None
