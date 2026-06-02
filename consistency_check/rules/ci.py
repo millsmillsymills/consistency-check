@@ -76,6 +76,11 @@ _RUN_KEY = re.compile(r"^([ \t]*-?[ \t]*)run:[ \t]*([|>][+-]?)?[ \t]*(.*)$")
 _SAFETY_CHECK = re.compile(r"(?i)\bsafety\s+check\b")
 
 
+def _strip_comment(line: str) -> str:
+    line = re.sub(r"\s#.*$", "", line)
+    return "" if line.lstrip().startswith("#") else line
+
+
 def _run_command_bodies(corpus: str) -> list[str]:
     lines = corpus.splitlines()
     bodies: list[str] = []
@@ -85,14 +90,13 @@ def _run_command_bodies(corpus: str) -> list[str]:
         i += 1
         if not m:
             continue
-        key_indent, block, inline = len(m.group(1)), m.group(2) is not None, m.group(3)
-        parts = [inline] if inline and not block else []
+        key_indent, block = len(m.group(1)), m.group(2) is not None
+        parts = [] if block else [_strip_comment(m.group(3))]
         while block and i < len(lines):
             line = lines[i]
             if line.strip() and len(line) - len(line.lstrip()) <= key_indent:
                 break
-            if line.strip() and not line.lstrip().startswith("#"):
-                parts.append(line)
+            parts.append(_strip_comment(line))
             i += 1
         bodies.append("\n".join(parts))
     return bodies
