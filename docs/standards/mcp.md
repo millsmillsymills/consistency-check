@@ -145,3 +145,15 @@ These rules apply to every MCP server in the suite regardless of language.
 **Rationale.** Unmaintained deps accumulate CVEs.
 
 **Mechanical check.** For each direct dep, latest released version is within 12 months of the manifest pin OR an inline comment in the manifest explains why.
+
+### MCP-025 — CI enforces a coverage threshold [SHOULD]
+
+**Rationale.** A test suite with no coverage floor silently rots: new code lands untested and the suite still goes green. A gate makes the regression visible at PR time rather than in production.
+
+**Mechanical check.** A workflow file or `pyproject.toml` references a coverage-floor token: `--cov-fail-under` / `fail_under` (Python) or `-covermode` / `-coverprofile` feeding a threshold check (Go).
+
+### MCP-026 — CI runs a dependency vulnerability scan [MUST]
+
+**Rationale.** Dependencies are the largest attack surface in a small server. Dependabot (MCP-016) opens upgrade PRs but does not fail the build on a known-vulnerable pin; an explicit scan does, catching CVEs before merge.
+
+**Mechanical check.** A workflow file runs a vulnerability scanner: `pip-audit` (Python), `govulncheck` (Go), GitHub's `dependency-review` action, or a general scanner (`osv-scanner` / `trivy` / `grype` / `snyk` / `safety check`).
