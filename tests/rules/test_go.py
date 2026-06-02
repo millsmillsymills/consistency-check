@@ -63,6 +63,18 @@ def test_go_013_pass_when_only_comment_mentions_go(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "GO-013") is None
 
 
+def test_go_013_ignores_stale_worktree_copies(good_go_repo: Path) -> None:
+    # A stale repo copy under .claude/worktrees must not poison the heuristic:
+    # a bare goroutine there should not flip the clean repo to a failure.
+    wt = good_go_repo / ".claude" / "worktrees" / "agent-x" / "internal" / "worker"
+    wt.mkdir(parents=True)
+    (wt / "worker.go").write_text(
+        "package worker\n\nfunc Start() {\n\tgo func() { _ = 1 }()\n}\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-013") is None
+
+
 def test_go_013_fail_when_goroutine_without_errgroup(good_go_repo: Path) -> None:
     (good_go_repo / "internal" / "worker" / "worker.go").parent.mkdir(parents=True)
     (good_go_repo / "internal" / "worker" / "worker.go").write_text(

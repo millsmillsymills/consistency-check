@@ -62,6 +62,28 @@ def test_py_015_pass_with_long_docstring_before_future_import(good_python_repo: 
     assert _check(good_python_repo, "PY-015") is None
 
 
+def test_py_017_pass_when_server_makes_no_http_calls(good_python_repo: Path) -> None:
+    # Regression for the flipperzero-mcp false positive: a hardware-RPC server
+    # that imports no HTTP client is exempt from the httpx mandate.
+    py = good_python_repo / "pyproject.toml"
+    py.write_text(
+        py.read_text().replace('"fastmcp>=3.0,<4", "httpx", "tenacity"', '"fastmcp>=3.0,<4"'),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "PY-017") is None
+
+
+def test_py_017_fail_when_http_used_without_httpx(good_python_repo: Path) -> None:
+    py = good_python_repo / "pyproject.toml"
+    py.write_text(
+        py.read_text().replace('"fastmcp>=3.0,<4", "httpx", "tenacity"', '"fastmcp>=3.0,<4"'),
+        encoding="utf-8",
+    )
+    client = good_python_repo / "src" / "good_python" / "clients" / "api.py"
+    client.write_text("import requests\n", encoding="utf-8")
+    assert _check(good_python_repo, "PY-017") is not None
+
+
 def test_py_019_pass_with_dict_lifespan_yield(good_python_repo: Path) -> None:
     # FastMCP composed lifespans require a plain dict; accept the typed
     # AsyncIterator[dict[str, Any]] yield annotation as an equivalent.
