@@ -14,6 +14,8 @@
 
 **Per-task hygiene (every task):** before each `git commit`, run `uv run ruff format <touched files> && uv run ruff check <touched files> && uv run ty check` and fix all findings. Lint is part of green-at-every-commit, not just the Task 10 sweep.
 
+**Test-import convention:** put ALL imports at module top in test files. `ruff` enforces `PLC0415` (no function-local imports) and it is *not* ignored for `tests/**`. The code blocks below sometimes show illustrative local imports — hoist them to the top of the file when implementing. The "fails first" TDD signal for a not-yet-existing symbol manifests as a pytest **collection error**, which is still a failing run.
+
 > **Starting-state note:** Task 1 may already be applied in the working tree (a `Stage` enum + `min_stage` fields in `types.py`, with tests in `test_types.py`). If so, verify it matches Task 1 below, commit it on the feature branch, and start from Task 2. Do not re-add it.
 
 ---
