@@ -97,6 +97,25 @@ def test_mcp_026_fail_when_safety_check_commented_in_block_scalar(good_python_re
     assert _check(good_python_repo, "python", "MCP-026") is not None
 
 
+def test_mcp_026_fail_when_safety_check_in_trailing_inline_comment(good_python_repo: Path) -> None:
+    # `run: echo hi  # safety check` — the text after ` #` is a comment, not a scan.
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace("- run: uv run pip-audit", "- run: echo hi  # safety check here"),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "python", "MCP-026") is not None
+
+
+def test_mcp_026_pass_when_safety_check_precedes_trailing_comment(good_python_repo: Path) -> None:
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace("- run: uv run pip-audit", "- run: uv run safety check  # audit"),
+        encoding="utf-8",
+    )
+    assert _check(good_python_repo, "python", "MCP-026") is None
+
+
 def test_mcp_026_fail_without_vuln_scan(good_python_repo: Path) -> None:
     ci = good_python_repo / ".github" / "workflows" / "ci.yml"
     ci.write_text(ci.read_text().replace("- run: uv run pip-audit\n", ""), encoding="utf-8")
