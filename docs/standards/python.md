@@ -90,7 +90,7 @@ Applies to MCP servers written in Python. Built on top of `mcp.md`.
 
 ### PY-017 — `httpx` for HTTP (no `requests`) [MUST]
 
-**Mechanical check.** Direct deps include `httpx`. Direct deps do NOT include `requests`.
+**Mechanical check.** Applies only when the server makes HTTP calls (imports an HTTP client). When it does, direct deps include `httpx` and do NOT include `requests`. Servers that perform no HTTP — e.g. hardware-RPC or local-transport servers — are exempt.
 
 ### PY-018 — `tenacity` for retries [SHOULD]
 

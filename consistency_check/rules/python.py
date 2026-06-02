@@ -187,6 +187,22 @@ def _check_fastmcp(repo: Repo) -> str | None:
     return None if _has_dep(cfg, "fastmcp") else "fastmcp not in dependencies"
 
 
+_HTTP_CLIENT_IMPORT = re.compile(
+    r"^\s*(?:import|from)\s+(?:httpx|requests|aiohttp|urllib3|urllib\.request|http\.client)\b",
+    re.MULTILINE,
+)
+
+
+def _uses_http_client(repo: Repo) -> bool:
+    pkg = _package_dir(repo)
+    if pkg is None:
+        return False
+    return any(
+        _HTTP_CLIENT_IMPORT.search(p.read_text(encoding="utf-8", errors="replace"))
+        for p in pkg.rglob("*.py")
+    )
+
+
 def _check_httpx(repo: Repo) -> str | None:
     cfg = _read_pyproject(repo)
     if cfg is None:
@@ -194,7 +210,11 @@ def _check_httpx(repo: Repo) -> str | None:
     deps = cfg.get("project", {}).get("dependencies", [])
     if any(d.lower().startswith("requests") for d in deps):
         return "requests is in dependencies; require httpx"
-    return None if _has_dep(cfg, "httpx") else "httpx not in dependencies"
+    if _has_dep(cfg, "httpx"):
+        return None
+    # Servers that make no HTTP calls (e.g. hardware-RPC or local transports)
+    # have no client to standardize, so the httpx mandate does not apply.
+    return "httpx not in dependencies" if _uses_http_client(repo) else None
 
 
 def _check_tenacity(repo: Repo) -> str | None:
