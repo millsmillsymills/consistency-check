@@ -28,6 +28,7 @@ Modified:
 - `consistency_check/audit.py` — stage-filter rules; stamp `min_stage` onto findings; register the new rule module.
 - `consistency_check/report.py` — render the `## Stage` section.
 - `consistency_check/__main__.py` — pass `declared_stage(repo)` into `render_umbrella`.
+- `consistency_check/filer.py` — pass `declared_stage(repo)` into its `render_umbrella` call (the `--apply` path).
 - `consistency_check/rules/{structure,docs,security,ci,deps,mcp_protocol}.py` — set `min_stage` on the rules named in the ladder.
 - `tests/test_meta.py` — scan `stages.md`; accept `MCP-STAGE-*` headings.
 - `tests/fixtures/build.py` — declare a stage in the good fixtures' README.
@@ -1079,7 +1080,9 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
     return out
 ```
 
-- [ ] **Step 4: Thread declared_stage from the CLI**
+- [ ] **Step 4: Thread declared_stage from both render_umbrella callers**
+
+There are two callers (`rg -n "render_umbrella(" consistency_check`): `__main__.py` (stdout/`--out`) and `filer.py` (the `--apply` GitHub path). Both must pass the stage or filed issues show "Unstaged" for staged repos.
 
 In `consistency_check/__main__.py`, add the import:
 
@@ -1093,6 +1096,12 @@ and update the `render_umbrella` call (line ~47):
         body = render_umbrella(repo.name, findings, declared_stage=declared_stage(repo))
 ```
 
+In `consistency_check/filer.py`, add the same import and update the call (line ~51, inside `file_repo_findings(repo, findings, ...)` — `repo` is in scope):
+
+```python
+    umbrella_body = render_umbrella(repo.name, findings, declared_stage=declared_stage(repo))
+```
+
 - [ ] **Step 5: Regenerate the snapshot and run**
 
 Run: `uv run pytest tests/test_report.py -q --snapshot-update`
@@ -1102,7 +1111,7 @@ Expected: PASS. Inspect the snapshot diff: the existing umbrella snapshot now ca
 - [ ] **Step 6: Commit**
 
 ```bash
-git add consistency_check/report.py consistency_check/__main__.py \
+git add consistency_check/report.py consistency_check/__main__.py consistency_check/filer.py \
         tests/test_report.py tests/__snapshots__/
 git commit -m "Render maturity-stage section in the audit report"
 ```
