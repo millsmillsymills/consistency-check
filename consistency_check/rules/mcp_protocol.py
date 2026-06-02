@@ -15,6 +15,14 @@ if TYPE_CHECKING:
 _TOOL_DECORATOR = re.compile(r"@mcp\.tool[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(")
 _GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
+# Anchored variant for whole Python identifiers in log calls. ``token``,
+# ``secret`` and ``password`` are credentials even standalone, but a bare
+# ``key`` is usually a map/loop key — only a *qualified* form (api_key,
+# secret_key, signing_key, ...) names a credential. Plural/compound names like
+# ``keys`` or ``key_names`` carry field labels, not values, and must not match.
+_SECRET_IDENTIFIER = re.compile(
+    r"(?i)(?:(?:^|_)(?:token|secret|password|passwd)$|_(?:api_?)?key$|^api_?key$)"
+)
 
 
 def _python_sources(repo: Repo) -> list[Path]:
@@ -110,8 +118,7 @@ def _combined_source_text(repo: Repo) -> str:
 def _check_read_write_split(repo: Repo) -> str | None:
     text = _combined_source_text(repo)
     if (
-        "ENABLE_WRITE" in text
-        or "AllowWrites" in text
+        re.search(r"(?i)(enable_?writes?|allow_?writes?|writes?_enabled)", text)
         or "register_read" in text
         or "register_write" in text
     ):
@@ -190,24 +197,20 @@ _STRING_LITERAL = re.compile(
 )
 
 
-def _secret_var_in_log_call(call: str) -> str | None:
-    # Strip string-literal contents so the matcher only inspects argument
-    # identifiers, not human-readable text like "...capture the API key.".
-    stripped = _STRING_LITERAL.sub("", call)
-    for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b", stripped):
-        if _SECRET_NAME.search(var):
-            return var
-    return None
-
-
 def _check_no_secret_logging(repo: Repo) -> str | None:
     sources = _python_sources(repo) if repo.language == "python" else _go_sources(repo)
     for p in sources:
-        text = p.read_text(encoding="utf-8", errors="replace")
-        for m in re.finditer(r"(?:logger|log)\.\w+\([^)]*\)", text):
-            secret_var = _secret_var_in_log_call(m.group(0))
-            if secret_var:
-                return f"possible secret-shaped variable in log call: {secret_var} ({p.name})"
+        # Strip string-literal contents up front so human-readable format text
+        # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
+        # "...not set (see README)") cannot truncate the log-call match.
+        text = _STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
+        for m in re.finditer(r"(?:logger|log)\.\w+\(([^)]*)\)", text):
+            # The negative lookahead skips identifiers in call position, so a
+            # redaction helper (``_scrub_secret(...)``) is not mistaken for a
+            # logged credential; only value identifiers are inspected.
+            for var in re.findall(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b(?!\s*\()", m.group(1)):
+                if _SECRET_IDENTIFIER.search(var):
+                    return f"possible secret-shaped variable in log call: {var} ({p.name})"
     return None
 
 

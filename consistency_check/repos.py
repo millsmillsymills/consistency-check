@@ -6,31 +6,24 @@ from pathlib import Path
 
 from consistency_check.types import Repo
 
-_PROJECTS = Path.home() / "Desktop" / "Projects"
+_PROJECTS = Path.home() / "Desktop" / "Projects" / "mcp-server-dev"
+_ORG = "millsymills-com"
+
+
+def _repo(name: str, language: str) -> Repo:
+    return Repo(
+        name=name,
+        path=_PROJECTS / name,
+        language=language,
+        github_slug=f"{_ORG}/{name}",
+    )
+
 
 REGISTRY: tuple[Repo, ...] = (
-    Repo(
-        name="unifi-mcp",
-        path=_PROJECTS / "unifi-mcp",
-        language="python",
-        github_slug="millsmillsymills/unifi-mcp",
-    ),
-    Repo(
-        name="unraid-mcp",
-        path=_PROJECTS / "unraid-mcp",
-        language="python",
-        github_slug="millsmillsymills/unraid-mcp",
-    ),
-    Repo(
-        name="gandi-mcp",
-        path=_PROJECTS / "gandi-mcp",
-        language="python",
-        github_slug="millsmillsymills/gandi-mcp",
-    ),
-    Repo(
-        name="protonmail-mcp",
-        path=_PROJECTS / "protonmail-mcp",
-        language="go",
-        github_slug="millsmillsymills/protonmail-mcp",
-    ),
+    _repo("unifi-mcp", "python"),
+    _repo("unraid-mcp", "python"),
+    _repo("gandi-mcp", "python"),
+    _repo("shortcut-mcp", "python"),
+    _repo("flipperzero-mcp", "python"),
+    _repo("protonmail-mcp", "go"),
 )
