@@ -9,12 +9,12 @@ from consistency_check.audit import all_rules
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _DOCS = _REPO_ROOT / "docs" / "standards"
-_RULE_HEADING = re.compile(r"(?m)^###\s+([A-Z]+-\d{3})\b")
+_RULE_HEADING = re.compile(r"(?m)^###\s+([A-Z]+-(?:\d{3}|STAGE-[A-Z]+))\b")
 
 
 def _documented_ids() -> set[str]:
     ids: set[str] = set()
-    for f in ("mcp.md", "python.md", "go.md", "mcp-protocol.md"):
+    for f in ("mcp.md", "python.md", "go.md", "mcp-protocol.md", "stages.md"):
         text = (_DOCS / f).read_text(encoding="utf-8")
         ids.update(m.group(1) for m in _RULE_HEADING.finditer(text))
     return ids
