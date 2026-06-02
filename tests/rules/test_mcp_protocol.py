@@ -135,3 +135,164 @@ def test_proto_005_fail_without_separation(tmp_path: Path) -> None:
     pkg.mkdir(parents=True)
     (pkg / "tools.py").write_text("def register_all_tools(mcp):\n    pass\n", encoding="utf-8")
     assert _check(tmp_path, "python", "PROTO-005") is not None
+
+
+def test_proto_013_fail_on_bare_print(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('print("starting up")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-013") is not None
+
+
+def test_proto_013_pass_when_print_routed_to_stderr(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'import sys\nprint("diagnostic", file=sys.stderr)\n# print("commented out")\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-013") is None
+
+
+def test_proto_013_pass_on_console_print_method(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("console.print('hello')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-013") is None
+
+
+def test_proto_013_fail_on_go_fmt_println(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\nimport "fmt"\nfunc Boot() { fmt.Println("up") }\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_014_fail_on_httpx_client_without_timeout(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        "import httpx\nc = httpx.AsyncClient(base_url=url)\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-014") is not None
+
+
+def test_proto_014_pass_when_timeout_set(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        "import httpx\nc = httpx.AsyncClient(base_url=url, timeout=10.0)\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-014") is None
+
+
+def test_proto_014_fail_when_timeout_only_in_identifier(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        "import httpx\nc = httpx.AsyncClient(headers=build_timeout_headers())\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-014") is not None
+
+
+def test_proto_014_fail_on_go_client_without_timeout(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "http.go").write_text(
+        'package internal\nimport "net/http"\nvar c = &http.Client{Transport: t}\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-014") is not None
+
+
+def test_proto_015_fail_when_tool_has_no_summary(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool\ndef good_python_list(x: int) -> str:\n"
+        '    """\n    Args:\n        x: count.\n    Returns:\n        text.\n    """\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is not None
+
+
+def test_proto_015_pass_with_summary_line(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool\ndef good_python_list(x: int) -> str:\n    """List things."""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is None
+
+
+def test_proto_015_pass_with_decorator_description(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(description="List things")\n'
+        'def good_python_list(x: int) -> str:\n    return ""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is None
+
+
+def test_proto_016_pass_with_annotated_tool(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(annotations={"readOnlyHint": True})\n'
+        "def good_python_list(x: int) -> str:\n    return ''\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-016") is None
+
+
+def test_proto_016_fail_when_tool_unannotated(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool\ndef good_python_list(x: int) -> str:\n    return ''\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-016") is not None
+
+
+def test_proto_016_pass_when_no_tools_defined(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("mcp = FastMCP('good-python')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-016") is None
+
+
+def test_proto_017_pass_for_stdio_only_server(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("mcp.run(transport='stdio')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-017") is None
+
+
+def test_proto_017_fail_on_sse_without_auth(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("mcp.run(transport='sse', host='0.0.0.0')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-017") is not None
+
+
+def test_proto_017_fail_when_guard_words_only_substrings(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        "mcp.run(transport='sse', host='0.0.0.0')\noriginator = author = 'x'\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-017") is not None
+
+
+def test_proto_017_pass_on_sse_with_auth_and_loopback(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "sse.go").write_text(
+        "package internal\nfunc serveSSE() { /* Authorization: Bearer token, bind 127.0.0.1 */ }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-017") is None

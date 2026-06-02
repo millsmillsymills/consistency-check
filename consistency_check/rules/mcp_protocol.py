@@ -1,4 +1,4 @@
-"""Rules: MCP protocol (PROTO-001..012)."""
+"""Rules: MCP protocol (PROTO-001..017)."""
 
 from __future__ import annotations
 
@@ -214,6 +214,156 @@ def _check_no_secret_logging(repo: Repo) -> str | None:
     return None
 
 
+def _balanced(text: str, open_idx: int, open_ch: str, close_ch: str) -> str:
+    """Return the text enclosed by the delimiter opening at ``open_idx``."""
+    depth = 0
+    for i in range(open_idx, len(text)):
+        if text[i] == open_ch:
+            depth += 1
+        elif text[i] == close_ch:
+            depth -= 1
+            if depth == 0:
+                return text[open_idx + 1 : i]
+    return text[open_idx + 1 :]
+
+
+def _code_only(text: str, line_comment: str) -> str:
+    # Drop string literals (docstrings included) then line comments so a
+    # ``print(`` mentioned in prose cannot register as a real call.
+    text = _STRING_LITERAL.sub("", text)
+    return re.sub(rf"{re.escape(line_comment)}.*", "", text)
+
+
+_PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
+_GO_STDOUT = re.compile(r"\bfmt\.(?:Print|Printf|Println)\s*\(|\bos\.Stdout\b")
+
+
+def _stdout_writers(repo: Repo) -> list[str]:
+    bad: list[str] = []
+    if repo.language == "python":
+        for p in _python_sources(repo):
+            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+            for m in _PY_PRINT.finditer(text):
+                # ``print(..., file=sys.stderr)`` is fine; only stdout corrupts.
+                if "file=" not in _balanced(text, m.end() - 1, "(", ")"):
+                    bad.append(p.name)
+                    break
+        return bad
+    bad.extend(
+        p.name
+        for p in _go_sources(repo)
+        if _GO_STDOUT.search(_code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
+    )
+    return bad
+
+
+def _check_no_stdout_writes(repo: Repo) -> str | None:
+    bad = _stdout_writers(repo)
+    if bad:
+        return f"writes to stdout (corrupts JSON-RPC framing): {sorted(set(bad))[:5]}"
+    return None
+
+
+_PY_HTTP_CLIENT = re.compile(r"httpx\.(?:Async)?Client\s*\(")
+_GO_HTTP_CLIENT = re.compile(r"http\.Client\s*\{")
+
+
+def _untimed_http_clients(repo: Repo) -> list[str]:
+    bad: list[str] = []
+    if repo.language == "python":
+        for p in _python_sources(repo):
+            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+            bad.extend(
+                p.name
+                for m in _PY_HTTP_CLIENT.finditer(text)
+                if "timeout=" not in _balanced(text, m.end() - 1, "(", ")")
+            )
+        return bad
+    for p in _go_sources(repo):
+        text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "//")
+        bad.extend(
+            p.name
+            for m in _GO_HTTP_CLIENT.finditer(text)
+            if "Timeout:" not in _balanced(text, m.end() - 1, "{", "}")
+        )
+    return bad
+
+
+def _check_http_timeout(repo: Repo) -> str | None:
+    bad = _untimed_http_clients(repo)
+    if bad:
+        return f"HTTP client constructed without explicit timeout: {sorted(set(bad))[:5]}"
+    return None
+
+
+def _tool_summary_present(after: str) -> bool:
+    m = re.search(r"(\"\"\"|''')", after)
+    if not m:
+        return False
+    rest = after[m.end() :]
+    end = rest.find(m.group(1))
+    body = rest if end == -1 else rest[:end]
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped:
+            return not stripped.startswith(("Args:", "Returns:", "Yields:", "Raises:"))
+    return False
+
+
+def _check_tool_descriptions(repo: Repo) -> str | None:
+    if repo.language != "python":
+        return None
+    bad: list[str] = []
+    for p in _python_sources(repo):
+        text = p.read_text(encoding="utf-8", errors="replace")
+        for m in _TOOL_DECORATOR.finditer(text):
+            if "description=" in m.group(0):
+                continue
+            if not _tool_summary_present(text[m.end() : m.end() + 600]):
+                bad.append(m.group(1))
+    return f"tools missing a description summary line: {bad[:5]}" if bad else None
+
+
+_ANNOTATION_MARKER = re.compile(
+    r"readOnlyHint|destructiveHint|idempotentHint|openWorldHint"
+    r"|read_only_hint|destructive_hint|idempotent_hint|open_world_hint"
+    r"|ToolAnnotations?"
+)
+
+
+def _check_tool_annotations(repo: Repo) -> str | None:
+    if not _tool_names(repo):
+        return None
+    if _ANNOTATION_MARKER.search(_combined_source_text(repo)):
+        return None
+    return "tools defined but none declare MCP annotations (readOnlyHint/destructiveHint/...)"
+
+
+_HTTP_TRANSPORT = re.compile(
+    r"(?i)transport\s*[=:]\s*['\"](?:sse|streamable-?http|http)"
+    r"|streamable[_-]?http|sse[_-]?(?:server|mux|listener)|serveSSE|MCP_TRANSPORT"
+)
+_TRANSPORT_AUTH = re.compile(r"(?i)\bbearer\b|\bauthorization\b|\bauth\b")
+_TRANSPORT_HOST_GUARD = re.compile(r"(?i)127\.0\.0\.1|localhost|loopback|\borigin\b")
+
+
+def _check_http_transport_security(repo: Repo) -> str | None:
+    text = _combined_source_text(repo)
+    if not _HTTP_TRANSPORT.search(text):
+        return None
+    missing = [
+        label
+        for label, pattern in (
+            ("auth (bearer/token) enforcement", _TRANSPORT_AUTH),
+            ("loopback-bind/Origin rebinding guard", _TRANSPORT_HOST_GUARD),
+        )
+        if not pattern.search(text)
+    ]
+    if missing:
+        return f"HTTP/SSE transport enabled without {', '.join(missing)}"
+    return None
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="PROTO-001",
@@ -286,5 +436,35 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="No secret-shaped variables in log calls",
         check=_check_no_secret_logging,
+    ),
+    Rule(
+        id="PROTO-013",
+        tier=Tier.MUST,
+        statement="stdout reserved for JSON-RPC (no print/stdout writes)",
+        check=_check_no_stdout_writes,
+    ),
+    Rule(
+        id="PROTO-014",
+        tier=Tier.MUST,
+        statement="Outbound HTTP clients set an explicit timeout",
+        check=_check_http_timeout,
+    ),
+    Rule(
+        id="PROTO-015",
+        tier=Tier.MUST,
+        statement="Each tool has a description summary",
+        check=_check_tool_descriptions,
+    ),
+    Rule(
+        id="PROTO-016",
+        tier=Tier.SHOULD,
+        statement="Tools declare MCP annotations",
+        check=_check_tool_annotations,
+    ),
+    Rule(
+        id="PROTO-017",
+        tier=Tier.MUST,
+        statement="HTTP/SSE transport requires auth and loopback guard",
+        check=_check_http_transport_security,
     ),
 )
