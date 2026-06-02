@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -74,11 +74,13 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="No secrets in tracked files",
         check=_check_no_secrets,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-020",
         tier=Tier.MUST,
         statement="SECURITY.md describes disclosure path",
         check=_check_security_disclosure,
+        min_stage=Stage.S0,
     ),
 )
