@@ -226,6 +226,37 @@ def test_proto_013_fail_on_go_fmt_println(tmp_path: Path) -> None:
     assert _check(tmp_path, "go", "PROTO-013") is not None
 
 
+def test_proto_013_pass_when_os_stdout_only_injected(tmp_path: Path) -> None:
+    # Passing os.Stdout as a writer dependency (so a CLI subcommand can print
+    # while the serve loop keeps stdout for JSON-RPC) is not a stdout write.
+    (tmp_path / "cmd" / "srv").mkdir(parents=True)
+    (tmp_path / "cmd" / "srv" / "main.go").write_text(
+        'package main\nimport "os"\n'
+        "func main() { run(os.Args[1:], os.Stdin, os.Stdout, os.Stderr) }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is None
+
+
+def test_proto_013_fail_on_go_fprintln_to_stdout(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\nimport (\n"fmt"\n"os"\n)\n'
+        'func Boot() { fmt.Fprintln(os.Stdout, "up") }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_os_stdout_write(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\nimport "os"\nfunc Boot() { _, _ = os.Stdout.Write([]byte("up")) }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
 def test_proto_014_fail_on_httpx_client_without_timeout(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
