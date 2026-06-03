@@ -63,6 +63,19 @@ def test_mcp_025_fail_on_bare_coverprofile(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "go", "MCP-025") is not None
 
 
+def test_mcp_025_pass_on_make_coverage_check_gate(good_go_repo: Path) -> None:
+    # A project `make coverage-check` target (a script that exits non-zero below
+    # a floor) is a real gate, even without go-test-coverage.
+    ci = good_go_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace(
+            "go-test-coverage --config .testcoverage.yml", "make coverage-check"
+        ),
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
 def test_mcp_026_pass_on_vuln_scan(good_python_repo: Path) -> None:
     assert _check(good_python_repo, "python", "MCP-026") is None
 

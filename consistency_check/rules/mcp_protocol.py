@@ -249,7 +249,15 @@ def _code_only(text: str, line_comment: str) -> str:
 
 
 _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
-_GO_STDOUT = re.compile(r"\bfmt\.(?:Print|Printf|Println)\s*\(|\bos\.Stdout\b")
+# A bare `os.Stdout` reference is usually dependency injection — the CLI hands
+# os.Stdout to a run() that also serves stdio — not a write that corrupts the
+# protocol stream. Flag only actual writes: the fmt.Print* family, an explicit
+# fmt.Fprint*(os.Stdout, …), or os.Stdout.Write[String].
+_GO_STDOUT = re.compile(
+    r"\bfmt\.(?:Print|Printf|Println)\s*\("
+    r"|\bfmt\.Fprint(?:f|ln)?\s*\(\s*os\.Stdout\b"
+    r"|\bos\.Stdout\.(?:Write|WriteString)\b",
+)
 
 
 def _stdout_writers(repo: Repo) -> list[str]:
