@@ -94,6 +94,42 @@ def test_go_013_fail_when_inline_goroutine(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "GO-013") is not None
 
 
+def test_go_009_pass_when_sibling_file_wraps(good_go_repo: Path) -> None:
+    # A package whose central helper wraps with %w (here client.go) covers the
+    # bare `return nil, err` delegations in sibling files; the per-file view
+    # used to flag the caller even though the error was already wrapped.
+    pkg = good_go_repo / "internal" / "api"
+    pkg.mkdir(parents=True)
+    (pkg / "client.go").write_text(
+        'package api\nimport "fmt"\n'
+        "func do(label string, err error) error "
+        '{ return fmt.Errorf("%s: %w", label, err) }\n',
+        encoding="utf-8",
+    )
+    (pkg / "list.go").write_text(
+        "package api\n"
+        "func List() ([]int, error) {\n"
+        '\tif err := do("list", nil); err != nil {\n\t\treturn nil, err\n\t}\n'
+        "\treturn nil, nil\n}\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-009") is None
+
+
+def test_go_009_fail_when_package_never_wraps(good_go_repo: Path) -> None:
+    # A package that returns raw errors and never wraps anywhere stays flagged.
+    pkg = good_go_repo / "internal" / "raw"
+    pkg.mkdir(parents=True)
+    (pkg / "raw.go").write_text(
+        "package raw\n"
+        'import "net/http"\n'
+        "func Get(u string) (int, error) {\n"
+        "\tresp, err := http.Get(u)\n\t_ = resp\n\treturn 0, err\n}\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-009") is not None
+
+
 def test_go_006_excludes_fuzz_and_property_tests(good_go_repo: Path) -> None:
     # Fuzz / property tests should not drag down the table-driven percentage.
     (good_go_repo / "internal" / "tools" / "x_fuzz_test.go").write_text(
