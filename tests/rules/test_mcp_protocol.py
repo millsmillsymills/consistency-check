@@ -251,6 +251,15 @@ def test_proto_013_fail_on_go_fprintln_to_stdout(tmp_path: Path) -> None:
     assert _check(tmp_path, "go", "PROTO-013") is not None
 
 
+def test_proto_013_fail_on_go_os_stdout_write(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\nimport "os"\nfunc Boot() { _, _ = os.Stdout.Write([]byte("up")) }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
 def test_proto_014_fail_on_httpx_client_without_timeout(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
