@@ -384,3 +384,111 @@ def test_proto_017_pass_on_sse_with_auth_and_loopback(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _check(tmp_path, "go", "PROTO-017") is None
+
+
+def test_proto_018_fail_on_overlong_tool_name(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    long_name = "good_python_" + "x" * 60  # 72 chars, over the 64 limit
+    (pkg / "tools.py").write_text(f"@mcp.tool\ndef {long_name}(): pass\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-018") is not None
+
+
+def test_proto_018_pass_on_short_tool_name(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text("@mcp.tool\ndef good_python_list(): pass\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-018") is None
+
+
+def test_proto_019_pass_with_fastmcp_instructions(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        'mcp = FastMCP("good-python", instructions="Search before get.")\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-019") is None
+
+
+def test_proto_019_pass_with_go_with_instructions(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\nvar _ = server.WithInstructions("Search before get.")\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-019") is None
+
+
+def test_proto_019_fail_when_instructions_absent(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('mcp = FastMCP("good-python")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-019") is not None
+
+
+def test_proto_020_pass_with_tool_title(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(annotations={"title": "List things"})\n'
+        "def good_python_list(x: int) -> str:\n    return ''\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-020") is None
+
+
+def test_proto_020_fail_when_tool_has_no_title(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool\ndef good_python_list(x: int) -> str:\n    return ''\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-020") is not None
+
+
+def test_proto_020_pass_when_no_tools_defined(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text("mcp = FastMCP('good-python')\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-020") is None
+
+
+def test_proto_021_fail_on_unguarded_elicit(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "async def good_python_confirm(ctx):\n    return await ctx.elicit('Sure?')\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-021") is not None
+
+
+def test_proto_021_pass_when_capability_checked(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "from fastmcp.exceptions import CapabilityNotSupported\n"
+        "async def good_python_confirm(ctx):\n"
+        "    try:\n        return await ctx.elicit('Sure?')\n"
+        "    except CapabilityNotSupported:\n        return 'ask the user'\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-021") is None
+
+
+def test_proto_021_pass_when_no_elicit_or_sample(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool\ndef good_python_list(x: int) -> str:\n    return ''\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-021") is None
+
+
+def test_proto_021_fail_on_unguarded_go_sampling(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        "package internal\nfunc summarize() { _, _ = srv.CreateMessage(req) }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-021") is not None
