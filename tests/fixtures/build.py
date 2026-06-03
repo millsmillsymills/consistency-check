@@ -93,7 +93,7 @@ def build_good_python(root: Path) -> Path:
         class ServerContext:
             pass
 
-        mcp = FastMCP("good-python")
+        mcp = FastMCP("good-python", instructions="Call good_python_search before get.")
     """,
     )
     _write(
@@ -202,9 +202,10 @@ def build_bad_python(root: Path) -> Path:
         import mcp
 
         @mcp.tool
-        def BadTool(x):
+        def BadToolNameThatGreatlyExceedsTheSixtyFourCharacterToolNameHardLimitYes(x):
             print("starting")
             logger.info("auth %s", api_key)
+            ctx.elicit("Delete everything?")
     """,
     )
     # errors.py present but defines no *Error(Exception) and no error mapping.
@@ -302,7 +303,11 @@ def build_good_go(root: Path) -> Path:
         func main() {
             allowWrites := os.Getenv("GOOD_GO_ALLOW_WRITES")
             _ = allowWrites
-            srv := server.NewServer("good-go", server.WithCapabilities())
+            srv := server.NewServer(
+                "good-go",
+                server.WithCapabilities(),
+                server.WithInstructions("Call list before get."),
+            )
             _ = srv
             _ = errToMCP
             slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -395,7 +400,7 @@ def build_bad_go(root: Path) -> Path:
         }
 
         var key = flag.String("api-key", "", "secret token")
-        var _ = WithTools("BadTool")
+        var _ = WithTools("BadToolNameThatGreatlyExceedsTheSixtyFourCharacterToolNameHardLimitYes")
 
         func WithTools(name string) int { return 0 }
 
@@ -405,6 +410,7 @@ def build_bad_go(root: Path) -> Path:
             fmt.Println("starting")
             _ = &http.Client{}
             _ = os.Getenv("MCP_TRANSPORT")
+            _, _ = CreateMessage(id)
             go doStuff()
             if id == "" {
                 panic("boom")

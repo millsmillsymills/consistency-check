@@ -31,7 +31,7 @@ deployment/release rules are `S4`.
 | min_stage | Rules |
 |---|---|
 | S0 | MCP-001, MCP-002, MCP-005, MCP-006, MCP-007, MCP-009, MCP-010, MCP-019, MCP-020 |
-| S1 | PROTO-001, PROTO-002, PROTO-003, PROTO-004, MCP-021, MCP-022 |
+| S1 | PROTO-001, PROTO-002, PROTO-003, PROTO-004, PROTO-018, MCP-021, MCP-022 |
 | S2 | PROTO-005, PROTO-006, MCP-014, MCP-017, MCP-023 |
 | S3 | *(all rules not otherwise listed)* |
 | S4 | MCP-018 |
