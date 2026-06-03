@@ -283,7 +283,17 @@ def _code_only(text: str, line_comment: str) -> str:
 
 
 _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
-_GO_STDOUT = re.compile(r"\bfmt\.(?:Print|Printf|Println)\s*\(|\bos\.Stdout\b")
+# Only actual writes to stdout corrupt the JSON-RPC stream. A bare ``os.Stdout``
+# passed as a writer dependency (the universal CLI pattern) is not a write, so
+# matching it produced false positives; match the write idioms instead.
+# Branches: implicit stdout; os.Stdout.Write[String]; fmt.Fprint* to os.Stdout;
+# os.Stdout wrapped by a buffered/copy writer.
+_GO_STDOUT = re.compile(
+    r"\bfmt\.(?:Print|Printf|Println)\s*\("
+    r"|\bos\.Stdout\s*\.\s*Write"
+    r"|\bfmt\.Fprint(?:f|ln)?\s*\(\s*os\.Stdout\b"
+    r"|\b(?:bufio\.NewWriter|io\.Copy|io\.WriteString)\s*\(\s*os\.Stdout\b"
+)
 
 
 def _stdout_writers(repo: Repo) -> list[str]:
