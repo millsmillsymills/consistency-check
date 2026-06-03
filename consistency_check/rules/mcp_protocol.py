@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import re
 from typing import TYPE_CHECKING
 
@@ -77,32 +78,64 @@ def _check_namespace_prefix(repo: Repo) -> str | None:
     return f"tools missing {prefix!r} prefix: {bad[:5]}" if bad else None
 
 
-def _untyped_params_in_sig(sig: str) -> bool:
-    params = [
-        s.strip()
-        for s in sig.split(",")
-        if s.strip() and "self" not in s and "ctx" not in s.lower()
+_ToolFunc = ast.FunctionDef | ast.AsyncFunctionDef
+
+
+def _is_mcp_tool_decorator(dec: ast.expr) -> bool:
+    target = dec.func if isinstance(dec, ast.Call) else dec
+    return (
+        isinstance(target, ast.Attribute)
+        and target.attr == "tool"
+        and isinstance(target.value, ast.Name)
+        and target.value.id == "mcp"
+    )
+
+
+def _tool_funcs(text: str) -> list[_ToolFunc]:
+    """Every ``@mcp.tool``-decorated def in the source, including nested ones.
+
+    AST-based so generics with commas (``dict[str, Any]``) and long
+    signatures/docstrings can't fool a regex; ``ast.walk`` also reaches tools
+    registered inside ``register_*`` helper functions.
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    return [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(_is_mcp_tool_decorator(d) for d in node.decorator_list)
     ]
-    return any(":" not in param for param in params)
+
+
+def _is_context_param(arg: ast.arg) -> bool:
+    if arg.arg in {"self", "ctx", "context"}:
+        return True
+    ann = arg.annotation
+    if isinstance(ann, ast.Name):
+        return ann.id == "Context"
+    if isinstance(ann, ast.Attribute):
+        return ann.attr == "Context"
+    return False
+
+
+def _documentable_args(func: _ToolFunc) -> list[ast.arg]:
+    a = func.args
+    return [arg for arg in (*a.posonlyargs, *a.args, *a.kwonlyargs) if not _is_context_param(arg)]
 
 
 def _check_typed_inputs(repo: Repo) -> str | None:
     if repo.language != "python":
         return None
-    bad: list[str] = []
-    for p in _python_sources(repo):
-        text = p.read_text(encoding="utf-8", errors="replace")
-        for m in _TOOL_DECORATOR.finditer(text):
-            sig_start = m.end()
-            paren_close = text.find(")", sig_start)
-            sig = text[sig_start:paren_close]
-            if _untyped_params_in_sig(sig):
-                bad.append(m.group(1))
+    bad = [
+        func.name
+        for p in _python_sources(repo)
+        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
+        if any(arg.annotation is None for arg in _documentable_args(func))
+    ]
     return f"tools with untyped params: {bad[:5]}" if bad else None
-
-
-def _has_docstring_sections(after: str) -> bool:
-    return "Args:" in after and ("Returns:" in after or "Yields:" in after)
 
 
 def _check_docstrings(repo: Repo) -> str | None:
@@ -110,11 +143,12 @@ def _check_docstrings(repo: Repo) -> str | None:
         return None
     bad: list[str] = []
     for p in _python_sources(repo):
-        text = p.read_text(encoding="utf-8", errors="replace")
-        for m in _TOOL_DECORATOR.finditer(text):
-            after = text[m.end() : m.end() + 600]
-            if not _has_docstring_sections(after):
-                bad.append(m.group(1))
+        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace")):
+            doc = ast.get_docstring(func) or ""
+            has_return = "Returns:" in doc or "Yields:" in doc
+            has_args = "Args:" in doc
+            if not has_return or (_documentable_args(func) and not has_args):
+                bad.append(func.name)
     return f"tools missing Args/Returns docstring: {bad[:5]}" if bad else None
 
 
