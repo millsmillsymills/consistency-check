@@ -28,10 +28,10 @@ design rationale.
 The README `## Status` section (MCP-007) carries a `Deployment:` token beside
 the `Stage:` token:
 
-````
+```
 Stage: S3
 Deployment: site-local
-````
+```
 
 Accepted tokens: `remote-hostable | site-local | host-local`. The auditor
 grades against the declared token; an undeclared repo gets all
