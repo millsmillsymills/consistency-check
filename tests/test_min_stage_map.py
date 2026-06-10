@@ -34,6 +34,8 @@ _EXPECTED: dict[str, Stage] = {
     "MCP-DEPLOY-REGISTRY": Stage.S4,
     "MCP-STAGE-DECL": Stage.S0,
     "MCP-STAGE-DRIFT": Stage.S0,
+    "MCP-DEPLOY-DECL": Stage.S0,
+    "MCP-DEPLOY-DRIFT": Stage.S0,
 }
 
 

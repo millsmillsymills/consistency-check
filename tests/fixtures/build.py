@@ -30,6 +30,7 @@ def build_good_python(root: Path) -> Path:
         ## Quick Start
         Install: ``pip install good-python``.
         Run with docker compose up -d.
+        Set GOOD_HOST to the appliance address.
 
         ## Configuration
         Set GOOD_TOKEN.
@@ -270,6 +271,7 @@ def build_good_go(root: Path) -> Path:
         ## Install
         ``go install`` it.
         Run with docker compose up -d.
+        Set GOOD_HOST to the appliance address.
 
         ## Environment variables
         GOOD_TOKEN.

@@ -84,3 +84,19 @@ revision; new HTTP listeners must not use it.
 Applies to `remote-hostable` and `host-local`; `n/a` for `site-local`.
 Satisfied by a `server.json` file or an MCP-registry reference in
 the README.
+
+## Meta-rules
+
+### MCP-DEPLOY-DECL — README declares a deployment archetype [MAY]
+
+Fires when the `## Status` section carries no `Deployment:` token.
+
+### MCP-DEPLOY-DRIFT — declared archetype matches repo signals [MAY]
+
+Cheap structural contradictions only:
+
+- `host-local` with no serial/USB dependency in the manifest
+- `remote-hostable` whose source prompts for interactive input
+- `site-local`/`host-local` whose source defaults to a public cloud base URL
+  with no interactive auth and no site marker (`*_HOST` env var, "controller",
+  "appliance", "LAN") in the README
