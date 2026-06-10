@@ -38,6 +38,14 @@ class Stage(StrEnum):
     S4 = "S4"
 
 
+class Archetype(StrEnum):
+    """Deployment archetype. Locality axis, orthogonal to Stage and Tier."""
+
+    REMOTE_HOSTABLE = "remote-hostable"
+    SITE_LOCAL = "site-local"
+    HOST_LOCAL = "host-local"
+
+
 @dataclass(frozen=True, slots=True)
 class Repo:
     """A target repository to be audited."""
@@ -72,3 +80,4 @@ class Rule:
     check: Callable[[Repo], str | None]
     applies_to: frozenset[str] = field(default_factory=lambda: frozenset({"python", "go"}))
     min_stage: Stage = Stage.S3
+    applies_to_archetype: frozenset[Archetype] | None = None
