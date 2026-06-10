@@ -127,16 +127,24 @@ def _check_vuln_scan(repo: Repo) -> str | None:
     return "CI runs no dependency vulnerability scan (pip-audit / govulncheck)"
 
 
+# Coarse "any publish step" gate; see rules/deployment.py for archetype-specific patterns.
+_PUBLISH_MARKER = re.compile(
+    r"docker/build-push-action|docker push|ghcr\.io|wrangler (deploy|publish)"
+    r"|softprops/action-gh-release|gh release upload|upload-release-asset|\.mcpb"
+)
+
+
 def _check_release_workflow(repo: Repo) -> str | None:
-    if (repo.path / ".github" / "workflows" / "release.yml").is_file():
-        return None
-    contributing = repo.path / "CONTRIBUTING.md"
-    if (
-        contributing.is_file()
-        and "release" in contributing.read_text(encoding="utf-8", errors="replace").lower()
-    ):
-        return None
-    return "no release.yml and no documented release process"
+    release = repo.path / ".github" / "workflows" / "release.yml"
+    if not release.is_file():
+        return "no .github/workflows/release.yml"
+    text = release.read_text(encoding="utf-8", errors="replace")
+    if not _PUBLISH_MARKER.search(text):
+        return (
+            "release.yml publishes no recognizable distribution artifact "
+            "(no image push, wrangler deploy, or release-asset upload)"
+        )
+    return None
 
 
 RULES: tuple[Rule, ...] = (
@@ -168,8 +176,8 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule(
         id="MCP-018",
-        tier=Tier.MAY,
-        statement="Release workflow exists",
+        tier=Tier.MUST,
+        statement="Release workflow builds and publishes the distribution artifact",
         check=_check_release_workflow,
         min_stage=Stage.S4,
     ),
