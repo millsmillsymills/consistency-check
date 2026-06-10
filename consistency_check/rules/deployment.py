@@ -10,6 +10,7 @@ import re
 from typing import TYPE_CHECKING
 
 from consistency_check.deployment import declared_archetype
+from consistency_check.sources import combined_source_text
 from consistency_check.types import Archetype, Rule, Stage, Tier
 
 if TYPE_CHECKING:
@@ -104,6 +105,40 @@ def _check_artifact(repo: Repo) -> str | None:
     return _artifact_host(repo, wf)
 
 
+_HTTP_LISTENER = re.compile(r"streamable|sse_app|uvicorn|http_app|ListenAndServe")
+
+
+def _check_transport(repo: Repo) -> str | None:
+    arch = declared_archetype(repo)
+    if arch is None:
+        return _UNDECLARED
+    src = combined_source_text(repo)
+    if arch is Archetype.REMOTE_HOSTABLE:
+        if "streamable" not in src.lower():
+            return "no streamable-HTTP transport option found in source"
+        return None
+    if arch is Archetype.HOST_LOCAL:
+        listener = _HTTP_LISTENER.search(src)
+        if listener is not None:
+            return f"host-local server constructs a network listener ({listener.group(0)})"
+        return None
+    return None
+
+
+def _check_registry(repo: Repo) -> str | None:
+    arch = declared_archetype(repo)
+    if arch is None:
+        return _UNDECLARED
+    if arch is Archetype.SITE_LOCAL:
+        return None
+    if (repo.path / "server.json").is_file():
+        return None
+    readme = _read(repo, "README.md")
+    if re.search(r"(?i)mcp registry|registry\.modelcontextprotocol\.io", readme):
+        return None
+    return "no server.json and no MCP-registry reference in README"
+
+
 def _check_deploy_docs(repo: Repo) -> str | None:
     arch = declared_archetype(repo)
     if arch is None:
@@ -137,5 +172,21 @@ RULES: tuple[Rule, ...] = (
         check=_check_deploy_docs,
         min_stage=Stage.S4,
         applies_to_archetype=_ALL_ARCHETYPES,
+    ),
+    Rule(
+        id="MCP-DEPLOY-TRANSPORT",
+        tier=Tier.MUST,
+        statement="Transports offered match the archetype",
+        check=_check_transport,
+        min_stage=Stage.S4,
+        applies_to_archetype=_ALL_ARCHETYPES,
+    ),
+    Rule(
+        id="MCP-DEPLOY-REGISTRY",
+        tier=Tier.MAY,
+        statement="Artifact submitted to the MCP registry",
+        check=_check_registry,
+        min_stage=Stage.S4,
+        applies_to_archetype=frozenset({Archetype.REMOTE_HOSTABLE, Archetype.HOST_LOCAL}),
     ),
 )

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.deployment import RULES
-from consistency_check.types import Repo
+from consistency_check.types import Archetype, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -138,3 +138,90 @@ def test_docs_host_local_requires_mcpb_install_docs(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is None
+
+
+# ── MCP-DEPLOY-TRANSPORT ──
+
+
+def _write_src(root: Path, name: str, body: str) -> None:
+    src = root / "src" / "pkg"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / name).write_text(body, encoding="utf-8")
+
+
+def test_transport_remote_requires_streamable_http(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "remote-hostable")
+    _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
+    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    assert evidence is not None
+    assert "streamable" in evidence.lower()
+
+
+def test_transport_remote_passes_with_streamable(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "remote-hostable")
+    _write_src(
+        tmp_path,
+        "__main__.py",
+        'transport = os.environ.get("MCP_TRANSPORT", "stdio")\n'
+        'mcp.run(transport="streamable-http" if transport == "http" else "stdio")\n',
+    )
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+
+
+def test_transport_site_local_always_passes(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "site-local")
+    _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+
+
+def test_transport_host_local_fails_on_http_listener(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    _write_src(tmp_path, "__main__.py", "import uvicorn\nuvicorn.run(app)\n")
+    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    assert evidence is not None
+    assert "uvicorn" in evidence
+
+
+def test_transport_host_local_passes_stdio_only(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+
+
+def test_transport_fails_when_archetype_undeclared(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+
+
+# ── MCP-DEPLOY-REGISTRY ──
+
+
+def test_registry_passes_with_server_json(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "remote-hostable")
+    (tmp_path / "server.json").write_text("{}\n", encoding="utf-8")
+    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+
+
+def test_registry_passes_with_readme_mention(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    (tmp_path / "README.md").write_text(
+        "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\nListed on the MCP registry.\n",
+        encoding="utf-8",
+    )
+    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+
+
+def test_registry_fails_when_absent(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "remote-hostable")
+    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is not None
+
+
+def test_registry_site_local_passes_trivially(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "site-local")
+    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+
+
+def test_registry_excludes_site_local() -> None:
+    rule = _BY_ID["MCP-DEPLOY-REGISTRY"]
+    assert rule.applies_to_archetype == frozenset({Archetype.REMOTE_HOSTABLE, Archetype.HOST_LOCAL})

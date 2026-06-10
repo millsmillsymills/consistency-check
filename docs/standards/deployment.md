@@ -67,3 +67,20 @@ MCP-DEPLOY-DRIFT surfaces the mismatch without blocking.
 | remote-hostable | Deploying the service and adding it as a connector/custom URL |
 | site-local | Running the container (`docker compose` / `docker run`) against the appliance |
 | host-local | Installing the `.mcpb` bundle, including device prerequisites |
+
+### MCP-DEPLOY-TRANSPORT — transports offered match the archetype [MUST]
+
+| Archetype | Transports |
+|---|---|
+| remote-hostable | stdio (default) and streamable HTTP behind a flag |
+| site-local | stdio (default); HTTP behind a flag optional |
+| host-local | stdio only; no network-listener code path |
+
+Streamable HTTP specifically: SSE was superseded in the 2025-03-26 MCP spec
+revision; new HTTP listeners must not use it.
+
+### MCP-DEPLOY-REGISTRY — artifact submitted to the MCP registry [MAY]
+
+Applies to `remote-hostable` and `host-local`; `n/a` for `site-local`.
+Satisfied by a `server.json` file or an MCP-registry reference in
+the README.
