@@ -31,19 +31,25 @@ def next_stage(stage: Stage) -> Stage | None:
     return _STAGE_ORDER[idx + 1] if idx + 1 < len(_STAGE_ORDER) else None
 
 
+def status_section_text(repo: Repo) -> str | None:
+    """Return the body of the README ``## Status`` section, or None when absent."""
+    readme = repo.path / "README.md"
+    if not readme.is_file():
+        return None
+    section = _STATUS_SECTION.search(readme.read_text(encoding="utf-8", errors="replace"))
+    return None if section is None else section.group(1)
+
+
 def declared_stage(repo: Repo) -> Stage | None:
     """Read the repo's declared stage from the README ``## Status`` section.
 
     Returns the parsed Stage, or None when the README is missing, has no
     ``## Status`` section, or that section carries no S0-S4 token (unstaged).
     """
-    readme = repo.path / "README.md"
-    if not readme.is_file():
-        return None
-    section = _STATUS_SECTION.search(readme.read_text(encoding="utf-8", errors="replace"))
+    section = status_section_text(repo)
     if section is None:
         return None
-    token = _STAGE_TOKEN.search(section.group(1))
+    token = _STAGE_TOKEN.search(section)
     if token is None:
         return None
     return Stage(f"S{token.group(1)}")
