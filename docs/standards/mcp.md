@@ -106,9 +106,16 @@ These rules apply to every MCP server in the suite regardless of language.
 
 **Mechanical check.** All `uses:` references in `.github/workflows/*.yml` match the regex `[a-z0-9-]+/[a-z0-9-]+@[0-9a-f]{40}` and have an immediately following `# v\d` comment.
 
-### MCP-018 — Release workflow exists for tagged releases [MAY]
+### MCP-018 — Release workflow builds and publishes the distribution artifact [MUST]
 
-**Mechanical check.** `.github/workflows/release.yml` exists OR a documented manual release process in CONTRIBUTING.md.
+**Rationale.** At S4 (this rule's min_stage) the stage definition is "release
+pipeline and versioned releases"; the workflow must produce the deployment
+archetype's artifact, not merely exist. Retiered from MAY when the deployment
+scheme landed — see `deployment.md`.
+
+**Mechanical check.** `.github/workflows/release.yml` exists and contains a
+publish step: `docker/build-push-action`, `docker push`, `ghcr.io`,
+`wrangler deploy|publish`, a release-asset upload action, or an `.mcpb` build.
 
 ## Security
 
