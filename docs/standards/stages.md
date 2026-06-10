@@ -20,8 +20,9 @@ full design rationale.
   lockfile committed.
 - **S3 Complete** — full surface parity with the declared scope; live integration
   tests; runbooks promoted to MCP prompts; SHOULDs satisfied.
-- **S4 Distributed** — deployment model wired plus a release pipeline and
-  versioned releases.
+- **S4 Distributed** — declared deployment archetype satisfied (see deployment.md):
+  distribution artifact built and published, deploy docs, matching transports,
+  release pipeline.
 
 ## min_stage map
 
@@ -34,7 +35,7 @@ deployment/release rules are `S4`.
 | S1 | PROTO-001, PROTO-002, PROTO-003, PROTO-004, PROTO-018, MCP-021, MCP-022 |
 | S2 | PROTO-005, PROTO-006, MCP-014, MCP-017, MCP-023 |
 | S3 | *(all rules not otherwise listed)* |
-| S4 | MCP-018 |
+| S4 | MCP-018, MCP-DEPLOY-ARTIFACT, MCP-DEPLOY-DOCS, MCP-DEPLOY-TRANSPORT, MCP-DEPLOY-REGISTRY |
 
 ## SCOPE.md format
 
@@ -65,3 +66,6 @@ surfaces in the report without setting a nonzero exit code.
 
 Fires when the declared stage contradicts the cheap structural signals (e.g. an
 `S0` repo with a `src/` tree, or an `S2`+ repo with no CI). MAY-tier.
+
+The deployment meta-rules (MCP-DEPLOY-DECL, MCP-DEPLOY-DRIFT) are defined in
+deployment.md and are likewise S0/MAY.
