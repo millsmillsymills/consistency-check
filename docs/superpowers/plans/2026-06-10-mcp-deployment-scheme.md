@@ -8,7 +8,13 @@
 
 **Tech Stack:** Python 3.13, `uv`, `pytest -q`, `ruff check`, `ty check`. All work happens in `~/Projects/consistency-check`.
 
-**Repo state note:** The spec is committed on branch `feat/proto-018-021-plugin-standards`. Create the working branch from there so the spec is present: `git checkout -b feat/deployment-scheme`.
+**Three suite-wide invariants every task must respect** (these are enforced by existing tests and will go red if ignored):
+
+1. **`tests/test_meta.py`** diffs implemented rule IDs against `###` headings in a hardcoded list of `docs/standards/` files. New rules must appear as doc headings *in the same commit* that registers them, the file list must gain `deployment.md`, and the heading regex must learn the `DEPLOY-` ID shape (Task 4 fixes the regex and list).
+2. **`tests/test_sweep.py`** calls **every rule's check directly on the synthetic fixtures, bypassing the stage and archetype gates**. The `good_*` fixtures must pass every check; the `bad_*` fixtures must fail every non-exempt check. Each rule task therefore also updates `tests/fixtures/build.py` (good side) and, where a check cannot fail on the bad fixture, adds an exemption with an inline reason to `_CANNOT_FAIL` (precedent: `MCP-STAGE-DRIFT`).
+3. **Each task ends with the FULL suite green** (`uv run pytest -q`), not just the task's own test file.
+
+**Repo state note:** The spec is committed on branch `feat/proto-018-021-plugin-standards`. Create the working branch from there so the spec is present.
 
 ---
 
@@ -83,9 +89,9 @@ In the `Rule` dataclass, add a field after `min_stage`:
 
 (`None` means the rule is not archetype-conditional and runs for every repo.)
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 4: Run the full suite**
 
-Run: `uv run pytest tests/test_types.py -q`
+Run: `uv run pytest -q`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -173,7 +179,7 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'consistency_check.depl
 
 - [ ] **Step 3: Extract the status-section helper in `stage.py`**
 
-In `consistency_check/stage.py`, add after `declared_stage`'s current position (keep `_STATUS_SECTION` where it is):
+In `consistency_check/stage.py`, add above `declared_stage` (keep `_STATUS_SECTION` where it is):
 
 ```python
 def status_section_text(repo: Repo) -> str | None:
@@ -185,7 +191,7 @@ def status_section_text(repo: Repo) -> str | None:
     return None if section is None else section.group(1)
 ```
 
-Rewrite `declared_stage` to use it (replacing its body):
+Rewrite `declared_stage` to use it (replacing its body, keeping its docstring):
 
 ```python
 def declared_stage(repo: Repo) -> Stage | None:
@@ -243,9 +249,9 @@ def declared_archetype(repo: Repo) -> Archetype | None:
     return Archetype(token.group(1).lower())
 ```
 
-- [ ] **Step 5: Run tests — new and stage — to verify both pass**
+- [ ] **Step 5: Run the full suite**
 
-Run: `uv run pytest tests/test_deployment.py tests/test_stage.py -q`
+Run: `uv run pytest -q`
 Expected: PASS (the `stage.py` refactor must not break existing stage tests).
 
 - [ ] **Step 6: Commit**
@@ -265,13 +271,11 @@ git commit -m "feat: parse Deployment archetype token from README Status section
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `tests/test_audit.py` (match the file's existing fixture/helper style — it audits synthetic repos; reuse its existing repo-construction helpers if present, otherwise this minimal form):
+Append to `tests/test_audit.py` (reuse the file's existing imports — it already imports `Repo`; add `FindingStatus` and `pytest` if not present). These tests reference `MCP-DEPLOY-*` rules that land in Tasks 4–5, so mark all three `@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")` for this task's commit; Task 4 removes the first two markers, Task 5 the third.
 
 ```python
+@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")
 def test_archetype_rule_na_when_undeclared(tmp_path: Path) -> None:
-    from consistency_check.audit import audit_repo
-    from consistency_check.types import FindingStatus, Repo
-
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
     repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
@@ -280,10 +284,19 @@ def test_archetype_rule_na_when_undeclared(tmp_path: Path) -> None:
     assert "no Deployment archetype declared" in findings["MCP-DEPLOY-ARTIFACT"].evidence
 
 
-def test_archetype_rule_na_when_archetype_excluded(tmp_path: Path) -> None:
-    from consistency_check.audit import audit_repo
-    from consistency_check.types import FindingStatus, Repo
+@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")
+def test_archetype_rule_runs_when_archetype_matches(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text(
+        "# x\n\n## Status\nStage: S4\nDeployment: site-local\n", encoding="utf-8"
+    )
+    repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
+    findings = {f.rule_id: f for f in audit_repo(repo)}
+    assert findings["MCP-DEPLOY-ARTIFACT"].status is FindingStatus.FAIL
 
+
+@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")
+def test_archetype_rule_na_when_archetype_excluded(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text(
         "# x\n\n## Status\nStage: S4\nDeployment: site-local\n", encoding="utf-8"
@@ -292,27 +305,12 @@ def test_archetype_rule_na_when_archetype_excluded(tmp_path: Path) -> None:
     findings = {f.rule_id: f for f in audit_repo(repo)}
     assert findings["MCP-DEPLOY-REGISTRY"].status is FindingStatus.NA
     assert "site-local" in findings["MCP-DEPLOY-REGISTRY"].evidence
-
-
-def test_archetype_rule_runs_when_archetype_matches(tmp_path: Path) -> None:
-    from consistency_check.audit import audit_repo
-    from consistency_check.types import FindingStatus, Repo
-
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    (tmp_path / "README.md").write_text(
-        "# x\n\n## Status\nStage: S4\nDeployment: site-local\n", encoding="utf-8"
-    )
-    repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
-    findings = {f.rule_id: f for f in audit_repo(repo)}
-    assert findings["MCP-DEPLOY-ARTIFACT"].status is FindingStatus.FAIL
 ```
 
-These tests reference `MCP-DEPLOY-*` rules that don't exist until Task 4, so after this task they fail with `KeyError` — that's expected. Mark them with `@pytest.mark.xfail(strict=True, reason="rules land in next commit")` for this task's commit, then remove the markers in Task 4 Step 5.
-
-- [ ] **Step 2: Run tests to verify the gating tests xfail (not error)**
+- [ ] **Step 2: Run to verify XFAIL, not ERROR**
 
 Run: `uv run pytest tests/test_audit.py -q`
-Expected: existing tests PASS; the three new tests XFAIL.
+Expected: existing tests PASS; the three new tests XFAIL (they raise `KeyError` on the missing rule IDs, which xfail captures).
 
 - [ ] **Step 3: Implement the gate in `audit.py`**
 
@@ -356,10 +354,10 @@ Then insert a third gate inside the rule loop, after the existing stage gate (`i
                 continue
 ```
 
-- [ ] **Step 4: Run the full audit test file**
+- [ ] **Step 4: Run the full suite**
 
-Run: `uv run pytest tests/test_audit.py -q`
-Expected: existing tests PASS, new tests still XFAIL (rules don't exist yet).
+Run: `uv run pytest -q`
+Expected: PASS plus three XFAILs.
 
 - [ ] **Step 5: Commit**
 
@@ -370,14 +368,19 @@ git commit -m "feat: gate archetype-conditional rules to NA in audit loop"
 
 ---
 
-### Task 4: `MCP-DEPLOY-ARTIFACT` and `MCP-DEPLOY-DOCS` rules
+### Task 4: `MCP-DEPLOY-ARTIFACT` + `MCP-DEPLOY-DOCS` rules, doc skeleton, meta-test fix, fixture upgrade
+
+This task registers the first archetype-conditional rules, which trips two suite invariants — so it also: (a) fixes `test_meta.py`'s regex and file list and creates `docs/standards/deployment.md` with the new rule headings, and (b) upgrades the good fixtures to declare an archetype and satisfy the new checks (which requires bumping them to `Stage: S4` with a SHA-pinned `release.yml`, or MCP-STAGE-DRIFT's ceiling check fires on the release pipeline).
 
 **Files:**
 - Create: `consistency_check/rules/deployment.py`
+- Create: `docs/standards/deployment.md`
 - Modify: `consistency_check/audit.py` (`_RULE_MODULES`)
+- Modify: `tests/test_meta.py` (heading regex + file list)
+- Modify: `tests/fixtures/build.py` (both `build_good_python` and `build_good_go`)
 - Test: `tests/rules/test_deployment.py` (new)
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Write the failing rule tests**
 
 Create `tests/rules/test_deployment.py`:
 
@@ -420,7 +423,10 @@ def _write_workflow(root: Path, name: str, body: str) -> None:
 def test_artifact_remote_passes_with_dockerfile_and_push(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
     (tmp_path / "Dockerfile").write_text("FROM python:3.13-slim\n", encoding="utf-8")
-    _write_workflow(tmp_path, "release.yml", "on: push\njobs:\n  r:\n    steps:\n      - uses: docker/build-push-action@abc\n")
+    _write_workflow(
+        tmp_path, "release.yml",
+        "on: push\njobs:\n  r:\n    steps:\n      - uses: docker/build-push-action@abc\n",
+    )
     assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
 
 
@@ -472,13 +478,20 @@ def test_artifact_host_local_passes_complete(tmp_path: Path) -> None:
     assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
 
 
+def test_artifact_fails_when_archetype_undeclared(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
+    evidence = _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path))
+    assert evidence is not None
+    assert "no Deployment archetype declared" in evidence
+
+
 # ── MCP-DEPLOY-DOCS ──
 
 
 def test_docs_remote_requires_deploy_and_connector(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
-    evidence = _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path))
-    assert evidence is not None
+    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is not None
 
 
 def test_docs_remote_passes(tmp_path: Path) -> None:
@@ -503,22 +516,23 @@ def test_docs_site_local_passes_with_compose_docs(tmp_path: Path) -> None:
 
 def test_docs_host_local_requires_mcpb_install_docs(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
-    evidence = _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path))
-    assert evidence is not None
+    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is not None
     (tmp_path / "README.md").write_text(
         "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\n"
-        "## Install\nDownload the .mcpb from the release and install it; plug the device in first.\n",
+        "## Install\nDownload the .mcpb from the release and install; plug the device in first.\n",
         encoding="utf-8",
     )
     assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 2: Run to verify they fail**
 
 Run: `uv run pytest tests/rules/test_deployment.py -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'consistency_check.rules.deployment'`.
 
 - [ ] **Step 3: Create `consistency_check/rules/deployment.py`**
+
+Per-archetype helpers keep each function small (≤8 cyclomatic complexity):
 
 ```python
 """Rules: deployment archetypes (MCP-DEPLOY-*) and their meta-rules.
@@ -541,6 +555,7 @@ if TYPE_CHECKING:
 _ALL_ARCHETYPES = frozenset(
     {Archetype.REMOTE_HOSTABLE, Archetype.SITE_LOCAL, Archetype.HOST_LOCAL}
 )
+_UNDECLARED = "no Deployment archetype declared"
 
 _IMAGE_PUBLISH = re.compile(r"docker/build-push-action|docker push|ghcr\.io")
 _WORKER_PUBLISH = re.compile(r"wrangler (deploy|publish)")
@@ -577,50 +592,61 @@ def _docs_text(repo: Repo) -> str:
     return "\n".join(chunks)
 
 
-def _has_mcpb_manifest(repo: Repo) -> bool:
-    return (repo.path / "manifest.json").is_file() or (
-        repo.path / "mcpb" / "manifest.json"
-    ).is_file()
-
-
 def _has_compose_example(repo: Repo) -> bool:
     if any((repo.path / name).is_file() for name in _COMPOSE_FILES):
         return True
     return re.search(r"(?i)docker (compose|run)", _docs_text(repo)) is not None
 
 
+def _artifact_remote(repo: Repo, wf: str) -> str | None:
+    has_container = (repo.path / "Dockerfile").is_file()
+    has_worker = any(
+        (repo.path / n).is_file() for n in ("wrangler.toml", "wrangler.jsonc", "wrangler.json")
+    )
+    if not (has_container or has_worker):
+        return "no Dockerfile or wrangler config at repo root"
+    if not (_IMAGE_PUBLISH.search(wf) or _WORKER_PUBLISH.search(wf)):
+        return "no workflow step publishes the image or deploys the worker"
+    return None
+
+
+def _artifact_site(repo: Repo, wf: str) -> str | None:
+    if not (repo.path / "Dockerfile").is_file():
+        return "no Dockerfile at repo root"
+    if not _has_compose_example(repo):
+        return "no compose/run example (compose file or docker compose/run in docs)"
+    if not _IMAGE_PUBLISH.search(wf):
+        return "no workflow step pushes the image to a registry"
+    return None
+
+
+def _artifact_host(repo: Repo, wf: str) -> str | None:
+    has_manifest = (repo.path / "manifest.json").is_file() or (
+        repo.path / "mcpb" / "manifest.json"
+    ).is_file()
+    if not has_manifest:
+        return "no MCPB manifest.json at repo root or mcpb/"
+    if "mcpb" not in wf.lower() or not _RELEASE_ASSET.search(wf):
+        return "no workflow builds the .mcpb and uploads it as a release asset"
+    return None
+
+
 def _check_artifact(repo: Repo) -> str | None:
     arch = declared_archetype(repo)
+    if arch is None:
+        return _UNDECLARED
     wf = _workflow_text(repo)
     if arch is Archetype.REMOTE_HOSTABLE:
-        has_container = (repo.path / "Dockerfile").is_file()
-        has_worker = any(
-            (repo.path / n).is_file() for n in ("wrangler.toml", "wrangler.jsonc", "wrangler.json")
-        )
-        if not (has_container or has_worker):
-            return "no Dockerfile or wrangler config at repo root"
-        if not (_IMAGE_PUBLISH.search(wf) or _WORKER_PUBLISH.search(wf)):
-            return "no workflow step publishes the image or deploys the worker"
-        return None
+        return _artifact_remote(repo, wf)
     if arch is Archetype.SITE_LOCAL:
-        if not (repo.path / "Dockerfile").is_file():
-            return "no Dockerfile at repo root"
-        if not _has_compose_example(repo):
-            return "no compose/run example (compose file or docker compose/run in docs)"
-        if not _IMAGE_PUBLISH.search(wf):
-            return "no workflow step pushes the image to a registry"
-        return None
-    if arch is Archetype.HOST_LOCAL:
-        if not _has_mcpb_manifest(repo):
-            return "no MCPB manifest.json at repo root or mcpb/"
-        if "mcpb" not in wf.lower() or not _RELEASE_ASSET.search(wf):
-            return "no workflow builds the .mcpb and uploads it as a release asset"
-        return None
-    return "no Deployment archetype declared"
+        return _artifact_site(repo, wf)
+    return _artifact_host(repo, wf)
 
 
 def _check_deploy_docs(repo: Repo) -> str | None:
     arch = declared_archetype(repo)
+    if arch is None:
+        return _UNDECLARED
     text = _docs_text(repo)
     if arch is Archetype.REMOTE_HOSTABLE:
         if re.search(r"(?i)deploy", text) and re.search(r"(?i)connector|custom url", text):
@@ -630,11 +656,9 @@ def _check_deploy_docs(repo: Repo) -> str | None:
         if re.search(r"(?i)docker (compose|run)", text):
             return None
         return "no docs covering running the container (docker compose/run)"
-    if arch is Archetype.HOST_LOCAL:
-        if re.search(r"(?i)\.mcpb", text) and re.search(r"(?i)install", text):
-            return None
-        return "no docs covering installing the .mcpb bundle"
-    return "no Deployment archetype declared"
+    if re.search(r"(?i)\.mcpb", text) and re.search(r"(?i)install", text):
+        return None
+    return "no docs covering installing the .mcpb bundle"
 
 
 RULES: tuple[Rule, ...] = (
@@ -657,8 +681,6 @@ RULES: tuple[Rule, ...] = (
 )
 ```
 
-Note on `_read`: if the existing codebase already has an equivalent helper, use it instead of adding this one.
-
 - [ ] **Step 4: Register the module**
 
 In `consistency_check/audit.py`, add to `_RULE_MODULES` before `"consistency_check.rules.stage_meta"`:
@@ -667,19 +689,133 @@ In `consistency_check/audit.py`, add to `_RULE_MODULES` before `"consistency_che
     "consistency_check.rules.deployment",
 ```
 
-- [ ] **Step 5: Remove the xfail markers from Task 3's tests**
+- [ ] **Step 5: Fix `tests/test_meta.py`**
 
-In `tests/test_audit.py`, delete the three `@pytest.mark.xfail(...)` lines added in Task 3 (the `MCP-DEPLOY-ARTIFACT` / `MCP-DEPLOY-REGISTRY` rules now exist — REGISTRY lands in Task 5, so leave the xfail on `test_archetype_rule_na_when_archetype_excluded` until then).
+Two changes:
 
-- [ ] **Step 6: Run tests**
+```python
+_RULE_HEADING = re.compile(r"(?m)^###\s+([A-Z]+-(?:\d{3}|STAGE-[A-Z]+|DEPLOY-[A-Z]+))\b")
+```
 
-Run: `uv run pytest tests/rules/test_deployment.py tests/test_audit.py -q`
-Expected: PASS (one remaining XFAIL for the REGISTRY test).
+and add `"deployment.md"` to the file tuple in `_documented_ids`:
 
-- [ ] **Step 7: Commit**
+```python
+    for f in ("mcp.md", "python.md", "go.md", "mcp-protocol.md", "stages.md", "deployment.md"):
+```
+
+- [ ] **Step 6: Create `docs/standards/deployment.md`**
+
+Full intro plus the two rule sections implemented so far (Tasks 5–6 append theirs):
+
+```markdown
+# MCP Server Deployment Archetypes
+
+The **deployment archetype** records where a server can run. It is declared per
+repo and gates the archetype-conditional `MCP-DEPLOY-*` rules, all of which sit
+at `min_stage = S4`. See
+`docs/superpowers/specs/2026-06-10-mcp-deployment-scheme-design.md` for the full
+design rationale.
+
+## The three archetypes
+
+- **`remote-hostable`** — no locality constraint; can run as a hosted
+  streamable-HTTP endpoint or locally over stdio.
+- **`site-local`** — bound to a site: must reach a network-private appliance,
+  or cannot bootstrap unattended (interactive/stateful auth).
+- **`host-local`** — bound to a host: requires physically attached hardware;
+  never a network service.
+
+## Decision tree (deterministic, in order)
+
+1. Requires physically attached hardware (USB/serial)? → `host-local`
+2. Backend not reachable from arbitrary networks (LAN appliance)? → `site-local`
+3. Cannot bootstrap unattended from env config alone (interactive login,
+   stateful session)? → `site-local`
+4. Otherwise (portable token + publicly reachable backend) → `remote-hostable`
+
+## Declaration
+
+The README `## Status` section (MCP-007) carries a `Deployment:` token beside
+the `Stage:` token:
+
+```
+Stage: S3
+Deployment: site-local
+```
+
+Accepted tokens: `remote-hostable | site-local | host-local`. The auditor
+grades against the declared token; an undeclared repo gets all
+archetype-conditional rules as `n/a` plus the MCP-DEPLOY-DECL warning. A repo
+may deliberately under-declare (ship a remote-capable server as a local tool);
+MCP-DEPLOY-DRIFT surfaces the mismatch without blocking.
+
+## Current assignments
+
+| Server | Archetype | Deciding step |
+|---|---|---|
+| flipperzero-mcp | host-local | 1 — USB serial |
+| unraid-mcp | site-local | 2 — LAN appliance |
+| unifi-mcp | site-local | 2 — LAN controller |
+| protonmail-mcp | site-local | 3 — interactive, stateful auth |
+| gandi-mcp | remote-hostable | 4 |
+| shortcut-mcp | remote-hostable | 4 |
+
+## Rules (all `min_stage = S4`; `n/a` when the archetype does not match)
+
+### MCP-DEPLOY-ARTIFACT — archetype's distribution artifact is built and published [MUST]
+
+| Archetype | Required |
+|---|---|
+| remote-hostable | Dockerfile or wrangler config, plus a workflow step that publishes the image or deploys the worker |
+| site-local | Dockerfile + compose/run example, plus a workflow step that pushes the image to a registry |
+| host-local | MCPB `manifest.json`, plus a workflow that builds the `.mcpb` and uploads it as a release asset |
+
+### MCP-DEPLOY-DOCS — deploy/install documentation matches the archetype [MUST]
+
+| Archetype | Required docs (README or docs/) |
+|---|---|
+| remote-hostable | Deploying the service and adding it as a connector/custom URL |
+| site-local | Running the container (`docker compose` / `docker run`) against the appliance |
+| host-local | Installing the `.mcpb` bundle, including device prerequisites |
+```
+
+- [ ] **Step 7: Upgrade the good fixtures in `tests/fixtures/build.py`**
+
+`test_sweep.py` calls every check directly, so both `build_good_python` and `build_good_go` must satisfy the new checks. Make these changes to **both** builders:
+
+1. README `## Status`: change `Alpha. Stage: S3.` to `Alpha. Stage: S4.\nDeployment: site-local` (S4 because step 4 below adds a release pipeline, and MCP-STAGE-DRIFT's ceiling check flags a release pipeline on a declared S3 repo).
+2. README: add an install line so MCP-DEPLOY-DOCS (site-local) passes, e.g. under an existing section: `Run with docker compose up -d.`
+3. Add `Dockerfile` at fixture root: `FROM scratch\n` and `compose.yaml`: `services: {}\n`.
+4. Add `.github/workflows/release.yml` — it must be SHA-pinned with a `# v` comment or MCP-017 fails on it:
+
+```yaml
+on:
+  push:
+    tags: ["v*"]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85  # v6
+```
+
+(The SHA need only be 40 hex chars to satisfy the pin-format check.)
+
+The bad fixtures need no changes for these two rules: undeclared archetype makes both checks return evidence, so they correctly fail.
+
+- [ ] **Step 8: Remove two xfail markers**
+
+In `tests/test_audit.py`, delete the `@pytest.mark.xfail` lines from `test_archetype_rule_na_when_undeclared` and `test_archetype_rule_runs_when_archetype_matches`. Leave the marker on `test_archetype_rule_na_when_archetype_excluded` (references MCP-DEPLOY-REGISTRY, which lands in Task 5).
+
+- [ ] **Step 9: Run the FULL suite**
+
+Run: `uv run pytest -q`
+Expected: PASS with one XFAIL. Pay attention to `tests/test_sweep.py` and `tests/test_meta.py` — if the sweep reports a good-fixture failure, the evidence string names exactly what the fixture is missing; fix the fixture, not the rule.
+
+- [ ] **Step 10: Commit**
 
 ```bash
-git add consistency_check/rules/deployment.py consistency_check/audit.py tests/
+git add consistency_check/ tests/ docs/standards/deployment.md
 git commit -m "feat: add MCP-DEPLOY-ARTIFACT and MCP-DEPLOY-DOCS rules"
 ```
 
@@ -689,7 +825,9 @@ git commit -m "feat: add MCP-DEPLOY-ARTIFACT and MCP-DEPLOY-DOCS rules"
 
 **Files:**
 - Modify: `consistency_check/rules/deployment.py`
-- Modify: `consistency_check/deployment.py` (add `_source_text` — shared with drift in Task 6)
+- Modify: `consistency_check/deployment.py` (add `source_text` — shared with drift in Task 6)
+- Modify: `docs/standards/deployment.md` (append two rule sections)
+- Modify: `tests/fixtures/build.py` (good fixtures gain `server.json`)
 - Test: `tests/rules/test_deployment.py`
 
 - [ ] **Step 1: Write the failing tests**
@@ -744,6 +882,12 @@ def test_transport_host_local_passes_stdio_only(tmp_path: Path) -> None:
     assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
 
 
+def test_transport_fails_when_archetype_undeclared(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+
+
 # ── MCP-DEPLOY-REGISTRY ──
 
 
@@ -756,8 +900,7 @@ def test_registry_passes_with_server_json(tmp_path: Path) -> None:
 def test_registry_passes_with_readme_mention(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     (tmp_path / "README.md").write_text(
-        "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\n"
-        "Listed on the MCP registry.\n",
+        "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\nListed on the MCP registry.\n",
         encoding="utf-8",
     )
     assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
@@ -777,12 +920,12 @@ def test_registry_excludes_site_local() -> None:
     )
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 2: Run to verify they fail**
 
 Run: `uv run pytest tests/rules/test_deployment.py -q`
 Expected: FAIL — `KeyError: 'MCP-DEPLOY-TRANSPORT'`.
 
-- [ ] **Step 3: Add `_source_text` to `consistency_check/deployment.py`**
+- [ ] **Step 3: Add `source_text` to `consistency_check/deployment.py`**
 
 ```python
 _SOURCE_DIRS = ("src", "cmd", "internal")
@@ -803,7 +946,9 @@ def source_text(repo: Repo) -> str:
 
 - [ ] **Step 4: Add the rules to `consistency_check/rules/deployment.py`**
 
-Imports: add `from consistency_check.deployment import declared_archetype, source_text`.
+Extend the import: `from consistency_check.deployment import declared_archetype, source_text`.
+
+`_check_transport` returns evidence when the archetype is undeclared — the sweep's bad fixtures are undeclared and must fail every non-exempt rule:
 
 ```python
 _HTTP_LISTENER = re.compile(r"streamable|sse_app|uvicorn|http_app|ListenAndServe")
@@ -811,6 +956,8 @@ _HTTP_LISTENER = re.compile(r"streamable|sse_app|uvicorn|http_app|ListenAndServe
 
 def _check_transport(repo: Repo) -> str | None:
     arch = declared_archetype(repo)
+    if arch is None:
+        return _UNDECLARED
     source = source_text(repo)
     if arch is Archetype.REMOTE_HOSTABLE:
         if "streamable" not in source.lower():
@@ -854,17 +1001,44 @@ Append to `RULES`:
     ),
 ```
 
-- [ ] **Step 5: Remove the last xfail marker in `tests/test_audit.py`** (the REGISTRY NA test from Task 3).
+- [ ] **Step 5: Append the two rule sections to `docs/standards/deployment.md`**
 
-- [ ] **Step 6: Run tests**
+```markdown
+### MCP-DEPLOY-TRANSPORT — transports offered match the archetype [MUST]
 
-Run: `uv run pytest tests/rules/test_deployment.py tests/test_audit.py tests/test_deployment.py -q`
+| Archetype | Transports |
+|---|---|
+| remote-hostable | stdio (default) and streamable HTTP behind a flag |
+| site-local | stdio (default); HTTP behind a flag optional |
+| host-local | stdio only; no network-listener code path |
+
+Streamable HTTP specifically: SSE was superseded in the 2025-03-26 MCP spec
+revision; new HTTP listeners must not use it.
+
+### MCP-DEPLOY-REGISTRY — artifact submitted to the MCP registry [MAY]
+
+Applies to `remote-hostable` and `host-local`; `n/a` for `site-local`.
+Satisfied by a `server.json` registry manifest or an MCP-registry reference in
+the README.
+```
+
+- [ ] **Step 6: Fixture and sweep accommodation**
+
+- Good fixtures (both languages): add `server.json` at fixture root (`{}\n`) so the REGISTRY check passes when the sweep calls it directly (in real audits it is `n/a` for site-local, but the sweep bypasses the gate).
+- TRANSPORT on good fixtures (site-local) returns `None` — nothing to add.
+- Bad fixtures: undeclared archetype → TRANSPORT and REGISTRY both return evidence — they correctly fail; no `_CANNOT_FAIL` change.
+
+- [ ] **Step 7: Remove the last xfail marker** in `tests/test_audit.py` (`test_archetype_rule_na_when_archetype_excluded`).
+
+- [ ] **Step 8: Run the FULL suite**
+
+Run: `uv run pytest -q`
 Expected: PASS, no remaining XFAILs.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add consistency_check/ tests/
+git add consistency_check/ tests/ docs/standards/deployment.md
 git commit -m "feat: add MCP-DEPLOY-TRANSPORT and MCP-DEPLOY-REGISTRY rules"
 ```
 
@@ -875,11 +1049,14 @@ git commit -m "feat: add MCP-DEPLOY-TRANSPORT and MCP-DEPLOY-REGISTRY rules"
 **Files:**
 - Modify: `consistency_check/deployment.py` (drift signals)
 - Modify: `consistency_check/rules/deployment.py` (meta-rules)
+- Modify: `docs/standards/deployment.md` (append meta-rule sections)
+- Modify: `tests/fixtures/build.py` (good READMEs gain a site marker)
+- Modify: `tests/test_sweep.py` (`_CANNOT_FAIL` exemption for MCP-DEPLOY-DRIFT)
 - Test: `tests/test_deployment.py`, `tests/rules/test_deployment.py`
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `tests/test_deployment.py`:
+Append to `tests/test_deployment.py` (extend the existing imports to `from consistency_check.deployment import declared_archetype, deployment_drift_signal`):
 
 ```python
 def _write_src_file(root: Path, body: str) -> None:
@@ -889,8 +1066,6 @@ def _write_src_file(root: Path, body: str) -> None:
 
 
 def test_drift_host_local_without_serial_dep(tmp_path: Path) -> None:
-    from consistency_check.deployment import deployment_drift_signal
-
     _write_readme(tmp_path, "# x\n\n## Status\nDeployment: host-local\n")
     (tmp_path / "pyproject.toml").write_text(
         '[project]\ndependencies = ["httpx==0.27.0"]\n', encoding="utf-8"
@@ -901,8 +1076,6 @@ def test_drift_host_local_without_serial_dep(tmp_path: Path) -> None:
 
 
 def test_no_drift_host_local_with_serial_dep(tmp_path: Path) -> None:
-    from consistency_check.deployment import deployment_drift_signal
-
     _write_readme(tmp_path, "# x\n\n## Status\nDeployment: host-local\n")
     (tmp_path / "pyproject.toml").write_text(
         '[project]\ndependencies = ["pyserial==3.5"]\n', encoding="utf-8"
@@ -911,8 +1084,6 @@ def test_no_drift_host_local_with_serial_dep(tmp_path: Path) -> None:
 
 
 def test_drift_remote_with_interactive_auth(tmp_path: Path) -> None:
-    from consistency_check.deployment import deployment_drift_signal
-
     _write_readme(tmp_path, "# x\n\n## Status\nDeployment: remote-hostable\n")
     _write_src_file(tmp_path, "import getpass\npw = getpass.getpass()\n")
     signal = deployment_drift_signal(_repo(tmp_path), Archetype.REMOTE_HOSTABLE)
@@ -921,8 +1092,6 @@ def test_drift_remote_with_interactive_auth(tmp_path: Path) -> None:
 
 
 def test_drift_site_local_that_looks_remote(tmp_path: Path) -> None:
-    from consistency_check.deployment import deployment_drift_signal
-
     _write_readme(tmp_path, "# x\n\n## Status\nDeployment: site-local\n\nToken auth.\n")
     _write_src_file(tmp_path, 'BASE_URL = "https://api.example.com"\n')
     signal = deployment_drift_signal(_repo(tmp_path), Archetype.SITE_LOCAL)
@@ -931,8 +1100,6 @@ def test_drift_site_local_that_looks_remote(tmp_path: Path) -> None:
 
 
 def test_no_drift_site_local_with_host_env(tmp_path: Path) -> None:
-    from consistency_check.deployment import deployment_drift_signal
-
     _write_readme(
         tmp_path,
         "# x\n\n## Status\nDeployment: site-local\n\nSet `UNRAID_HOST` to the appliance.\n",
@@ -940,8 +1107,6 @@ def test_no_drift_site_local_with_host_env(tmp_path: Path) -> None:
     _write_src_file(tmp_path, 'BASE_URL = "https://api.example.com"\n')
     assert deployment_drift_signal(_repo(tmp_path), Archetype.SITE_LOCAL) is None
 ```
-
-(Add `from consistency_check.types import Archetype, Repo` to the existing import line.)
 
 Append to `tests/rules/test_deployment.py`:
 
@@ -974,7 +1139,7 @@ def test_drift_rule_fires_on_contradiction(tmp_path: Path) -> None:
     assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is not None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [ ] **Step 2: Run to verify they fail**
 
 Run: `uv run pytest tests/test_deployment.py tests/rules/test_deployment.py -q`
 Expected: FAIL — `ImportError: cannot import name 'deployment_drift_signal'` and `KeyError: 'MCP-DEPLOY-DECL'`.
@@ -1024,13 +1189,13 @@ def deployment_drift_signal(repo: Repo, declared: Archetype) -> str | None:
     return None
 ```
 
-Drift ordering note: for host-local, the serial check fires first and returns — the
-looks-remote check only applies to host-local repos that *do* have a serial dep, which
-is the correct precedence (a hardware server with a stray URL default is not "remote").
+(For host-local the serial check fires first and returns — the looks-remote
+signal only reaches host-local repos that do have a serial dep, which is the
+correct precedence.)
 
 - [ ] **Step 4: Add meta-rules to `consistency_check/rules/deployment.py`**
 
-Imports: extend to `from consistency_check.deployment import declared_archetype, deployment_drift_signal, source_text`.
+Extend the import: `from consistency_check.deployment import declared_archetype, deployment_drift_signal, source_text`.
 
 ```python
 def _check_deployment_declared(repo: Repo) -> str | None:
@@ -1046,7 +1211,7 @@ def _check_deployment_drift(repo: Repo) -> str | None:
     return deployment_drift_signal(repo, declared)
 ```
 
-Append to `RULES` (note: **no** `applies_to_archetype` — meta-rules run for every repo, mirroring the stage meta-rules, and `min_stage=Stage.S0` so they fire from the start):
+Append to `RULES` (no `applies_to_archetype` — meta-rules run for every repo; `min_stage=Stage.S0` mirrors the stage meta-rules):
 
 ```python
     Rule(
@@ -1065,15 +1230,47 @@ Append to `RULES` (note: **no** `applies_to_archetype` — meta-rules run for ev
     ),
 ```
 
-- [ ] **Step 5: Run tests**
+- [ ] **Step 5: Append the meta-rule sections to `docs/standards/deployment.md`**
 
-Run: `uv run pytest tests/test_deployment.py tests/rules/test_deployment.py -q`
+```markdown
+## Meta-rules
+
+### MCP-DEPLOY-DECL — README declares a deployment archetype [MAY]
+
+Fires when the `## Status` section carries no `Deployment:` token.
+
+### MCP-DEPLOY-DRIFT — declared archetype matches repo signals [MAY]
+
+Cheap structural contradictions only:
+
+- `host-local` with no serial/USB dependency in the manifest
+- `remote-hostable` whose source prompts for interactive input
+- `site-local`/`host-local` whose source defaults to a public cloud base URL
+  with no interactive auth and no site marker (`*_HOST` env var, "controller",
+  "appliance", "LAN") in the README
+```
+
+- [ ] **Step 6: Fixture and sweep accommodation**
+
+- Good fixtures (both languages): the DRIFT check must return `None`. The declared archetype is site-local; if the fixture source assigns a default `https://` URL, the looks-remote signal fires unless the README carries a site marker. Add a line to both good READMEs, e.g. `Set EXAMPLE_HOST to the appliance address.` (matches `_SITE_MARKER` via `_HOST`).
+- `tests/test_sweep.py`: the bad fixtures are undeclared, so `_check_deployment_drift` returns `None` and cannot fail — same situation as `MCP-STAGE-DRIFT`. Add `"MCP-DEPLOY-DRIFT"` to both language sets in `_CANNOT_FAIL` and extend the explanatory comment block:
+
+```python
+#   MCP-DEPLOY-DRIFT cannot fire on the bad fixtures: they declare no
+#                    archetype, so the drift check returns None (it only
+#                    compares against a declared archetype). MCP-DEPLOY-DECL
+#                    still fails them.
+```
+
+- [ ] **Step 7: Run the FULL suite**
+
+Run: `uv run pytest -q`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add consistency_check/ tests/
+git add consistency_check/ tests/ docs/standards/deployment.md
 git commit -m "feat: add deployment drift signals and DECL/DRIFT meta-rules"
 ```
 
@@ -1081,27 +1278,30 @@ git commit -m "feat: add deployment drift signals and DECL/DRIFT meta-rules"
 
 ### Task 7: Retier MCP-018 MAY → MUST with strengthened check
 
+There are **no existing MCP-018 tests** in `tests/rules/test_ci.py` (verified: `rg -n "018" tests/rules/test_ci.py` is empty) — this task adds the first ones. The good fixtures already carry a publishing `release.yml` from Task 4, so they keep passing; the bad fixtures have no `release.yml` and keep failing.
+
 **Files:**
-- Modify: `consistency_check/rules/ci.py:130-139` (`_check_release_workflow`) and `:169-175` (rule registration)
+- Modify: `consistency_check/rules/ci.py` (`_check_release_workflow` at ~line 130; rule registration at ~line 170)
+- Modify: `docs/standards/mcp.md` (MCP-018 section — tier and check text must match the code)
 - Test: `tests/rules/test_ci.py`
 
-- [ ] **Step 1: Update the tests first**
+- [ ] **Step 1: Write the failing tests**
 
-In `tests/rules/test_ci.py`, find the existing MCP-018 tests (search: `rg -n "MCP-018|release" tests/rules/test_ci.py`). Replace any test asserting the CONTRIBUTING.md fallback passes with:
+Append to `tests/rules/test_ci.py`, adapting to that file's existing helper conventions (check how it builds repos and indexes rules; if it has no `_BY_ID`, add `_BY_ID = {r.id: r for r in RULES}` using its existing `RULES` import):
 
 ```python
-def test_release_workflow_must_publish_artifact(tmp_path: Path) -> None:
-    tmp_path.mkdir(parents=True, exist_ok=True)
+def test_mcp_018_fails_without_publish_step(tmp_path: Path) -> None:
     wf = tmp_path / ".github" / "workflows"
     wf.mkdir(parents=True)
-    (wf / "release.yml").write_text("jobs:\n  r:\n    steps:\n      - run: echo built\n", encoding="utf-8")
+    (wf / "release.yml").write_text(
+        "jobs:\n  r:\n    steps:\n      - run: echo built\n", encoding="utf-8"
+    )
     evidence = _BY_ID["MCP-018"].check(_repo(tmp_path))
     assert evidence is not None
     assert "artifact" in evidence
 
 
-def test_release_workflow_passes_with_image_push(tmp_path: Path) -> None:
-    tmp_path.mkdir(parents=True, exist_ok=True)
+def test_mcp_018_passes_with_image_push(tmp_path: Path) -> None:
     wf = tmp_path / ".github" / "workflows"
     wf.mkdir(parents=True)
     (wf / "release.yml").write_text(
@@ -1110,33 +1310,29 @@ def test_release_workflow_passes_with_image_push(tmp_path: Path) -> None:
     assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is None
 
 
-def test_release_workflow_fails_when_missing(tmp_path: Path) -> None:
+def test_mcp_018_fails_when_workflow_missing(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
 
 
-def test_contributing_fallback_no_longer_suffices(tmp_path: Path) -> None:
+def test_mcp_018_contributing_fallback_removed(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "CONTRIBUTING.md").write_text("## Release\nTag and push.\n", encoding="utf-8")
     assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
 
 
 def test_mcp_018_is_must_tier() -> None:
-    from consistency_check.types import Tier
-
     assert _BY_ID["MCP-018"].tier is Tier.MUST
 ```
 
-Adapt `_BY_ID` / `_repo` to that file's existing helpers (it already tests `ci.py` rules — reuse its conventions).
-
-- [ ] **Step 2: Run to verify the new tests fail**
+- [ ] **Step 2: Run to verify they fail**
 
 Run: `uv run pytest tests/rules/test_ci.py -q`
-Expected: new tests FAIL (old check passes on bare release.yml and on CONTRIBUTING fallback; tier is MAY).
+Expected: the new tests FAIL (old check passes a bare `release.yml` and the CONTRIBUTING fallback; tier is MAY).
 
 - [ ] **Step 3: Implement**
 
-In `consistency_check/rules/ci.py`, replace `_check_release_workflow` (lines 130–139):
+In `consistency_check/rules/ci.py`, replace `_check_release_workflow`:
 
 ```python
 _PUBLISH_MARKER = re.compile(
@@ -1158,28 +1354,43 @@ def _check_release_workflow(repo: Repo) -> str | None:
     return None
 ```
 
-Update the registration (lines 169–175): `tier=Tier.MUST` and
+Update the registration: `tier=Tier.MUST` and
 `statement="Release workflow builds and publishes the distribution artifact"`.
 
-- [ ] **Step 4: Run the ci tests and the full suite**
+- [ ] **Step 4: Update `docs/standards/mcp.md` MCP-018 section** (same commit — doc and code must not drift):
 
-Run: `uv run pytest tests/rules/test_ci.py -q && uv run pytest -q`
-Expected: PASS. If the synthetic `good_*` fixture repos in `tests/fixtures/build.py` now fail MCP-018 (they only matter if they declare S4 — check `rg -n "S4" tests/fixtures/`), update their `release.yml` to include `docker/build-push-action` so they stay green.
+```markdown
+### MCP-018 — Release workflow builds and publishes the distribution artifact [MUST]
 
-- [ ] **Step 5: Commit**
+**Rationale.** At S4 (this rule's min_stage) the stage definition is "release
+pipeline and versioned releases"; the workflow must produce the deployment
+archetype's artifact, not merely exist. Retiered from MAY when the deployment
+scheme landed — see `deployment.md`.
+
+**Mechanical check.** `.github/workflows/release.yml` exists and contains a
+publish step: `docker/build-push-action`, `docker push`, `ghcr.io`,
+`wrangler deploy|publish`, a release-asset upload action, or an `.mcpb` build.
+```
+
+- [ ] **Step 5: Run the FULL suite**
+
+Run: `uv run pytest -q`
+Expected: PASS. The good fixtures pass via their Task 4 `release.yml`; the bad fixtures fail MCP-018 as before (no `release.yml`).
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add consistency_check/rules/ci.py tests/
+git add consistency_check/rules/ci.py tests/rules/test_ci.py docs/standards/mcp.md
 git commit -m "feat: retier MCP-018 MAY->MUST; release workflow must publish the artifact"
 ```
 
 ---
 
-### Task 8: Pin the min_stage map and snapshot updates
+### Task 8: Pin the min_stage map; refresh snapshots; lint and types
 
 **Files:**
 - Modify: `tests/test_min_stage_map.py`
-- Possibly modify: `tests/__snapshots__/` (report snapshots), `tests/test_report.py`, `tests/test_meta.py`
+- Possibly modify: `tests/__snapshots__/test_report.ambr` (regenerate if report output changed)
 
 - [ ] **Step 1: Extend the expected map**
 
@@ -1194,12 +1405,12 @@ In `tests/test_min_stage_map.py`, add to `_EXPECTED`:
     "MCP-DEPLOY-DRIFT": Stage.S0,
 ```
 
-- [ ] **Step 2: Run the full suite; repair fallout**
+- [ ] **Step 2: Run the full suite; refresh snapshots if needed**
 
 Run: `uv run pytest -q`
-Expected: `test_min_stage_map` passes. Snapshot tests (`tests/__snapshots__/`) and any rule-count assertions in `test_meta.py`/`test_report.py` may fail because six new rules now exist — regenerate snapshots per that suite's convention (check `tests/test_report.py` for how snapshots update; if using syrupy: `uv run pytest tests/test_report.py --snapshot-update`), and review the diff to confirm only the new rules appear.
+If `tests/test_report.py` snapshot tests fail because reports now include the new rules: `uv run pytest tests/test_report.py --snapshot-update`, then **review the `.ambr` diff** (`git diff tests/__snapshots__/`) and confirm the only changes are the six new rule IDs appearing — anything else means a behavior regression, not a snapshot refresh.
 
-- [ ] **Step 3: Lint and type-check everything**
+- [ ] **Step 3: Lint and type-check**
 
 Run: `uv run ruff check . && uv run ruff format --check . && uv run ty check`
 Expected: clean. Fix every warning (zero-warnings policy).
@@ -1213,132 +1424,12 @@ git commit -m "test: pin min_stage map for deployment rules; refresh snapshots"
 
 ---
 
-### Task 9: Standards docs — `deployment.md`, `stages.md`, `mcp.md`
+### Task 9: Update `stages.md`
 
 **Files:**
-- Create: `docs/standards/deployment.md`
-- Modify: `docs/standards/stages.md` (S4 entry + min_stage map + pointer)
-- Modify: `docs/standards/mcp.md` (MCP-018 entry)
+- Modify: `docs/standards/stages.md`
 
-- [ ] **Step 1: Write `docs/standards/deployment.md`**
-
-Content (full file — derived from the approved spec; rule text must match the implemented checks):
-
-```markdown
-# MCP Server Deployment Archetypes
-
-The **deployment archetype** records where a server can run. It is declared per
-repo and gates the archetype-conditional `MCP-DEPLOY-*` rules, all of which sit
-at `min_stage = S4`. See
-`docs/superpowers/specs/2026-06-10-mcp-deployment-scheme-design.md` for the full
-design rationale.
-
-## The three archetypes
-
-- **`remote-hostable`** — no locality constraint; can run as a hosted
-  streamable-HTTP endpoint or locally over stdio.
-- **`site-local`** — bound to a site: must reach a network-private appliance,
-  or cannot bootstrap unattended (interactive/stateful auth).
-- **`host-local`** — bound to a host: requires physically attached hardware;
-  never a network service.
-
-## Decision tree (deterministic, in order)
-
-1. Requires physically attached hardware (USB/serial)? → `host-local`
-2. Backend not reachable from arbitrary networks (LAN appliance)? → `site-local`
-3. Cannot bootstrap unattended from env config alone (interactive login,
-   stateful session)? → `site-local`
-4. Otherwise (portable token + publicly reachable backend) → `remote-hostable`
-
-## Declaration
-
-The README `## Status` section (MCP-007) carries a `Deployment:` token beside
-the `Stage:` token:
-
-```
-Stage: S3
-Deployment: site-local
-```
-
-Accepted tokens: `remote-hostable | site-local | host-local`. The auditor
-grades against the declared token; an undeclared repo gets all
-archetype-conditional rules as `n/a` plus the MCP-DEPLOY-DECL warning. A repo
-may deliberately under-declare (ship a remote-capable server as a local tool);
-MCP-DEPLOY-DRIFT surfaces the mismatch without blocking.
-
-## Rules (all `min_stage = S4`; `n/a` when the archetype does not match)
-
-### MCP-DEPLOY-ARTIFACT — archetype's distribution artifact is built and published [MUST]
-
-| Archetype | Required |
-|---|---|
-| remote-hostable | Dockerfile or wrangler config, plus a workflow step that publishes the image or deploys the worker |
-| site-local | Dockerfile + compose/run example, plus a workflow step that pushes the image to a registry |
-| host-local | MCPB `manifest.json`, plus a workflow that builds the `.mcpb` and uploads it as a release asset |
-
-### MCP-DEPLOY-DOCS — deploy/install documentation matches the archetype [MUST]
-
-| Archetype | Required docs (README or docs/) |
-|---|---|
-| remote-hostable | Deploying the service and adding it as a connector/custom URL |
-| site-local | Running the container (`docker compose` / `docker run`) against the appliance |
-| host-local | Installing the `.mcpb` bundle, including device prerequisites |
-
-### MCP-DEPLOY-TRANSPORT — transports offered match the archetype [MUST]
-
-| Archetype | Transports |
-|---|---|
-| remote-hostable | stdio (default) and streamable HTTP behind a flag |
-| site-local | stdio (default); HTTP behind a flag optional |
-| host-local | stdio only; no network-listener code path |
-
-Streamable HTTP specifically: SSE was superseded in the 2025-03-26 MCP spec
-revision; new HTTP listeners must not use it.
-
-### MCP-DEPLOY-REGISTRY — artifact submitted to the MCP registry [MAY]
-
-Applies to `remote-hostable` and `host-local`; `n/a` for `site-local`.
-Satisfied by a `server.json` registry manifest or an MCP-registry reference in
-the README.
-
-### MCP-018 — release workflow builds and publishes the artifact [MUST]
-
-Retiered from MAY: at S4 (its `min_stage`), the stage definition itself is
-"release pipeline and versioned releases", so MAY was incoherent. The check now
-requires `release.yml` to contain a publish step (image push, wrangler deploy,
-or release-asset upload); a documented manual process no longer suffices.
-
-## Meta-rules
-
-### MCP-DEPLOY-DECL — README declares a deployment archetype [MAY]
-
-Fires when the `## Status` section carries no `Deployment:` token.
-
-### MCP-DEPLOY-DRIFT — declared archetype matches repo signals [MAY]
-
-Cheap structural contradictions only:
-
-- `host-local` with no serial/USB dependency in the manifest
-- `remote-hostable` whose source prompts for interactive input
-- `site-local`/`host-local` whose source defaults to a public cloud base URL
-  with no interactive auth and no site marker (`*_HOST` env var, "controller",
-  "appliance", "LAN") in the README
-
-## Current assignments
-
-| Server | Archetype | Deciding step |
-|---|---|---|
-| flipperzero-mcp | host-local | 1 — USB serial |
-| unraid-mcp | site-local | 2 — LAN appliance |
-| unifi-mcp | site-local | 2 — LAN controller |
-| protonmail-mcp | site-local | 3 — interactive, stateful auth |
-| gandi-mcp | remote-hostable | 4 |
-| shortcut-mcp | remote-hostable | 4 |
-```
-
-- [ ] **Step 2: Update `docs/standards/stages.md`**
-
-Three edits:
+- [ ] **Step 1: Three edits**
 
 1. S4 ladder entry — replace:
    `- **S4 Distributed** — deployment model wired plus a release pipeline and versioned releases.`
@@ -1346,35 +1437,19 @@ Three edits:
    `- **S4 Distributed** — declared deployment archetype satisfied (see deployment.md): distribution artifact built and published, deploy docs, matching transports, release pipeline.`
 2. min_stage map S4 row — replace `| S4 | MCP-018 |` with:
    `| S4 | MCP-018, MCP-DEPLOY-ARTIFACT, MCP-DEPLOY-DOCS, MCP-DEPLOY-TRANSPORT, MCP-DEPLOY-REGISTRY |`
-3. Add to the `## Meta-rules` section, after the two stage meta-rules:
-   `Deployment meta-rules (MCP-DEPLOY-DECL, MCP-DEPLOY-DRIFT) are defined in deployment.md and are likewise S0/MAY.`
+3. In the `## Meta-rules` section, add after the two stage meta-rules:
+   `The deployment meta-rules (MCP-DEPLOY-DECL, MCP-DEPLOY-DRIFT) are defined in deployment.md and are likewise S0/MAY.`
 
-- [ ] **Step 3: Update `docs/standards/mcp.md` MCP-018 entry**
+- [ ] **Step 2: Verify doc-pinning tests**
 
-Replace the MCP-018 section:
+Run: `uv run pytest tests/test_meta.py tests/test_min_stage_map.py -q`
+Expected: PASS (the meta test reads rule IDs from `###` headings; the prose edits above add none).
 
-```markdown
-### MCP-018 — Release workflow builds and publishes the distribution artifact [MUST]
-
-**Rationale.** At S4 (this rule's min_stage) the stage definition is "release
-pipeline and versioned releases"; the workflow must produce the deployment
-archetype's artifact, not merely exist. See `deployment.md`.
-
-**Mechanical check.** `.github/workflows/release.yml` exists and contains a
-publish step: `docker/build-push-action`, `docker push`, `ghcr.io`,
-`wrangler deploy|publish`, a release-asset upload action, or an `.mcpb` build.
-```
-
-- [ ] **Step 4: Verify the doc-pinning tests still pass**
-
-Run: `uv run pytest tests/test_min_stage_map.py tests/test_meta.py -q`
-Expected: PASS (`test_meta.py` may pin rule text to docs — if it diffs rule IDs/tiers against the standards docs, the edits above keep them consistent; fix any mismatch it reports).
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
-git add docs/standards/
-git commit -m "docs: add deployment.md standard; update stages.md and MCP-018"
+git add docs/standards/stages.md
+git commit -m "docs: point stages.md S4 at the deployment archetype standard"
 ```
 
 ---
@@ -1402,12 +1477,12 @@ uv run consistency-check audit --repo gandi-mcp
 
 Expected for both (no `Deployment:` token declared yet):
 - `MCP-DEPLOY-ARTIFACT/DOCS/TRANSPORT/REGISTRY` → `n/a` ("no Deployment archetype declared")
-- `MCP-DEPLOY-DECL` → fail (MAY-tier warning, exit code unaffected)
+- `MCP-DEPLOY-DECL` → fail (MAY-tier warning; MAY never sets a nonzero exit code)
 - `MCP-DEPLOY-DRIFT` → pass (silent when undeclared)
-- MCP-018: `n/a` for repos below declared S4; for any S4-declared repo, fail is acceptable and expected until that server builds its release pipeline.
-- Exit code must NOT regress for repos that were previously passing (the only new MUSTs sit at S4 or behind the archetype gate). If any repo's exit code changes, investigate before proceeding — the likely cause is MCP-018 firing on an S4-declared repo, which is correct per the spec, but confirm rather than assume.
+- MCP-018 → `n/a` (both repos declare S3; the rule's min_stage is S4)
+- **Exit codes must not change** for any repo versus the pre-change auditor: every new MUST sits at S4 or behind the archetype gate, and no workspace repo declares S4. If an exit code differs, investigate before proceeding — do not assume it's benign.
 
-- [ ] **Step 3: Commit any fixups, then finish the branch**
+- [ ] **Step 3: Confirm clean tree, then finish the branch**
 
 ```bash
 git status --short   # must be clean
