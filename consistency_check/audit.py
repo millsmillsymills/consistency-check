@@ -23,6 +23,7 @@ _RULE_MODULES = (
     "consistency_check.rules.mcp_protocol",
     "consistency_check.rules.python",
     "consistency_check.rules.go",
+    "consistency_check.rules.deployment",
     "consistency_check.rules.stage_meta",
 )
 

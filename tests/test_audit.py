@@ -72,7 +72,6 @@ def test_unstaged_repo_runs_all_rules(
     assert not above
 
 
-@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")
 def test_archetype_rule_na_when_undeclared(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
@@ -82,7 +81,6 @@ def test_archetype_rule_na_when_undeclared(tmp_path: Path) -> None:
     assert "no Deployment archetype declared" in findings["MCP-DEPLOY-ARTIFACT"].evidence
 
 
-@pytest.mark.xfail(strict=True, reason="MCP-DEPLOY rules land in a later commit")
 def test_archetype_rule_runs_when_archetype_matches(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text(
