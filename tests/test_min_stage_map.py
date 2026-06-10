@@ -1,4 +1,5 @@
-"""Pin the min_stage assignment so it matches docs/standards/stages.md."""
+"""Pin the min_stage assignment so it matches docs/standards/stages.md and
+docs/standards/deployment.md."""
 
 from __future__ import annotations
 
