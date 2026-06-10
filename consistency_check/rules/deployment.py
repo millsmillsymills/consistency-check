@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.deployment import declared_archetype
+from consistency_check.deployment import declared_archetype, deployment_drift_signal
 from consistency_check.sources import combined_source_text
 from consistency_check.types import Archetype, Rule, Stage, Tier
 
@@ -156,6 +156,19 @@ def _check_deploy_docs(repo: Repo) -> str | None:
     return None if ok else "no docs covering installing the .mcpb bundle"
 
 
+def _check_deployment_declared(repo: Repo) -> str | None:
+    if declared_archetype(repo) is None:
+        return "README ## Status section declares no Deployment archetype token"
+    return None
+
+
+def _check_deployment_drift(repo: Repo) -> str | None:
+    declared = declared_archetype(repo)
+    if declared is None:
+        return None
+    return deployment_drift_signal(repo, declared)
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="MCP-DEPLOY-ARTIFACT",
@@ -188,5 +201,19 @@ RULES: tuple[Rule, ...] = (
         check=_check_registry,
         min_stage=Stage.S4,
         applies_to_archetype=frozenset({Archetype.REMOTE_HOSTABLE, Archetype.HOST_LOCAL}),
+    ),
+    Rule(
+        id="MCP-DEPLOY-DECL",
+        tier=Tier.MAY,
+        statement="README ## Status declares a deployment archetype",
+        check=_check_deployment_declared,
+        min_stage=Stage.S0,
+    ),
+    Rule(
+        id="MCP-DEPLOY-DRIFT",
+        tier=Tier.MAY,
+        statement="Declared archetype matches the repo's cheap structural signals",
+        check=_check_deployment_drift,
+        min_stage=Stage.S0,
     ),
 )

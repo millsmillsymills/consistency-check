@@ -43,9 +43,15 @@ _BAD: dict[str, Callable[[Path], Path]] = {
 #   MCP-STAGE-DRIFT cannot fire on the bad fixtures: they are unstaged, so the
 #                   drift check returns None (it only compares against a declared
 #                   stage). MCP-STAGE-DECL still fails them.
+#   MCP-DEPLOY-DRIFT cannot fire on the bad fixtures: they declare no
+#                    archetype, so the drift check returns None (it only
+#                    compares against a declared archetype). MCP-DEPLOY-DECL
+#                    still fails them.
 _CANNOT_FAIL: dict[str, frozenset[str]] = {
-    "python": frozenset({"MCP-024", "PROTO-008", "PY-003", "MCP-STAGE-DRIFT"}),
-    "go": frozenset({"MCP-024", "PROTO-003", "PROTO-004", "PROTO-015", "MCP-STAGE-DRIFT"}),
+    "python": frozenset({"MCP-024", "PROTO-008", "PY-003", "MCP-STAGE-DRIFT", "MCP-DEPLOY-DRIFT"}),
+    "go": frozenset(
+        {"MCP-024", "PROTO-003", "PROTO-004", "PROTO-015", "MCP-STAGE-DRIFT", "MCP-DEPLOY-DRIFT"}
+    ),
 }
 
 

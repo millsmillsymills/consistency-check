@@ -225,3 +225,31 @@ def test_registry_site_local_passes_trivially(tmp_path: Path) -> None:
 def test_registry_excludes_site_local() -> None:
     rule = _BY_ID["MCP-DEPLOY-REGISTRY"]
     assert rule.applies_to_archetype == frozenset({Archetype.REMOTE_HOSTABLE, Archetype.HOST_LOCAL})
+
+
+# ── meta-rules ──
+
+
+def test_decl_fires_when_no_deployment_token(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S3\n", encoding="utf-8")
+    assert _BY_ID["MCP-DEPLOY-DECL"].check(_repo(tmp_path)) is not None
+
+
+def test_decl_passes_when_declared(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "site-local")
+    assert _BY_ID["MCP-DEPLOY-DECL"].check(_repo(tmp_path)) is None
+
+
+def test_drift_rule_silent_when_undeclared(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S3\n", encoding="utf-8")
+    assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is None
+
+
+def test_drift_rule_fires_on_contradiction(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\ndependencies = ["httpx==0.27.0"]\n', encoding="utf-8"
+    )
+    assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is not None
