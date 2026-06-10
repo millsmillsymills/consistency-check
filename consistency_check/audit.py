@@ -6,6 +6,7 @@ import importlib
 import traceback
 from typing import TYPE_CHECKING
 
+from consistency_check.deployment import declared_archetype
 from consistency_check.stage import declared_stage, stage_rank
 from consistency_check.types import Finding, FindingStatus, Repo, Rule, Tier
 
@@ -48,6 +49,7 @@ def audit_repo(repo: Repo) -> list[Finding]:
         ]
 
     declared = declared_stage(repo)
+    declared_arch = declared_archetype(repo)
     findings: list[Finding] = []
     for rule in all_rules():
         if repo.language not in rule.applies_to:
@@ -71,6 +73,29 @@ def audit_repo(repo: Repo) -> list[Finding]:
                 )
             )
             continue
+        if rule.applies_to_archetype is not None:
+            if declared_arch is None:
+                findings.append(
+                    Finding(
+                        rule_id=rule.id,
+                        tier=rule.tier,
+                        status=FindingStatus.NA,
+                        evidence="no Deployment archetype declared",
+                        min_stage=rule.min_stage,
+                    )
+                )
+                continue
+            if declared_arch not in rule.applies_to_archetype:
+                findings.append(
+                    Finding(
+                        rule_id=rule.id,
+                        tier=rule.tier,
+                        status=FindingStatus.NA,
+                        evidence=f"not applicable to {declared_arch.value}",
+                        min_stage=rule.min_stage,
+                    )
+                )
+                continue
         try:
             evidence = rule.check(repo)
         except Exception as exc:  # noqa: BLE001 — isolation by design
