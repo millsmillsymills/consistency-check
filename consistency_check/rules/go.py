@@ -157,16 +157,24 @@ def _check_integration_split(repo: Repo) -> str | None:
 
 
 def _check_error_wrapping(repo: Repo) -> str | None:
-    bad: list[str] = []
-    for p in repo.path.rglob("*.go"):
-        if p.name.endswith("_test.go") or _skipped(p, repo.path):
-            continue
-        text = _read(p)
-        for _ in re.finditer(r"return\s+(\w+),?\s*err\s*$", text, re.MULTILINE):
-            if "fmt.Errorf" not in text or "%w" not in text:
-                bad.append(p.relative_to(repo.path).as_posix())
-                break
-    return f"functions returning unwrapped errors (heuristic): {bad[:5]}" if bad else None
+    sources = [
+        p
+        for p in repo.path.rglob("*.go")
+        if not p.name.endswith("_test.go") and not _skipped(p, repo.path)
+    ]
+    texts = {p: _read(p) for p in sources}
+    # %w wrapping is scoped to the package (directory), not the single file: Go
+    # idiom funnels errors through a central helper (e.g. a `do()` that wraps),
+    # so a sibling's bare `return nil, err` is already wrapped. A package that
+    # wraps nowhere is the real violation.
+    wrapped_dirs = {p.parent for p in sources if "fmt.Errorf" in texts[p] and "%w" in texts[p]}
+    bad = [
+        p.relative_to(repo.path).as_posix()
+        for p in sources
+        if p.parent not in wrapped_dirs
+        and re.search(r"return\s+(\w+),?\s*err\s*$", texts[p], re.MULTILINE)
+    ]
+    return f"functions returning unwrapped errors (heuristic): {sorted(bad)[:5]}" if bad else None
 
 
 def _ctx_first(params: str) -> bool:

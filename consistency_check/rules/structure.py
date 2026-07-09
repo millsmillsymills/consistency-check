@@ -6,7 +6,7 @@ import re
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
@@ -128,23 +128,27 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Top-level files: README.md, LICENSE, CLAUDE.md, SECURITY.md",
         check=_check_required_files,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-002",
         tier=Tier.MUST,
         statement="LICENSE matches declared SPDX identifier",
         check=_check_license_spdx,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-005",
         tier=Tier.MUST,
         statement="No build artifacts committed",
         check=_check_no_committed_artifacts,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-006",
         tier=Tier.MUST,
         statement=".gitignore excludes language-standard artifacts",
         check=_check_gitignore,
+        min_stage=Stage.S0,
     ),
 )

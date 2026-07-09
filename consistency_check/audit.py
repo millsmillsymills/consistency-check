@@ -6,6 +6,7 @@ import importlib
 import traceback
 from typing import TYPE_CHECKING
 
+from consistency_check.stage import declared_stage, stage_rank
 from consistency_check.types import Finding, FindingStatus, Repo, Rule, Tier
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ _RULE_MODULES = (
     "consistency_check.rules.mcp_protocol",
     "consistency_check.rules.python",
     "consistency_check.rules.go",
+    "consistency_check.rules.stage_meta",
 )
 
 
@@ -45,10 +47,29 @@ def audit_repo(repo: Repo) -> list[Finding]:
             )
         ]
 
+    declared = declared_stage(repo)
     findings: list[Finding] = []
     for rule in all_rules():
         if repo.language not in rule.applies_to:
-            findings.append(Finding(rule_id=rule.id, tier=rule.tier, status=FindingStatus.NA))
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.NA,
+                    min_stage=rule.min_stage,
+                )
+            )
+            continue
+        if declared is not None and stage_rank(rule.min_stage) > stage_rank(declared):
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.NA,
+                    evidence=f"min_stage {rule.min_stage.value} above declared {declared.value}",
+                    min_stage=rule.min_stage,
+                )
+            )
             continue
         try:
             evidence = rule.check(repo)
@@ -59,20 +80,20 @@ def audit_repo(repo: Repo) -> list[Finding]:
                     tier=rule.tier,
                     status=FindingStatus.ERROR,
                     evidence=f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=2)}",
+                    min_stage=rule.min_stage,
                 )
             )
             continue
-        if evidence is None:
-            findings.append(Finding(rule_id=rule.id, tier=rule.tier, status=FindingStatus.PASS))
-        else:
-            findings.append(
-                Finding(
-                    rule_id=rule.id,
-                    tier=rule.tier,
-                    status=FindingStatus.FAIL,
-                    evidence=evidence,
-                )
+        status = FindingStatus.PASS if evidence is None else FindingStatus.FAIL
+        findings.append(
+            Finding(
+                rule_id=rule.id,
+                tier=rule.tier,
+                status=status,
+                evidence="" if evidence is None else evidence,
+                min_stage=rule.min_stage,
             )
+        )
 
     return findings
 

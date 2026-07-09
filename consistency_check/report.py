@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from consistency_check.types import Finding, FindingStatus, Tier
+from consistency_check.stage import next_stage, stage_rank
+from consistency_check.types import Finding, FindingStatus, Stage, Tier
 
 _TIER_ORDER = (Tier.MUST, Tier.SHOULD, Tier.MAY)
 
 
-def render_umbrella(repo_name: str, findings: list[Finding]) -> str:
+def render_umbrella(
+    repo_name: str, findings: list[Finding], *, declared_stage: Stage | None = None
+) -> str:
     """Render a per-repo umbrella issue body summarizing all findings."""
     summary = _summary_table(findings)
     failures = [f for f in findings if f.status == FindingStatus.FAIL]
@@ -27,6 +30,8 @@ def render_umbrella(repo_name: str, findings: list[Finding]) -> str:
         summary,
         "",
     ]
+
+    lines += _stage_section(findings, declared_stage)
 
     if must_fails or should_fails:
         lines += ["## Required fixes (MUST / SHOULD)", ""]
@@ -85,6 +90,36 @@ def child_issue_title(repo_name: str, rule_id: str) -> str:
 def umbrella_issue_title(repo_name: str) -> str:
     """Canonical title for a per-repo umbrella issue."""
     return f"[consistency] {repo_name}: audit umbrella"
+
+
+def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]:
+    out = ["## Stage", ""]
+    if declared is None:
+        out += [
+            "Unstaged — add an `S0`-`S4` token to the README `## Status` section.",
+            "",
+        ]
+        return out
+    at_or_below = [f for f in findings if stage_rank(f.min_stage) <= stage_rank(declared)]
+    gate_fails = [f for f in at_or_below if f.tier == Tier.MUST and f.status == FindingStatus.FAIL]
+    if gate_fails:
+        ids = ", ".join(f.rule_id for f in gate_fails)
+        out.append(f"Declared **{declared.value}**; {declared.value} gates failing: {ids}.")
+    else:
+        out.append(f"Declared **{declared.value}**; compliant through {declared.value} gates.")
+    nxt = next_stage(declared)
+    if nxt is not None:
+        pending = sorted(
+            {
+                f.rule_id
+                for f in findings
+                if f.min_stage is nxt and f.status in (FindingStatus.FAIL, FindingStatus.NA)
+            }
+        )
+        if pending:
+            out += ["", f"To reach **{nxt.value}**: {', '.join(pending)}."]
+    out.append("")
+    return out
 
 
 def _summary_table(findings: list[Finding]) -> str:
