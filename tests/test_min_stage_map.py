@@ -19,6 +19,7 @@ _EXPECTED: dict[str, Stage] = {
     "PROTO-002": Stage.S1,
     "PROTO-003": Stage.S1,
     "PROTO-004": Stage.S1,
+    "PROTO-018": Stage.S1,
     "MCP-021": Stage.S1,
     "MCP-022": Stage.S1,
     "PROTO-005": Stage.S2,

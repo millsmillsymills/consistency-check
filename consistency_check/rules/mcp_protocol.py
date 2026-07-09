@@ -1,4 +1,4 @@
-"""Rules: MCP protocol (PROTO-001..017)."""
+"""Rules: MCP protocol (PROTO-001..021)."""
 
 from __future__ import annotations
 
@@ -422,6 +422,57 @@ def _check_http_transport_security(repo: Repo) -> str | None:
     return None
 
 
+def _check_tool_name_length(repo: Repo) -> str | None:
+    bad = [n for n in _tool_names(repo) if len(n) > 64]
+    return f"tool names exceed 64 chars: {bad[:5]}" if bad else None
+
+
+# FastMCP ``instructions=`` kwarg, mcp-go ``server.WithInstructions(...)`` option,
+# and the official Go SDK's ``Instructions:`` struct field all set the same
+# host-system-prompt string.
+_SERVER_INSTRUCTIONS = re.compile(r"(?i)instructions\s*[=:]|with_?instructions\s*\(")
+
+
+def _check_server_instructions(repo: Repo) -> str | None:
+    if _SERVER_INSTRUCTIONS.search(_combined_source_text(repo)):
+        return None
+    return "server sets no instructions string"
+
+
+# The display ``title`` is distinct from the snake_case protocol ``name``; hosts
+# show it in tool lists and permission prompts.
+_TITLE_MARKER = re.compile(r"(?i)\btitle\s*[=:]|[\"']title[\"']|with_?title_?annotation\s*\(")
+
+
+def _check_tool_titles(repo: Repo) -> str | None:
+    if not _tool_names(repo):
+        return None
+    if _TITLE_MARKER.search(_combined_source_text(repo)):
+        return None
+    return "tools defined but none declare a human-readable title"
+
+
+# Trigger: a call to an elicitation/sampling primitive. ``.sample(`` is anchored
+# to ``ctx.`` so unrelated data-sampling calls don't fire the rule.
+_ELICIT_SAMPLE_CALL = re.compile(r"(?i)\.elicit\w*\s*\(|\bctx\.sample\s*\(|\bcreate_?message\s*\(")
+# Guard: ``client_?capabilities`` matches both ``client_capabilities`` and
+# ``clientCapabilities`` once case-folded (the camelCase ``C`` lowercases to a
+# bare ``c``, so the optional underscore covers both spellings).
+_CAPABILITY_GUARD = re.compile(
+    r"(?i)CapabilityNotSupported|client_?capabilities"
+    r"|get_?client_?capabilities|client_params"
+)
+
+
+def _check_capability_guard(repo: Repo) -> str | None:
+    text = _combined_source_text(repo)
+    if not _ELICIT_SAMPLE_CALL.search(text):
+        return None
+    if _CAPABILITY_GUARD.search(text):
+        return None
+    return "elicitation/sampling call without a client-capability check"
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="PROTO-001",
@@ -530,5 +581,30 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="HTTP/SSE transport requires auth and loopback guard",
         check=_check_http_transport_security,
+    ),
+    Rule(
+        id="PROTO-018",
+        tier=Tier.MUST,
+        statement="Tool names are at most 64 characters",
+        check=_check_tool_name_length,
+        min_stage=Stage.S1,
+    ),
+    Rule(
+        id="PROTO-019",
+        tier=Tier.SHOULD,
+        statement="Server sets an instructions string",
+        check=_check_server_instructions,
+    ),
+    Rule(
+        id="PROTO-020",
+        tier=Tier.SHOULD,
+        statement="Each tool declares a human-readable title",
+        check=_check_tool_titles,
+    ),
+    Rule(
+        id="PROTO-021",
+        tier=Tier.MUST,
+        statement="Elicitation/sampling guarded by a capability check",
+        check=_check_capability_guard,
     ),
 )
