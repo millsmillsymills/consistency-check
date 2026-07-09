@@ -29,6 +29,19 @@ class FindingStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class NotApplicable:
+    """Sentinel a check returns when it cannot mechanically evaluate this repo.
+
+    Distinct from ``None`` (pass) and an evidence ``str`` (fail): the driver
+    records it as :attr:`FindingStatus.NA` so a check that never actually ran
+    (network-gated, or not implemented for this language) is never silently
+    scored as a pass. ``reason`` is surfaced as the finding's evidence.
+    """
+
+    reason: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class Repo:
     """A target repository to be audited."""
 
@@ -52,11 +65,12 @@ class Finding:
 class Rule:
     """A single auditable standard.
 
-    The check function returns evidence on failure or None on pass.
+    The check function returns ``None`` on pass, evidence ``str`` on failure, or
+    a :class:`NotApplicable` when the rule cannot be mechanically evaluated.
     """
 
     id: str
     tier: Tier
     statement: str
-    check: Callable[[Repo], str | None]
+    check: Callable[[Repo], str | None | NotApplicable]
     applies_to: frozenset[str] = field(default_factory=lambda: frozenset({"python", "go"}))

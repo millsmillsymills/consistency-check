@@ -6,7 +6,7 @@ import importlib
 import traceback
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Finding, FindingStatus, Repo, Rule, Tier
+from consistency_check.types import Finding, FindingStatus, NotApplicable, Repo, Rule, Tier
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -64,6 +64,15 @@ def audit_repo(repo: Repo) -> list[Finding]:
             continue
         if evidence is None:
             findings.append(Finding(rule_id=rule.id, tier=rule.tier, status=FindingStatus.PASS))
+        elif isinstance(evidence, NotApplicable):
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.NA,
+                    evidence=evidence.reason,
+                )
+            )
         else:
             findings.append(
                 Finding(

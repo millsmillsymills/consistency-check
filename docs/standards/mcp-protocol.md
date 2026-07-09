@@ -20,13 +20,13 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Rationale.** Untyped tools degrade discoverability and break stricter clients.
 
-**Mechanical check.** Python: every `@mcp.tool`-decorated function has fully type-annotated parameters (no bare `Any` for top-level args). Go: every tool registration provides `mcp.WithInputSchema(...)`.
+**Mechanical check.** Python: every `@mcp.tool`-decorated function has fully type-annotated parameters (no bare `Any` for top-level args). Go: not mechanically enforced — reported **n/a**; typed schemas verified by manual review.
 
 ### PROTO-004 — Each tool has Args / Returns / Raises docstring [MUST]
 
 **Rationale.** Description is surfaced to the model and to humans browsing the tool list.
 
-**Mechanical check.** Python: function docstring includes `Args:` and either `Returns:` or `Yields:`. Go: `Description` field of tool definition is non-empty.
+**Mechanical check.** Python: function docstring includes `Args:` and either `Returns:` or `Yields:`. Go: not mechanically enforced — reported **n/a**; the `Description` field is verified by manual review.
 
 ### PROTO-005 — Read tools and write tools are separated [SHOULD]
 
@@ -50,7 +50,7 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Rationale.** stdio is the lowest-friction transport for desktop clients and the project default.
 
-**Mechanical check.** `__main__.py` (Python) or `main.go` (Go) starts in stdio mode unless a `--transport sse|http` flag (or matching env var) is set.
+**Mechanical check.** Go: a `cmd/.../main.go` entrypoint is present (stdio is the SDK default; a forced non-stdio default is caught by PROTO-017). Python: not mechanically checkable from source — reported **n/a**; the stdio default is verified by manual review.
 
 ## Errors
 
@@ -94,7 +94,7 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Rationale.** The host model selects tools from their description. A tool with typed Args but no summary line (see PROTO-004) ships blind to the model.
 
-**Mechanical check.** Each `@mcp.tool` function either passes `description=` to the decorator or opens with a docstring whose first non-empty line is a summary (not an `Args:`/`Returns:` section header).
+**Mechanical check.** Python: each `@mcp.tool` function either passes `description=` to the decorator or opens with a docstring whose first non-empty line is a summary (not an `Args:`/`Returns:` section header). Go: not mechanically enforced — reported **n/a**.
 
 ### PROTO-016 — Tools declare MCP annotations [SHOULD]
 

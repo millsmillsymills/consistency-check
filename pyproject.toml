@@ -9,6 +9,9 @@ description = "Canonical MCP-server standards and audit tool for the millsymills
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.13"
+dependencies = [
+    "packaging>=26.2",
+]
 
 [project.scripts]
 consistency-check = "consistency_check.__main__:main"

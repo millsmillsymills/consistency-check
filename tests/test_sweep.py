@@ -2,8 +2,10 @@
 
 CLAUDE.md states the invariant that the ``good_*`` fixtures satisfy every
 applicable rule and the ``bad_*`` fixtures violate every one. The good side is
-asserted in full. The bad side cannot be total: a handful of rules pass in
-isolation no matter the input, so they are exempted with the reason inline.
+asserted in full (an ``n/a`` outcome counts as satisfied — the check simply did
+not apply). The bad side cannot be total: a rule that reports ``n/a`` never
+fails, and a couple of rules pass in isolation no matter the input, so those are
+exempted with the reason inline.
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from consistency_check.audit import all_rules
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 from tests.fixtures.build import (
     build_bad_go,
@@ -34,16 +36,20 @@ _BAD: dict[str, Callable[[Path], Path]] = {
     "go": build_bad_go,
 }
 
-# Rules that pass on any input and so cannot be tripped by a bad fixture:
-#   MCP-024  dep-age is a deliberate no-op (needs network access).
-#   PROTO-008 the stdio-default check only inspects Go's main.go; Python passes.
-#   PROTO-003/004/015 inspect Python tool signatures/docstrings; Go passes.
-#   PY-003   the src/<pkg>/ layout cannot be missing while the package dir
-#            exists, which the package-content rules require.
+# Rules that pass on any input and so cannot be tripped by a bad fixture.
+# Checks that do not apply (MCP-024 network-gated; PROTO-003/004/008/015 the
+# other language) now report n/a rather than pass, so they need no exemption.
+#   PY-003  the src/<pkg>/ layout cannot be missing while the package dir
+#           exists, which the package-content rules require.
 _CANNOT_FAIL: dict[str, frozenset[str]] = {
-    "python": frozenset({"MCP-024", "PROTO-008", "PY-003"}),
-    "go": frozenset({"MCP-024", "PROTO-003", "PROTO-004", "PROTO-015"}),
+    "python": frozenset({"PY-003"}),
+    "go": frozenset(),
 }
+
+
+def _is_failure(evidence: str | None | NotApplicable) -> bool:
+    """A check fails only when it returns evidence (not None/pass, not n/a)."""
+    return evidence is not None and not isinstance(evidence, NotApplicable)
 
 
 def _repo(root: Path, language: str) -> Repo:
@@ -60,7 +66,7 @@ def test_good_fixture_passes_every_applicable_rule(tmp_path: Path, language: str
     failed = {
         rule.id: evidence
         for rule in _applicable(language)
-        if (evidence := rule.check(repo)) is not None
+        if _is_failure(evidence := rule.check(repo))
     }
     assert not failed, f"good_{language} should pass every rule but failed: {failed}"
 

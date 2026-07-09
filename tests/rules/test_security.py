@@ -6,13 +6,13 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.security import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _check(p: Path, rid: str) -> str | None:
+def _check(p: Path, rid: str) -> str | None | NotApplicable:
     return next(r for r in RULES if r.id == rid).check(
         Repo(name="x", path=p, language="python", github_slug="x/y"),
     )
@@ -77,5 +77,5 @@ def test_mcp_019_flags_committed_env(good_python_repo: Path) -> None:
         check=True,
     )
     evidence = _check(good_python_repo, "MCP-019")
-    assert evidence is not None
+    assert isinstance(evidence, str)
     assert ".env" in evidence

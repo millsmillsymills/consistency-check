@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.tests import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _check(repo_path: Path, language: str, rule_id: str) -> str | None:
+def _check(repo_path: Path, language: str, rule_id: str) -> str | None | NotApplicable:
     repo = Repo(name=repo_path.name, path=repo_path, language=language, github_slug="x/y")
     return next(r for r in RULES if r.id == rule_id).check(repo)
 
