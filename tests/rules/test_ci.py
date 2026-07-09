@@ -5,10 +5,17 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.ci import RULES
-from consistency_check.types import Repo
+from consistency_check.types import Repo, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+_BY_ID = {r.id: r for r in RULES}
+
+
+def _repo(p: Path) -> Repo:
+    return Repo(name="x", path=p, language="python", github_slug="x/y")
 
 
 def _check(p: Path, lang: str, rid: str) -> str | None:
@@ -120,3 +127,38 @@ def test_mcp_026_fail_without_vuln_scan(good_python_repo: Path) -> None:
     ci = good_python_repo / ".github" / "workflows" / "ci.yml"
     ci.write_text(ci.read_text().replace("- run: uv run pip-audit\n", ""), encoding="utf-8")
     assert _check(good_python_repo, "python", "MCP-026") is not None
+
+
+def test_mcp_018_fails_without_publish_step(tmp_path: Path) -> None:
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True)
+    (wf / "release.yml").write_text(
+        "jobs:\n  r:\n    steps:\n      - run: echo built\n", encoding="utf-8"
+    )
+    evidence = _BY_ID["MCP-018"].check(_repo(tmp_path))
+    assert evidence is not None
+    assert "artifact" in evidence
+
+
+def test_mcp_018_passes_with_image_push(tmp_path: Path) -> None:
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True)
+    (wf / "release.yml").write_text(
+        "jobs:\n  r:\n    steps:\n      - uses: docker/build-push-action@abc\n", encoding="utf-8"
+    )
+    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is None
+
+
+def test_mcp_018_fails_when_workflow_missing(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
+
+
+def test_mcp_018_contributing_fallback_removed(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "CONTRIBUTING.md").write_text("## Release\nTag and push.\n", encoding="utf-8")
+    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
+
+
+def test_mcp_018_is_must_tier() -> None:
+    assert _BY_ID["MCP-018"].tier is Tier.MUST

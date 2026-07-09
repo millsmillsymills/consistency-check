@@ -1,4 +1,5 @@
-"""Pin the min_stage assignment so it matches docs/standards/stages.md."""
+"""Pin the min_stage assignment so it matches docs/standards/stages.md and
+docs/standards/deployment.md."""
 
 from __future__ import annotations
 
@@ -28,8 +29,14 @@ _EXPECTED: dict[str, Stage] = {
     "MCP-017": Stage.S2,
     "MCP-023": Stage.S2,
     "MCP-018": Stage.S4,
+    "MCP-DEPLOY-ARTIFACT": Stage.S4,
+    "MCP-DEPLOY-DOCS": Stage.S4,
+    "MCP-DEPLOY-TRANSPORT": Stage.S4,
+    "MCP-DEPLOY-REGISTRY": Stage.S4,
     "MCP-STAGE-DECL": Stage.S0,
     "MCP-STAGE-DRIFT": Stage.S0,
+    "MCP-DEPLOY-DECL": Stage.S0,
+    "MCP-DEPLOY-DRIFT": Stage.S0,
 }
 
 

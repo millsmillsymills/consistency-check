@@ -24,10 +24,13 @@ def build_good_python(root: Path) -> Path:
         # good-python
 
         ## Status
-        Alpha. Stage: S3.
+        Alpha. Stage: S4.
+        Deployment: site-local
 
         ## Quick Start
         Install: ``pip install good-python``.
+        Run with docker compose up -d.
+        Set GOOD_HOST to the appliance address.
 
         ## Configuration
         Set GOOD_TOKEN.
@@ -161,6 +164,22 @@ def build_good_python(root: Path) -> Path:
     _write(root / ".github" / "dependabot.yml", "version: 2\nupdates: []\n")
     _write(root / "docs" / "README.md", "# Docs\n")
 
+    _write(root / "Dockerfile", "FROM scratch\n")
+    _write(root / "compose.yaml", "services: {}\n")
+    _write(
+        root / ".github" / "workflows" / "release.yml",
+        """
+        on:
+          push:
+            tags: ["v*"]
+        jobs:
+          release:
+            runs-on: ubuntu-latest
+            steps:
+              - uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85  # v6
+    """,
+    )
+
     return root
 
 
@@ -246,10 +265,13 @@ def build_good_go(root: Path) -> Path:
         # good-go
 
         ## Status
-        Alpha. Stage: S3.
+        Alpha. Stage: S4.
+        Deployment: site-local
 
         ## Install
         ``go install`` it.
+        Run with docker compose up -d.
+        Set GOOD_HOST to the appliance address.
 
         ## Environment variables
         GOOD_TOKEN.
@@ -361,6 +383,23 @@ def build_good_go(root: Path) -> Path:
     )
     _write(root / ".github" / "dependabot.yml", "version: 2\nupdates: []\n")
     _write(root / "docs" / "README.md", "# Docs\n")
+
+    _write(root / "Dockerfile", "FROM scratch\n")
+    _write(root / "compose.yaml", "services: {}\n")
+    _write(
+        root / ".github" / "workflows" / "release.yml",
+        """
+        on:
+          push:
+            tags: ["v*"]
+        jobs:
+          release:
+            runs-on: ubuntu-latest
+            steps:
+              - uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85  # v6
+    """,
+    )
+
     return root
 
 
