@@ -60,10 +60,12 @@ def _check_actions_pinned(repo: Repo) -> str | None:
 
 # A bare ``-coverprofile`` / ``-covermode`` only emits a report; it does not
 # gate the build. Require a real coverage floor: pytest-cov's
-# ``--cov-fail-under`` (Python) or a Go coverage-gate (``go-test-coverage`` /
-# a ``threshold-total`` check).
+# ``--cov-fail-under`` (Python), a Go coverage-gate (``go-test-coverage`` / a
+# ``threshold-total`` check), or a project ``coverage-check`` target/script that
+# exits non-zero below a floor.
 _COVERAGE_GATE = re.compile(
-    r"(?i)cov-fail-under|fail_under|go-test-coverage|threshold[-_]?(?:total|file|package)"
+    r"(?i)cov-fail-under|fail_under|go-test-coverage"
+    r"|threshold[-_]?(?:total|file|package)|coverage-check"
 )
 _VULN_SCAN = re.compile(
     r"(?i)pip-audit|govulncheck|osv-scanner|\btrivy\b|\bgrype\b|dependency-review|\bsnyk\b"

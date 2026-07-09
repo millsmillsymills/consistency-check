@@ -156,17 +156,31 @@ def _check_integration_split(repo: Repo) -> str | None:
     return "no integration/ directory and no //go:build integration tags"
 
 
+_BARE_RETURN_ERR = re.compile(r"return\s+(\w+),?\s*err\s*$", re.MULTILINE)
+
+
 def _check_error_wrapping(repo: Repo) -> str | None:
-    bad: list[str] = []
+    # Error context is commonly added one layer down: a shared request/`do`
+    # helper that wraps every call site with `fmt.Errorf("op: %w", err)`, so its
+    # callers legitimately `return …, err` unadorned. Judge per package
+    # (directory), not per file — a bare return is a real miss only when *no*
+    # file in its package wraps with %w.
+    by_dir: dict[Path, list[Path]] = {}
     for p in repo.path.rglob("*.go"):
         if p.name.endswith("_test.go") or _skipped(p, repo.path):
             continue
-        text = _read(p)
-        for _ in re.finditer(r"return\s+(\w+),?\s*err\s*$", text, re.MULTILINE):
-            if "fmt.Errorf" not in text or "%w" not in text:
-                bad.append(p.relative_to(repo.path).as_posix())
-                break
-    return f"functions returning unwrapped errors (heuristic): {bad[:5]}" if bad else None
+        by_dir.setdefault(p.parent, []).append(p)
+    bad: list[str] = []
+    for files in by_dir.values():
+        texts = {p: _read(p) for p in files}
+        if any("fmt.Errorf" in t and "%w" in t for t in texts.values()):
+            continue
+        bad.extend(
+            p.relative_to(repo.path).as_posix()
+            for p, text in texts.items()
+            if _BARE_RETURN_ERR.search(text)
+        )
+    return f"functions returning unwrapped errors (heuristic): {sorted(bad)[:5]}" if bad else None
 
 
 def _ctx_first(params: str) -> bool:
@@ -220,18 +234,22 @@ def _check_mcp_go(repo: Repo) -> str | None:
     return "go.mod missing github.com/mark3labs/mcp-go or github.com/modelcontextprotocol/go-sdk"
 
 
+_GO_ERRCHAN = re.compile(r"\bchan\s+error\b")
+
+
 def _check_errgroup(repo: Repo) -> str | None:
-    has_goroutine = any(
-        _GOROUTINE_RE.search(_read(p))
+    sources = [
+        p
         for p in repo.path.rglob("*.go")
         if not p.name.endswith("_test.go") and not _skipped(p, repo.path)
-    )
-    if not has_goroutine:
+    ]
+    if not any(_GOROUTINE_RE.search(_read(p)) for p in sources):
         return None
-    has_errgroup = any(
-        "errgroup" in _read(p) for p in repo.path.rglob("*.go") if not _skipped(p, repo.path)
-    )
-    return None if has_errgroup else "uses goroutines but no errgroup imported"
+    # errgroup is the canonical collector, but a goroutine whose error is
+    # propagated over an explicit `chan error` is handled just as deliberately
+    # (e.g. an HTTP server goroutine feeding a shutdown select). Either clears.
+    handled = any("errgroup" in (t := _read(p)) or _GO_ERRCHAN.search(t) for p in sources)
+    return None if handled else "uses goroutines but no errgroup or error channel"
 
 
 def _check_no_panic(repo: Repo) -> str | None:

@@ -195,3 +195,59 @@ def test_go_013_pass_when_goroutine_with_errgroup(good_go_repo: Path) -> None:
         encoding="utf-8",
     )
     assert _check(good_go_repo, "GO-013") is None
+
+
+def test_go_013_pass_when_goroutine_error_sent_to_channel(good_go_repo: Path) -> None:
+    # A single server goroutine whose error is propagated over an explicit
+    # `chan error` (feeding a shutdown select) is handled deliberately and does
+    # not need errgroup.
+    (good_go_repo / "internal" / "srv").mkdir(parents=True)
+    (good_go_repo / "internal" / "srv" / "srv.go").write_text(
+        "package srv\n\n"
+        "func Serve() error {\n"
+        "\terrCh := make(chan error, 1)\n"
+        "\tgo func() { errCh <- run() }()\n"
+        "\treturn <-errCh\n"
+        "}\n"
+        "func run() error { return nil }\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-013") is None
+
+
+def test_go_009_pass_when_helper_in_same_package_wraps(good_go_repo: Path) -> None:
+    # A caller that returns a sibling helper's already-wrapped error must not be
+    # flagged: the package wraps with %w, just not on the bare-return line.
+    (good_go_repo / "internal" / "raw").mkdir(parents=True)
+    (good_go_repo / "internal" / "raw" / "client.go").write_text(
+        'package raw\n\nimport "fmt"\n\n'
+        'func do(err error) error { return fmt.Errorf("op: %w", err) }\n',
+        encoding="utf-8",
+    )
+    (good_go_repo / "internal" / "raw" / "domains.go").write_text(
+        "package raw\n\n"
+        "func List() (int, error) {\n"
+        "\tif _, err := call(); err != nil {\n"
+        "\t\treturn 0, err\n"
+        "\t}\n"
+        "\treturn 0, nil\n"
+        "}\n"
+        "func call() (int, error) { return 0, nil }\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-009") is None
+
+
+def test_go_009_fail_when_package_never_wraps(good_go_repo: Path) -> None:
+    (good_go_repo / "internal" / "rawbad").mkdir(parents=True)
+    (good_go_repo / "internal" / "rawbad" / "x.go").write_text(
+        "package rawbad\n\n"
+        "func Get() (int, error) {\n"
+        "\tv, err := call()\n"
+        "\t_ = v\n"
+        "\treturn 0, err\n"
+        "}\n"
+        "func call() (int, error) { return 0, nil }\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "GO-009") is not None
