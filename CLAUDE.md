@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A rule-based audit tool that checks the millsmillsymills MCP-server suite against canonical standards. It walks each target repo, runs mechanical checks, emits markdown gap reports, and optionally files GitHub issues. The standards themselves (`docs/standards/`) are the authoritative source of truth; the code mechanically enforces them.
+A rule-based audit tool that checks the millsymills-com MCP-server suite against canonical standards. It walks each target repo, runs mechanical checks, emits markdown gap reports, and optionally files GitHub issues. The standards themselves (`docs/standards/`) are the authoritative source of truth; the code mechanically enforces them.
 
 ## Commands
 

@@ -1,6 +1,6 @@
 # consistency-check
 
-Canonical MCP-server standards and audit tool for the millsmillsymills MCP suite.
+Canonical MCP-server standards and audit tool for the millsymills-com MCP suite.
 
 ## Running the audit
 
