@@ -5,10 +5,13 @@ build-backend = "uv_build"
 [project]
 name = "consistency-check"
 version = "0.1.0"
-description = "Canonical MCP-server standards and audit tool for the millsmillsymills MCP suite"
+description = "Canonical MCP-server standards and audit tool for the millsymills-com MCP suite"
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.13"
+dependencies = [
+    "packaging>=26.2",
+]
 
 [project.scripts]
 consistency-check = "consistency_check.__main__:main"

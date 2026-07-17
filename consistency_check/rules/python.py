@@ -7,7 +7,10 @@ import re
 import tomllib
 from typing import TYPE_CHECKING, Any
 
-from consistency_check.types import Rule, Tier
+from packaging.specifiers import InvalidSpecifier, SpecifierSet
+from packaging.version import Version
+
+from consistency_check.types import NotApplicable, Rule, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -57,14 +60,20 @@ def _check_build_backend(repo: Repo) -> str | None:
     return f"build-backend is {backend!r}; require one of {sorted(_REQUIRED_BACKENDS)}"
 
 
-def _check_requires_python(repo: Repo) -> str | None:
+def _check_requires_python(repo: Repo) -> str | None | NotApplicable:
     cfg = _read_pyproject(repo)
     if cfg is None:
-        return None
+        return NotApplicable("pyproject.toml missing or unparseable")
     spec = cfg.get("project", {}).get("requires-python", "")
-    if "3.13" in spec or "3.14" in spec:
+    if not spec:
+        return "requires-python not set; standard requires a specifier permitting 3.13"
+    try:
+        permits = SpecifierSet(spec).contains(Version("3.13"), prereleases=True)
+    except InvalidSpecifier:
+        return f"requires-python = {spec!r} is not a valid PEP 440 specifier"
+    if permits:
         return None
-    return f"requires-python = {spec!r}; project standard is 3.13"
+    return f"requires-python = {spec!r} does not permit 3.13"
 
 
 def _check_layout(repo: Repo) -> str | None:

@@ -10,3 +10,7 @@ dist/
 build/
 .coverage
 htmlcov/
+.scratch/
+docs/superpowers/
+audit-out/
+audit-out-validation/

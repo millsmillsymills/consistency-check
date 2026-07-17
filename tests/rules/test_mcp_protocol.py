@@ -8,10 +8,10 @@ from consistency_check.rules.mcp_protocol import RULES
 
 if TYPE_CHECKING:
     from pathlib import Path
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 
-def _check(p: Path, lang: str, rid: str) -> str | None:
+def _check(p: Path, lang: str, rid: str) -> str | None | NotApplicable:
     return next(r for r in RULES if r.id == rid).check(
         Repo(name=p.name, path=p, language=lang, github_slug="x/y"),
     )

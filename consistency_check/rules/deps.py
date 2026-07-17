@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Rule, Tier
+from consistency_check.types import NotApplicable, Rule, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
@@ -54,9 +54,13 @@ def _check_lockfile(repo: Repo) -> str | None:
     return None if (repo.path / "go.sum").is_file() else "go.sum missing"
 
 
-def _check_dep_age(_repo: Repo) -> str | None:
-    """Pass unconditionally — dep freshness requires network access to PyPI/proxy.go.dev."""
-    return None
+def _check_dep_age(_repo: Repo) -> NotApplicable:
+    """Report n/a — dep freshness needs network access to PyPI / proxy.golang.org.
+
+    Returning ``NotApplicable`` (rather than an unconditional pass) keeps a check
+    that never runs offline out of the pass column.
+    """
+    return NotApplicable("dependency freshness needs network access; not run in offline audits")
 
 
 RULES: tuple[Rule, ...] = (

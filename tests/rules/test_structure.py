@@ -6,13 +6,13 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.structure import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _run(repo_path: Path, language: str, rule_id: str) -> str | None:
+def _run(repo_path: Path, language: str, rule_id: str) -> str | None | NotApplicable:
     repo = Repo(name=repo_path.name, path=repo_path, language=language, github_slug="x/y")
     rule = next(r for r in RULES if r.id == rule_id)
     return rule.check(repo)
@@ -24,7 +24,7 @@ def test_mcp_001_pass_on_good_python(good_python_repo: Path) -> None:
 
 def test_mcp_001_fail_on_bad_python(bad_python_repo: Path) -> None:
     evidence = _run(bad_python_repo, "python", "MCP-001")
-    assert evidence is not None
+    assert isinstance(evidence, str)
     assert "LICENSE" in evidence or "SECURITY.md" in evidence or "CLAUDE.md" in evidence
 
 
@@ -36,7 +36,7 @@ def test_mcp_005_fail_when_pycache_committed(good_python_repo: Path) -> None:
     (good_python_repo / "src" / "good_python" / "__pycache__").mkdir()
     (good_python_repo / "src" / "good_python" / "__pycache__" / "x.pyc").write_bytes(b"")
     evidence = _run(good_python_repo, "python", "MCP-005")
-    assert evidence is not None
+    assert isinstance(evidence, str)
     assert "__pycache__" in evidence
 
 
@@ -63,7 +63,7 @@ def test_mcp_002_fails_when_license_text_does_not_match_spdx(good_python_repo: P
     license_file = good_python_repo / "LICENSE"
     license_file.write_text("MIT License\n\nPermission is hereby granted...\n", encoding="utf-8")
     evidence = _run(good_python_repo, "python", "MCP-002")
-    assert evidence is not None
+    assert isinstance(evidence, str)
     assert "Apache-2.0" in evidence
 
 
@@ -99,5 +99,5 @@ def test_mcp_005_flags_committed_pycache(good_python_repo: Path) -> None:
         check=True,
     )
     evidence = _run(good_python_repo, "python", "MCP-005")
-    assert evidence is not None
+    assert isinstance(evidence, str)
     assert "__pycache__" in evidence

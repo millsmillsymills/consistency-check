@@ -144,7 +144,7 @@ These rules apply to every MCP server in the suite regardless of language.
 
 **Rationale.** Unmaintained deps accumulate CVEs.
 
-**Mechanical check.** For each direct dep, latest released version is within 12 months of the manifest pin OR an inline comment in the manifest explains why.
+**Mechanical check.** For each direct dep, latest released version is within 12 months of the manifest pin OR an inline comment in the manifest explains why. Requires network access to the package index; reported **n/a** in offline audits rather than a pass.
 
 ### MCP-025 — CI enforces a coverage threshold [SHOULD]
 

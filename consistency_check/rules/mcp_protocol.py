@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.types import Rule, Tier
+from consistency_check.types import NotApplicable, Rule, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -86,9 +86,11 @@ def _untyped_params_in_sig(sig: str) -> bool:
     return any(":" not in param for param in params)
 
 
-def _check_typed_inputs(repo: Repo) -> str | None:
+def _check_typed_inputs(repo: Repo) -> str | None | NotApplicable:
     if repo.language != "python":
-        return None
+        return NotApplicable(
+            "typed-input-schema check is Python-only; Go schemas verified by manual review"
+        )
     bad: list[str] = []
     for p in _python_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")
@@ -105,9 +107,11 @@ def _has_docstring_sections(after: str) -> bool:
     return "Args:" in after and ("Returns:" in after or "Yields:" in after)
 
 
-def _check_docstrings(repo: Repo) -> str | None:
+def _check_docstrings(repo: Repo) -> str | None | NotApplicable:
     if repo.language != "python":
-        return None
+        return NotApplicable(
+            "Args/Returns docstring check is Python-only; Go docs verified by manual review"
+        )
     bad: list[str] = []
     for p in _python_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")
@@ -150,10 +154,14 @@ def _check_capabilities(repo: Repo) -> str | None:
     return "no capabilities registration detected"
 
 
-def _check_stdio_default(repo: Repo) -> str | None:
-    if repo.language == "go" and not next((p for p in (repo.path / "cmd").rglob("main.go")), None):
-        return "no cmd/.../main.go found"
-    return None
+def _check_stdio_default(repo: Repo) -> str | None | NotApplicable:
+    if repo.language == "go":
+        if not next((p for p in (repo.path / "cmd").rglob("main.go")), None):
+            return "no cmd/.../main.go found"
+        return None
+    return NotApplicable(
+        "Python stdio-default not mechanically checkable from source; verified by manual review"
+    )
 
 
 def _check_mcp_errors(repo: Repo) -> str | None:
@@ -332,9 +340,11 @@ def _tool_summary_present(after: str) -> bool:
     return False
 
 
-def _check_tool_descriptions(repo: Repo) -> str | None:
+def _check_tool_descriptions(repo: Repo) -> str | None | NotApplicable:
     if repo.language != "python":
-        return None
+        return NotApplicable(
+            "description-summary check is Python-only; Go descriptions verified by manual review"
+        )
     bad: list[str] = []
     for p in _python_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")

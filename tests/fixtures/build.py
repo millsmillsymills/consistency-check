@@ -168,8 +168,9 @@ def build_bad_python(root: Path) -> Path:
     """Create a Python repo that fails every applicable rule it can.
 
     Files are present-but-wrong so content rules trip rather than passing
-    vacuously. A few rules cannot fail while the package dir exists (PY-003) or
-    are language no-ops (PROTO-008); the sweep test exempts those explicitly.
+    vacuously. PY-003 cannot fail while the package dir exists, so the sweep test
+    exempts it. Language no-ops (PROTO-008 for Python) and network-gated checks
+    (MCP-024) now report n/a — neither pass nor fail — so they need no exemption.
     """
     root.mkdir(parents=True, exist_ok=True)
     _write(root / "README.md", "# bad-python\n")  # no sections, no client setup
@@ -185,7 +186,7 @@ def build_bad_python(root: Path) -> Path:
         [project]
         name = "bad-python"
         version = "0.1.0"
-        requires-python = ">=3.11"
+        requires-python = ">=3.10,<3.13"
         dependencies = ["requests"]
 
         [dependency-groups]
@@ -363,9 +364,9 @@ def build_bad_go(root: Path) -> Path:
     """Create a Go repo that fails every applicable rule it can.
 
     The single internal source file violates the GO-* library rules and the
-    language-agnostic PROTO rules at once. A few PROTO rules are Python-only
-    no-ops (PROTO-003/004/015) and MCP-024 always passes; the sweep test
-    exempts those explicitly.
+    language-agnostic PROTO rules at once. The Python-only PROTO rules
+    (PROTO-003/004/015) and the network-gated MCP-024 now report n/a for Go —
+    neither pass nor fail — so they need no exemption.
     """
     root.mkdir(parents=True, exist_ok=True)
     _write(root / "README.md", "# bad-go\n")  # no sections, no client setup

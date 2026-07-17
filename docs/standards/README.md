@@ -1,6 +1,6 @@
 # MCP Server Standards
 
-Canonical standards for the millsmillsymills MCP suite. Authoritative source of truth.
+Canonical standards for the millsymills-com MCP suite. Authoritative source of truth.
 
 All rules use RFC 2119 vocabulary:
 - **MUST** — non-compliance blocks merge / release.
