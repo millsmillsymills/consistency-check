@@ -556,7 +556,7 @@ RULES: tuple[Rule, ...] = (
     Rule(
         id="PROTO-017",
         tier=Tier.MUST,
-        statement="HTTP/SSE transport requires auth and loopback guard",
+        statement="Network transport requires auth and loopback guard",
         check=_check_http_transport_security,
     ),
     Rule(
