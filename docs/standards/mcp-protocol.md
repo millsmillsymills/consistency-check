@@ -107,3 +107,31 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 **Rationale.** PROTO-008 keeps stdio the default and puts HTTP/SSE behind a flag, but once a network transport is enabled the server is reachable by other processes and, via DNS rebinding, by web pages. The MCP spec requires local HTTP servers to authenticate requests and to validate the `Origin`/`Host` header (or bind to loopback) so a browser cannot drive the server.
 
 **Mechanical check.** Only fires when the source enables a network transport (an `sse`/`streamable-http`/`http` transport selection, an SSE server/mux/listener, or an `MCP_TRANSPORT` switch). When it does, the source must also show **both** an auth marker (`bearer` / `authorization` / `auth`) **and** a host-guard marker (`127.0.0.1` / `localhost` / `loopback` / `origin`). stdio-only servers pass vacuously.
+
+## Directory submission surface
+
+These rules encode pass/fail criteria from the Anthropic Directory review and the high-leverage capability hints in the upstream SDK guidance. They keep a server that wraps an API the same way Claude's own connector reviewers expect.
+
+### PROTO-018 — Tool names are at most 64 characters [MUST]
+
+**Rationale.** The Anthropic Directory rejects any tool whose name exceeds 64 characters, and several hosts truncate longer names in their UI and permission prompts. A name that survives review on one host but not another is a silent interop failure, so the limit is enforced everywhere.
+
+**Mechanical check.** Every registered tool name (`@mcp.tool` in Python, `WithTools(...)` in Go) is ≤ 64 characters. A server that exposes no tools passes vacuously.
+
+### PROTO-019 — Server sets an `instructions` string [SHOULD]
+
+**Rationale.** The server `instructions` field lands directly in the host's system prompt and is the single highest-leverage place to put cross-tool usage hints ("call `search_*` before `get_*` — IDs aren't guessable") that don't belong in any one tool description. Omitting it leaves the model to infer tool-ordering and preconditions on its own.
+
+**Mechanical check.** Source constructs the server with an instructions string: Python passes `instructions=` to `FastMCP(...)`; Go passes `server.WithInstructions(...)` or sets an `Instructions:` field. Detected as the substring `instructions=` / `Instructions:` / `WithInstructions(` (case-insensitive) anywhere in the server source.
+
+### PROTO-020 — Each tool declares a human-readable `title` [SHOULD]
+
+**Rationale.** The protocol `name` is a `snake_case` identifier (PROTO-001); the `title` annotation is the display label a host shows in tool lists and permission dialogs. The Anthropic Directory expects every tool to carry one. Without it, hosts fall back to the raw identifier and users approve calls against `good_python_delete_widget` instead of "Delete widget".
+
+**Mechanical check.** A repo that defines at least one tool also references a title marker somewhere in its source: a `title=` argument, a `"title"` / `'title'` annotation key, a `Title:` field, or a `WithTitleAnnotation(...)` constructor (case-insensitive). A server that exposes no tools passes vacuously.
+
+### PROTO-021 — Elicitation and sampling calls are guarded by a capability check [MUST]
+
+**Rationale.** Elicitation and sampling depend on client support that not every host advertises. The SDKs raise (`CapabilityNotSupported` in FastMCP) when a tool calls `elicit` / `sample` against a client that never declared the capability, turning an optional nicety into a hard tool failure. A server that uses either feature must check the client's declared capabilities first and fall back gracefully.
+
+**Mechanical check.** Only fires when the source calls an elicitation or sampling primitive (`.elicit(...)` / `.elicitInput(...)`, `ctx.sample(...)` / `.sample(...)`, or `createMessage(...)`). When it does, the source must also reference a capability guard: `CapabilityNotSupported`, `client_capabilities` / `clientCapabilities`, `getClientCapabilities`, `get_client_capabilities`, or `client_params`. A server that uses neither feature passes vacuously.
