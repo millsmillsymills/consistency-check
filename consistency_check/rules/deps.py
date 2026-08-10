@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from consistency_check.sources import go_sources, python_sources
 from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
@@ -13,16 +14,12 @@ if TYPE_CHECKING:
 
 
 def _go_texts(repo: Repo) -> Iterator[str]:
-    for p in repo.path.rglob("*.go"):
-        if ".git" not in p.parts:
-            yield p.read_text(encoding="utf-8", errors="replace")
+    for p in go_sources(repo):
+        yield p.read_text(encoding="utf-8", errors="replace")
 
 
 def _python_texts(repo: Repo) -> Iterator[str]:
-    src = repo.path / "src"
-    if not src.is_dir():
-        return
-    for p in src.rglob("*.py"):
+    for p in python_sources(repo):
         yield p.read_text(encoding="utf-8", errors="replace")
 
 
