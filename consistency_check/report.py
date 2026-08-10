@@ -113,7 +113,9 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
             {
                 f.rule_id
                 for f in findings
-                if f.min_stage is nxt and f.status in (FindingStatus.FAIL, FindingStatus.NA)
+                if f.min_stage is nxt
+                and f.applicable
+                and f.status in (FindingStatus.FAIL, FindingStatus.NA)
             }
         )
         if pending:

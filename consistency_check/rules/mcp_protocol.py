@@ -286,11 +286,24 @@ _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
 # A bare `os.Stdout` reference is usually dependency injection — the CLI hands
 # os.Stdout to a run() that also serves stdio — not a write that corrupts the
 # protocol stream. Flag only actual writes: the fmt.Print* family, an explicit
-# fmt.Fprint*(os.Stdout, …), or os.Stdout.Write[String].
+# fmt.Fprint*(os.Stdout, …), os.Stdout.Write[String], or os.Stdout as the
+# destination writer of a copy helper / writer constructor. Only the first
+# argument position counts: that is the destination for every helper listed, so
+# `io.Copy(w, os.Stdout)` (stdout as *source*) stays clean.
+_GO_STDOUT_WRITER_SINKS = (
+    r"bufio\.NewWriter(?:Size)?",
+    r"io\.Copy(?:N)?",
+    r"io\.WriteString",
+    r"io\.MultiWriter",
+    r"json\.NewEncoder",
+    r"log\.New",
+    r"log\.SetOutput",
+)
 _GO_STDOUT = re.compile(
     r"\bfmt\.(?:Print|Printf|Println)\s*\("
     r"|\bfmt\.Fprint(?:f|ln)?\s*\(\s*os\.Stdout\b"
-    r"|\bos\.Stdout\.(?:Write|WriteString)\b",
+    r"|\bos\.Stdout\.(?:Write|WriteString)\b"
+    rf"|\b(?:{'|'.join(_GO_STDOUT_WRITER_SINKS)})\s*\(\s*os\.Stdout\b",
 )
 
 
