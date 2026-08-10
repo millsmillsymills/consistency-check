@@ -177,11 +177,12 @@ def test_proto_005_pass_with_writes_enabled_gate(tmp_path: Path) -> None:
 def test_proto_005_006_gate_recognise_same_flag(tmp_path: Path) -> None:
     # The split (PROTO-005) and gate (PROTO-006) checks must accept the same
     # flag spellings; an ``allowwrites`` env flag used to clear the split but
-    # not the gate.
+    # not the gate. The body deliberately avoids register_read/register_write so
+    # PROTO-005 cannot pass via its structural fallback.
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
     (pkg / "tools.py").write_text(
-        "if os.environ.get('ALLOWWRITES'):\n    register_write(mcp)\n", encoding="utf-8"
+        "if os.environ.get('ALLOWWRITES'):\n    register_tools(mcp)\n", encoding="utf-8"
     )
     assert _check(tmp_path, "python", "PROTO-005") is None
     assert _check(tmp_path, "python", "PROTO-006") is None
