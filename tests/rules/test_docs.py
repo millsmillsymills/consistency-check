@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+from consistency_check.rules import docs
 from consistency_check.rules.docs import RULES
 from consistency_check.types import Repo
 
@@ -33,3 +35,53 @@ def test_mcp_009_fail_when_claude_md_lacks_link(tmp_path: Path) -> None:
     repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
     rule = next(r for r in RULES if r.id == "MCP-009")
     assert rule.check(repo) is not None
+
+
+def test_mcp_027_pass_on_good_python(good_python_repo: Path) -> None:
+    assert _check(good_python_repo, "python", "MCP-027") is None
+
+
+def test_mcp_027_fail_on_bad_python(bad_python_repo: Path) -> None:
+    evidence = _check(bad_python_repo, "python", "MCP-027")
+    assert evidence is not None
+    assert "README.md:3" in evidence
+
+
+def test_mcp_027_fail_on_bad_go(bad_go_repo: Path) -> None:
+    assert _check(bad_go_repo, "go", "MCP-027") is not None
+
+
+def test_mcp_027_scans_docs_markdown(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "design.md").write_text("The client boasts a fast cache.\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is not None
+
+
+def test_mcp_027_translates_posix_classes(tmp_path: Path) -> None:
+    # ``^[[:space:]]*[emoji]`` is a PCRE2 bracket expression Python's ``re``
+    # would otherwise read as a literal character class.
+    (tmp_path / "README.md").write_text("  ✓ done\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is not None
+
+
+def test_mcp_027_ignores_non_prose_files(tmp_path: Path) -> None:
+    (tmp_path / "notes.txt").write_text("a rich tapestry\n", encoding="utf-8")
+    (tmp_path / "server.py").write_text("# leverage\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is None
+
+
+def test_mcp_027_errors_when_pattern_file_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(docs, "_BANNED_PHRASES", tmp_path / "absent" / "banned-phrases.txt")
+    (tmp_path / "README.md").write_text("clean prose\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="banned-phrase list"):
+        _check(tmp_path, "python", "MCP-027")
+
+
+def test_mcp_027_caps_evidence_with_more_tail(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("leverage\n" * 8, encoding="utf-8")
+    evidence = _check(tmp_path, "python", "MCP-027")
+    assert evidence is not None
+    assert evidence.endswith("and 3 more")

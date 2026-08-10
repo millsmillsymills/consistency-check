@@ -1,15 +1,15 @@
-"""Rules: documentation (MCP-003, 004, 007, 008, 009, 010)."""
+"""Rules: documentation (MCP-003, 004, 007, 008, 009, 010, 027)."""
 
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from consistency_check._git import tracked_files
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from consistency_check.types import Repo
 
 _README_GROUPS = (
@@ -21,6 +21,26 @@ _README_GROUPS = (
 )
 _CLIENT_NAMES = ("Claude Desktop", "Cursor", "Continue.dev", "Claude Code")
 _STANDARDS_LINK = "consistency-check/docs/standards"
+
+_PROSE_ROOT_FILES = ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")
+_BANNED_PHRASES = (
+    Path.home()
+    / "Desktop/Projects/claude-defaults-private/skills/writing-voice-review/banned-phrases.txt"
+)
+# The pattern file is written for ripgrep's PCRE2 engine, which accepts POSIX
+# bracket expressions; Python's ``re`` reads ``[[:space:]]`` as a literal class.
+_POSIX_CLASSES = {
+    "alnum": r"a-zA-Z0-9",
+    "alpha": r"a-zA-Z",
+    "blank": r" \t",
+    "digit": r"0-9",
+    "lower": r"a-z",
+    "punct": r"!-/:-@\[-`{-~",
+    "space": r"\s",
+    "upper": r"A-Z",
+    "xdigit": r"0-9a-fA-F",
+}
+_MAX_PROSE_HITS = 5
 
 
 def _read(p: Path) -> str:
@@ -82,6 +102,49 @@ def _check_docs_dir(repo: Repo) -> str | None:
     return None
 
 
+def _banned_phrase_patterns() -> list[tuple[str, re.Pattern[str]]]:
+    try:
+        raw = _BANNED_PHRASES.read_text(encoding="utf-8")
+    except OSError as exc:
+        msg = f"cannot read the writing-voice banned-phrase list at {_BANNED_PHRASES}: {exc}"
+        raise RuntimeError(msg) from exc
+    patterns = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        translated = line
+        for name, expansion in _POSIX_CLASSES.items():
+            translated = translated.replace(f"[:{name}:]", expansion)
+        patterns.append((line, re.compile(translated, re.IGNORECASE)))
+    return patterns
+
+
+def _prose_surfaces(repo: Repo) -> list[str]:
+    found = [name for name in _PROSE_ROOT_FILES if (repo.path / name).is_file()]
+    docs = repo.path / "docs"
+    if docs.is_dir():
+        found.extend(p.relative_to(repo.path).as_posix() for p in docs.rglob("*.md"))
+    tracked = tracked_files(repo.path)
+    return sorted(rel for rel in found if not tracked or rel in tracked)
+
+
+def _check_writing_voice(repo: Repo) -> str | None:
+    patterns = _banned_phrase_patterns()
+    hits: list[str] = []
+    for rel in _prose_surfaces(repo):
+        text = _read(repo.path / rel)
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            hits.extend(
+                f"{rel}:{lineno} {match.group(0)!r} (banned: {raw})"
+                for raw, pattern in patterns
+                if (match := pattern.search(line))
+            )
+    if not hits:
+        return None
+    tail = f" and {len(hits) - _MAX_PROSE_HITS} more" if len(hits) > _MAX_PROSE_HITS else ""
+    return f"banned writing-voice phrases: {'; '.join(hits[:_MAX_PROSE_HITS])}{tail}"
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="MCP-003",
@@ -118,5 +181,11 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.SHOULD,
         statement="docs/ exists with markdown content",
         check=_check_docs_dir,
+    ),
+    Rule(
+        id="MCP-027",
+        tier=Tier.MUST,
+        statement="Prose surfaces are free of writing-voice banned phrases",
+        check=_check_writing_voice,
     ),
 )

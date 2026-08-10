@@ -157,3 +157,9 @@ These rules apply to every MCP server in the suite regardless of language.
 **Rationale.** Dependencies are the largest attack surface in a small server. Dependabot (MCP-016) opens upgrade PRs but does not fail the build on a known-vulnerable pin; an explicit scan does, catching CVEs before merge.
 
 **Mechanical check.** A workflow file runs a vulnerability scanner: `pip-audit` (Python), `govulncheck` (Go), GitHub's `dependency-review` action, or a general scanner (`osv-scanner` / `trivy` / `grype` / `snyk`, or a `safety check` invoked in a `run:` step). `safety check` is only counted inside a `run:` command, not in prose or comments.
+
+### MCP-027 — Prose surfaces are free of writing-voice banned phrases [MUST]
+
+**Rationale.** README, CHANGELOG, CONTRIBUTING, SECURITY, and `docs/` are the parts of a server a reader sees first. The workspace writing-voice standard bans a fixed set of marketing clichés, LLM vocabulary tells, and typographic tics; enforcing it mechanically keeps that standard from decaying to a manual review step nobody runs.
+
+**Mechanical check.** Every git-tracked prose surface (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md` at the repo root, plus every `*.md` under `docs/`) is matched line by line, case-insensitively, against the canonical pattern list in the `writing-voice-review` skill's `banned-phrases.txt`. Any hit fails, with evidence naming the file, line, matched text, and pattern. The pattern list is read at audit time and is never vendored into this repo; if it cannot be read, the check raises and the finding is recorded as an error.
