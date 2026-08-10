@@ -120,3 +120,15 @@ def test_mcp_027_caps_evidence_with_more_tail(tmp_path: Path) -> None:
     evidence = _check(tmp_path, "python", "MCP-027")
     assert evidence is not None
     assert evidence.endswith("and 3 more")
+
+
+def test_mcp_027_permits_your_tool(tmp_path: Path) -> None:
+    # "our tool" is the marketing cliche; "your tool" addressing the reader is
+    # ordinary docs prose and must not trip the rule.
+    (tmp_path / "README.md").write_text("Point your tool at the socket.\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is None
+
+
+def test_mcp_027_still_flags_our_tool(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("our tool does the rest.\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is not None
