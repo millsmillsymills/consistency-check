@@ -247,12 +247,13 @@ _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
 # fmt.Fprint*(os.Stdout, …), os.Stdout.Write[String], or os.Stdout as the
 # destination writer of a copy helper / writer constructor. Only the first
 # argument position counts: that is the destination for every helper listed, so
-# `io.Copy(w, os.Stdout)` (stdout as *source*) stays clean.
+# `io.Copy(w, os.Stdout)` (stdout as *source*) stays clean. io.MultiWriter is the
+# exception — it fans out to every argument — so its whole argument list is
+# scanned via balanced extraction.
 _GO_STDOUT_WRITER_SINKS = (
     r"bufio\.NewWriter(?:Size)?",
     r"io\.Copy(?:N)?",
     r"io\.WriteString",
-    r"io\.MultiWriter",
     r"json\.NewEncoder",
     r"log\.New",
     r"log\.SetOutput",
@@ -263,6 +264,17 @@ _GO_STDOUT = re.compile(
     r"|\bos\.Stdout\.(?:Write|WriteString)\b"
     rf"|\b(?:{'|'.join(_GO_STDOUT_WRITER_SINKS)})\s*\(\s*os\.Stdout\b",
 )
+_GO_MULTIWRITER = re.compile(r"\bio\.MultiWriter\s*\(")
+_GO_STDOUT_REF = re.compile(r"\bos\.Stdout\b")
+
+
+def _go_writes_stdout(text: str) -> bool:
+    if _GO_STDOUT.search(text):
+        return True
+    return any(
+        _GO_STDOUT_REF.search(_balanced(text, m.end() - 1, "(", ")"))
+        for m in _GO_MULTIWRITER.finditer(text)
+    )
 
 
 def _stdout_writers(repo: Repo) -> list[str]:
@@ -279,7 +291,7 @@ def _stdout_writers(repo: Repo) -> list[str]:
     bad.extend(
         p.name
         for p in go_sources(repo)
-        if _GO_STDOUT.search(code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
+        if _go_writes_stdout(code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
     )
     return bad
 
