@@ -45,6 +45,50 @@ def _expected_namespace(repo: Repo) -> str:
     return repo.path.name.removesuffix("-mcp").replace("-", "_") + "_"
 
 
+def _mask_nested(region: str) -> str:
+    """Blank every character inside a nested brace group, keeping offsets stable."""
+    out: list[str] = []
+    depth = 0
+    for ch in region:
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        out.append(" " if depth or ch in "{}" else ch)
+    return "".join(out)
+
+
+def _brace_groups(region: str) -> list[str]:
+    """Return the contents of each top-level brace group in ``region``."""
+    groups: list[str] = []
+    depth = 0
+    start = 0
+    for i, ch in enumerate(region):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                groups.append(region[start + 1 : i])
+    return groups
+
+
+def _literal_tool_names(region: str) -> list[str]:
+    """Tool names carried by one ``Tool{...}`` region.
+
+    Only the literal's *own* fields name it, so the region is masked before the
+    ``Name`` scan: an inner ``&mcp.Meta{Name: ...}`` would otherwise be read as
+    the tool's name. When the region has no ``Name`` of its own it is a slice
+    literal (``[]mcp.Tool{{...}, {...}}``), whose elements each name a tool.
+    """
+    own = [m.group(1) for m in _GO_TOOL_LITERAL_NAME.finditer(_mask_nested(region))]
+    if own:
+        return own
+    return [name for group in _brace_groups(region) for name in _literal_tool_names(group)]
+
+
 def _go_tool_names(text: str) -> list[str]:
     """Tool names registered in one Go source file.
 
@@ -54,9 +98,7 @@ def _go_tool_names(text: str) -> list[str]:
     """
     names = [next(g for g in m.groups() if g) for m in _GO_TOOL_REGISTER.finditer(text)]
     for m in _GO_TOOL_LITERAL.finditer(text):
-        named = _GO_TOOL_LITERAL_NAME.search(_balanced(text, m.end() - 1, "{", "}"))
-        if named:
-            names.append(named.group(1))
+        names.extend(_literal_tool_names(_balanced(text, m.end() - 1, "{", "}")))
     return names
 
 
@@ -112,6 +154,38 @@ def _applies_tool_decorator(node: ast.AST) -> bool:
     )
 
 
+def _returns_tool_decorator(node: ast.AST) -> bool:
+    """Report whether ``node`` contains a ``return mcp.tool(**kw)(fn)``.
+
+    Requiring the *return* is what separates a decorator factory from a plain
+    registration helper (``def register(mcp): mcp.tool()(search)``), whose name
+    would otherwise turn every unrelated ``@x.register`` decorator — the
+    ``functools.singledispatch`` shape, say — into a phantom tool.
+    """
+    return any(
+        isinstance(inner, ast.Return)
+        and inner.value is not None
+        and _applies_tool_decorator(inner.value)
+        for inner in ast.walk(node)
+    )
+
+
+def _named_funcs(tree: ast.Module) -> list[_ToolFunc]:
+    """Collect module- and class-level defs, the only names a decorator can reference.
+
+    Nested defs are excluded deliberately. A factory's inner plumbing is
+    conventionally called ``decorator`` or ``wrapper``, and matching a decorator
+    against names that generic collides with unrelated code.
+    """
+    funcs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            funcs.extend(
+                n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+            )
+    return funcs
+
+
 def _tool_factories(tree: ast.Module) -> set[str]:
     """Names of functions that register a tool on their caller's behalf.
 
@@ -120,12 +194,7 @@ def _tool_factories(tree: ast.Module) -> set[str]:
     decorated with that factory are tools even though no ``.tool`` attribute
     appears at the decoration site.
     """
-    return {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and any(_applies_tool_decorator(inner) for inner in ast.walk(node))
-    }
+    return {node.name for node in _named_funcs(tree) if _returns_tool_decorator(node)}
 
 
 def _is_factory_decorator(dec: ast.expr, factories: frozenset[str]) -> bool:
@@ -514,11 +583,13 @@ _CAPABILITY_GUARD = re.compile(
 
 # Anchored on the MCP server constructors: a bare ``NewServer(`` also matches
 # ``httptest.NewServer(`` and ``grpc.NewServer(``, which are not tool surfaces.
-# ``Server(`` catches the low-level Python SDK (``app = Server("x")``), whose
-# ``@app.list_tools()`` registrations this module cannot name yet — exactly the
-# state this rule exists to report.
+# ``Server("name")`` catches the low-level Python SDK (``app = Server("x")``),
+# whose ``@app.list_tools()`` registrations this module cannot name yet —
+# exactly the state this rule exists to report. The literal first argument is
+# required so an accessor like ``cfg.Server()`` or ``uvicorn.Server(cfg)`` is
+# not read as a server construction.
 _SERVER_MARKER = re.compile(
-    r"FastMCP\s*\(|mcp\.NewServer\s*\(|server\.NewMCPServer\s*\(|\bServer\s*\("
+    r"FastMCP\s*\(|mcp\.NewServer\s*\(|server\.NewMCPServer\s*\(|\bServer\s*\(\s*[\"']"
 )
 
 

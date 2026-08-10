@@ -55,9 +55,48 @@ def combined_source_text(repo: Repo) -> str:
     return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sources)
 
 
+def _consume_quoted(text: str, i: int) -> int:
+    """Index just past the string literal opening at ``i``."""
+    quote = text[i]
+    i += 1
+    while i < len(text):
+        if text[i] == "\\" and quote != "`":
+            i += 2
+            continue
+        if text[i] == quote:
+            return i + 1
+        i += 1
+    return i
+
+
+def strip_block_comments(text: str) -> str:
+    """Remove Go ``/* */`` comments, keeping string literals and line count intact.
+
+    Quote-aware because callers that keep literals would otherwise see a ``/*``
+    inside a URL open a comment that swallows the rest of the file.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'`":
+            end = _consume_quoted(text, i)
+            out.append(text[i:end])
+            i = end
+        elif text.startswith("/*", i):
+            end = len(text) if (close := text.find("*/", i + 2)) == -1 else close + 2
+            out.append("\n" * text.count("\n", i, end))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
 def code_only(text: str, line_comment: str) -> str:
-    """Strip string literals then line comments, so prose cannot register as code."""
+    """Strip string literals then comments, so prose cannot register as code."""
     text = STRING_LITERAL.sub("", text)
+    if line_comment == "//":
+        text = strip_block_comments(text)
     return re.sub(rf"{re.escape(line_comment)}.*", "", text)
 
 
@@ -96,6 +135,8 @@ def code_and_literals(text: str, line_comment: str) -> str:
     ``transport="streamable-http"`` argument.
     """
     text = _BLOCK_STRING.sub("", text)
+    if line_comment == "//":
+        text = strip_block_comments(text)
     return "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
 
 

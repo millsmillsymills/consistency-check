@@ -205,6 +205,142 @@ def test_proto_001_detects_go_tool_composite_literal(tmp_path: Path) -> None:
     assert _check(tmp_path, "go", "PROTO-001") is not None
 
 
+def test_go_tool_literal_name_comes_from_the_literals_own_fields(tmp_path: Path) -> None:
+    # A nested composite carries its own Name. Reading the first one in the
+    # brace region grades the wrong string as the tool name.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc register(s *mcp.Server) {\n"
+        "\taddTool(s, &mcp.Tool{\n"
+        '\t\tMeta:        &mcp.Meta{Name: "INNER_WRONG"},\n'
+        '\t\tName:        "good_go_search",\n\t}, handle)\n}\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["good_go_search"]
+
+
+def test_go_tool_slice_literal_names_every_element(tmp_path: Path) -> None:
+    # Taking one match per brace region hides every tool after the first, while
+    # PROTO-022 still passes because the list is non-empty.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nvar all = []mcp.Tool{\n"
+        '\t{Name: "good_go_search"},\n\t{Name: "good_go_fetch"},\n}\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["good_go_search", "good_go_fetch"]
+
+
+def test_go_tool_name_in_a_block_comment_is_not_a_tool(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "doc.go").write_text(
+        "package internal\n/* Registrations look like\n"
+        'mcp.Tool{Name: "BadName"} here. */\nvar x = 1\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == []
+
+
+def test_go_block_comment_stripping_keeps_string_literals(tmp_path: Path) -> None:
+    # A `/*` inside a URL must not open a comment that swallows the file: the
+    # registration after it would vanish and every tool rule would pass.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\n"
+        'const base = "https://example.com/*/things"\n'
+        'func Register(s *server.MCPServer) { s.AddTool(mcp.NewTool("BadName"), handle) }\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["BadName"]
+
+
+def test_registration_helper_is_not_treated_as_a_decorator_factory(tmp_path: Path) -> None:
+    # `register` calls but does not *return* the built decorator, so it is a
+    # plain helper. Collecting it made every `@x.register` — the singledispatch
+    # shape — register a phantom tool named `_`.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "import functools\n\n"
+        "def register(mcp):\n    mcp.tool()(search)\n\n"
+        "@functools.singledispatch\ndef process(x): ...\n\n"
+        "@process.register\ndef _(x: int): return x\n",
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == []
+
+
+def test_nested_plumbing_names_do_not_become_factories(tmp_path: Path) -> None:
+    # `decorator` is a factory's inner plumbing, generic enough to collide with
+    # any unrelated decorator of that name.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "_helpers.py").write_text(
+        "def good_python_tool(mcp, **kw):\n"
+        "    def decorator(fn):\n"
+        "        return mcp.tool(**kw)(fn)\n"
+        "    return decorator\n",
+        encoding="utf-8",
+    )
+    (pkg / "other.py").write_text("@decorator\ndef unrelated(): pass\n", encoding="utf-8")
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == []
+
+
+def test_proto_022_fail_when_go_server_defines_no_detectable_tool(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "main.go").write_text(
+        'package internal\nfunc run() { s := mcp.NewServer("x", nil); _ = s }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-022") is not None
+
+
+def test_proto_022_pass_when_go_server_registers_through_mcp_go(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "main.go").write_text(
+        "package internal\nfunc run() {\n"
+        '\ts := server.NewMCPServer("x", "1.0")\n'
+        '\ts.AddTool(mcp.NewTool("x_search"), handle)\n}\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-022") is None
+
+
+def test_proto_022_ignores_a_server_accessor_call(tmp_path: Path) -> None:
+    # `cfg.Server()` is an accessor, not a construction; treating it as one
+    # fails a toolless library with evidence reading "server constructed".
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        "def endpoint(cfg):\n    return cfg.Server()\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "python", "PROTO-022") is None
+
+
+def test_proto_022_ignores_registrations_in_a_vendored_tree(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "main.go").write_text(
+        'package internal\nfunc run() { s := mcp.NewServer("x", nil); _ = s }\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "vendor" / "dep").mkdir(parents=True)
+    (tmp_path / "vendor" / "dep" / "tools.go").write_text(
+        'package dep\nfunc r(s *server.MCPServer) { s.AddTool(mcp.NewTool("dep_search"), h) }\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == []
+    assert _check(tmp_path, "go", "PROTO-022") is not None
+
+
 def test_proto_022_fail_when_server_defines_no_detectable_tool(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
