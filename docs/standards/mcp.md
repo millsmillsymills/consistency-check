@@ -157,3 +157,11 @@ These rules apply to every MCP server in the suite regardless of language.
 **Rationale.** Dependencies are the largest attack surface in a small server. Dependabot (MCP-016) opens upgrade PRs but does not fail the build on a known-vulnerable pin; an explicit scan does, catching CVEs before merge.
 
 **Mechanical check.** A workflow file runs a vulnerability scanner: `pip-audit` (Python), `govulncheck` (Go), GitHub's `dependency-review` action, or a general scanner (`osv-scanner` / `trivy` / `grype` / `snyk`, or a `safety check` invoked in a `run:` step). `safety check` is only counted inside a `run:` command, not in prose or comments.
+
+### MCP-027 — Prose surfaces are free of writing-voice banned phrases [MUST]
+
+**Rationale.** README, CHANGELOG, CONTRIBUTING, SECURITY, and `docs/` are the parts of a server a reader sees first. Marketing clichés and LLM vocabulary tells in those files read as unmaintained; a mechanical check keeps the standard from decaying to a review step nobody runs.
+
+**Mechanical check.** Prose surfaces (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md` at the repo root, plus every `*.md` under `docs/`) are matched line by line, case-insensitively, against `consistency_check/data/banned-phrases.txt`. Fenced code blocks are blanked first, so usage examples are not read as prose. In a git repo the surfaces are restricted to tracked files; elsewhere every matching file is read. Any hit fails, with evidence naming the file, line, matched text, and pattern.
+
+The shipped list is a subset of the `writing-voice-review` skill's Pass 1: the skill's typographic patterns (em dash, curly quotes, emoji list markers, `@`-opener lines) are deliberately excluded, because the standards docs in this suite use em dashes as their established voice and every FastMCP README opens example lines with `@mcp.tool`. Those remain a judgement call for the skill under human review. The list is vendored rather than read from the skill so the rule is reproducible from a clean checkout; a missing or uncompilable list raises, and the finding is recorded as an error.

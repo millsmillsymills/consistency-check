@@ -1,10 +1,12 @@
-"""Rules: documentation (MCP-003, 004, 007, 008, 009, 010)."""
+"""Rules: documentation (MCP-003, 004, 007, 008, 009, 010, 027)."""
 
 from __future__ import annotations
 
 import re
+from importlib import resources
 from typing import TYPE_CHECKING
 
+from consistency_check._git import tracked_files
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -21,6 +23,12 @@ _README_GROUPS = (
 )
 _CLIENT_NAMES = ("Claude Desktop", "Cursor", "Continue.dev", "Claude Code")
 _STANDARDS_LINK = "consistency-check/docs/standards"
+
+_PROSE_ROOT_FILES = ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")
+_BANNED_PHRASES_NAME = "consistency_check/data/banned-phrases.txt"
+_BANNED_PHRASES = resources.files("consistency_check") / "data" / "banned-phrases.txt"
+_FENCE = re.compile(r"^\s*(?:```|~~~)")
+_MAX_PROSE_HITS = 5
 
 
 def _read(p: Path) -> str:
@@ -82,6 +90,66 @@ def _check_docs_dir(repo: Repo) -> str | None:
     return None
 
 
+def _banned_phrase_patterns() -> list[tuple[str, re.Pattern[str]]]:
+    try:
+        raw = _BANNED_PHRASES.read_text(encoding="utf-8")
+    except OSError as exc:
+        msg = f"cannot read the banned-phrase list at {_BANNED_PHRASES_NAME}: {exc}"
+        raise RuntimeError(msg) from exc
+    patterns = []
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        try:
+            patterns.append((line, re.compile(line, re.IGNORECASE)))
+        except re.error as exc:
+            msg = f"invalid pattern in {_BANNED_PHRASES_NAME}: {line!r}: {exc}"
+            raise RuntimeError(msg) from exc
+    return patterns
+
+
+def _prose_surfaces(repo: Repo) -> list[str]:
+    found = [name for name in _PROSE_ROOT_FILES if (repo.path / name).is_file()]
+    docs = repo.path / "docs"
+    if docs.is_dir():
+        found.extend(p.relative_to(repo.path).as_posix() for p in docs.rglob("*.md"))
+    tracked = tracked_files(repo.path)
+    return sorted(rel for rel in found if not tracked or rel in tracked)
+
+
+def _prose_lines(text: str) -> list[str]:
+    """Blank out fenced code blocks, keeping line numbers intact.
+
+    A README's usage examples are code, not prose; ``our tool`` inside a shell
+    snippet is a command, not a marketing cliche.
+    """
+    lines: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if _FENCE.match(line):
+            fenced = not fenced
+            lines.append("")
+        else:
+            lines.append("" if fenced else line)
+    return lines
+
+
+def _check_writing_voice(repo: Repo) -> str | None:
+    patterns = _banned_phrase_patterns()
+    hits: list[str] = []
+    for rel in _prose_surfaces(repo):
+        for lineno, line in enumerate(_prose_lines(_read(repo.path / rel)), start=1):
+            hits.extend(
+                f"{rel}:{lineno} {match.group(0)!r} (banned: {raw})"
+                for raw, pattern in patterns
+                if (match := pattern.search(line))
+            )
+    if not hits:
+        return None
+    tail = f" and {len(hits) - _MAX_PROSE_HITS} more" if len(hits) > _MAX_PROSE_HITS else ""
+    return f"banned writing-voice phrases: {'; '.join(hits[:_MAX_PROSE_HITS])}{tail}"
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="MCP-003",
@@ -118,5 +186,11 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.SHOULD,
         statement="docs/ exists with markdown content",
         check=_check_docs_dir,
+    ),
+    Rule(
+        id="MCP-027",
+        tier=Tier.MUST,
+        statement="Prose surfaces are free of writing-voice banned phrases",
+        check=_check_writing_voice,
     ),
 )

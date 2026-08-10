@@ -172,7 +172,8 @@ def build_bad_python(root: Path) -> Path:
     are language no-ops (PROTO-008); the sweep test exempts those explicitly.
     """
     root.mkdir(parents=True, exist_ok=True)
-    _write(root / "README.md", "# bad-python\n")  # no sections, no client setup
+    # No sections, no client setup, and a banned writing-voice phrase (MCP-027).
+    _write(root / "README.md", "# bad-python\n\nWe leverage a rich tapestry of tooling.\n")
 
     # pyproject present but wrong on every axis the PY rules check.
     _write(
@@ -368,7 +369,8 @@ def build_bad_go(root: Path) -> Path:
     exempts those explicitly.
     """
     root.mkdir(parents=True, exist_ok=True)
-    _write(root / "README.md", "# bad-go\n")  # no sections, no client setup
+    # No sections, no client setup, and a banned writing-voice phrase (MCP-027).
+    _write(root / "README.md", "# bad-go\n\nWe leverage a rich tapestry of tooling.\n")
 
     # No go.mod / go.sum / .golangci.yml / ci.yml: trips GO-002/003/004/005/007
     # and GO-012. internal/ exists (so the content rules can trip) but cmd/ does
