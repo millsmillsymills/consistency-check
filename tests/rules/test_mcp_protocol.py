@@ -495,3 +495,53 @@ def test_proto_021_fail_on_unguarded_go_sampling(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert _check(tmp_path, "go", "PROTO-021") is not None
+
+
+def test_proto_002_detects_multiline_nested_annotation(tmp_path: Path) -> None:
+    # More than one level of paren nesting inside a decorator that spans lines
+    # used to defeat the matcher, hiding the tool from every PROTO-* check.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool(\n    annotations=ToolAnnotations(readOnlyHint=bool(1)),\n)\n"
+        "def list_things(): pass\n",
+        encoding="utf-8",
+    )
+    assert _check(repo_root, "python", "PROTO-002") is not None
+
+
+def test_proto_002_detects_multiline_decorator_string_with_paren(tmp_path: Path) -> None:
+    # A ``)`` inside a decorator string literal used to unbalance the matcher.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(\n    name="emoji :) ",\n)\ndef list_things(): pass\n',
+        encoding="utf-8",
+    )
+    assert _check(repo_root, "python", "PROTO-002") is not None
+
+
+def test_proto_015_fail_on_multiline_nested_annotation_without_description(
+    tmp_path: Path,
+) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "@mcp.tool(\n    annotations=ToolAnnotations(readOnlyHint=bool(1)),\n)\n"
+        'def good_python_list(x: int) -> str:\n    return ""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is not None
+
+
+def test_proto_015_pass_with_paren_in_description_string(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(\n    description="List things (all of them)",\n)\n'
+        'def good_python_list(x: int) -> str:\n    return ""\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-015") is None

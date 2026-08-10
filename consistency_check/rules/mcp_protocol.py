@@ -12,15 +12,6 @@ from consistency_check.types import Rule, Stage, Tier
 if TYPE_CHECKING:
     from consistency_check.types import Repo
 
-# The optional ``(...)`` block (one level of nesting) lets the decorator args
-# span multiple lines; without it a split ``@mcp.tool(\n  name=...\n)`` decorator
-# matched nothing and the tool was invisible to every PROTO-* tool check. group(0)
-# therefore spans the whole decorator, so PROTO-015's ``description=`` test sees
-# args on their own line too.
-_TOOL_DECORATOR = re.compile(
-    r"@mcp\.tool(?:\s*\((?:[^()]|\([^()]*\))*\))?"
-    r"[^\n]*\n\s*(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\("
-)
 _GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
 # Anchored variant for whole Python identifiers in log calls. ``token``,
@@ -40,9 +31,9 @@ def _expected_namespace(repo: Repo) -> str:
 def _tool_names(repo: Repo) -> list[str]:
     if repo.language == "python":
         return [
-            m.group(1)
+            func.name
             for p in python_sources(repo)
-            for m in _TOOL_DECORATOR.finditer(p.read_text(encoding="utf-8", errors="replace"))
+            for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
         ]
     return [
         m.group(1)
@@ -331,14 +322,17 @@ def _check_http_timeout(repo: Repo) -> str | None:
     return None
 
 
-def _tool_summary_present(after: str) -> bool:
-    m = re.search(r"(\"\"\"|''')", after)
-    if not m:
-        return False
-    rest = after[m.end() :]
-    end = rest.find(m.group(1))
-    body = rest if end == -1 else rest[:end]
-    for line in body.splitlines():
+def _has_description_kwarg(func: _ToolFunc) -> bool:
+    return any(
+        isinstance(dec, ast.Call)
+        and _is_mcp_tool_decorator(dec)
+        and any(kw.arg == "description" for kw in dec.keywords)
+        for dec in func.decorator_list
+    )
+
+
+def _tool_summary_present(func: _ToolFunc) -> bool:
+    for line in (ast.get_docstring(func) or "").splitlines():
         stripped = line.strip()
         if stripped:
             return not stripped.startswith(("Args:", "Returns:", "Yields:", "Raises:"))
@@ -348,14 +342,12 @@ def _tool_summary_present(after: str) -> bool:
 def _check_tool_descriptions(repo: Repo) -> str | None:
     if repo.language != "python":
         return None
-    bad: list[str] = []
-    for p in python_sources(repo):
-        text = p.read_text(encoding="utf-8", errors="replace")
-        for m in _TOOL_DECORATOR.finditer(text):
-            if "description=" in m.group(0):
-                continue
-            if not _tool_summary_present(text[m.end() : m.end() + 600]):
-                bad.append(m.group(1))
+    bad = [
+        func.name
+        for p in python_sources(repo)
+        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
+        if not _has_description_kwarg(func) and not _tool_summary_present(func)
+    ]
     return f"tools missing a description summary line: {bad[:5]}" if bad else None
 
 
