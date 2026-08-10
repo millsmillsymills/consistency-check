@@ -73,12 +73,19 @@ def strip_block_comments(text: str) -> str:
     """Remove Go ``/* */`` comments, keeping string literals and line count intact.
 
     Quote-aware because callers that keep literals would otherwise see a ``/*``
-    inside a URL open a comment that swallows the rest of the file.
+    inside a URL open a comment that swallows the rest of the file. ``//`` lines
+    are copied through untouched for the same reason: a ``/*`` or a lone
+    apostrophe written in prose there must not open a span.
     """
     out: list[str] = []
     i = 0
     while i < len(text):
-        if text[i] in "\"'`":
+        if text.startswith("//", i):
+            end = text.find("\n", i)
+            end = len(text) if end == -1 else end
+            out.append(text[i:end])
+            i = end
+        elif text[i] in "\"'`":
             end = _consume_quoted(text, i)
             out.append(text[i:end])
             i = end
