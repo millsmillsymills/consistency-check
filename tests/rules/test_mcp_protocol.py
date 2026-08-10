@@ -315,6 +315,41 @@ def test_proto_013_fail_on_go_sized_bufio_writer_on_stdout(tmp_path: Path) -> No
     assert _check(tmp_path, "go", "PROTO-013") is not None
 
 
+def test_proto_013_fail_on_go_multiwriter_fanning_out_to_stdout(tmp_path: Path) -> None:
+    # io.MultiWriter is the one sink where every argument is a destination, so a
+    # trailing os.Stdout still lands on the frame stream.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "tee.go").write_text(
+        'package internal\nimport ("io"; "os")\n'
+        "func Tee(logFile io.Writer) { w := io.MultiWriter(logFile, os.Stdout); _ = w }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_multiwriter_with_stdout_after_a_nested_call(tmp_path: Path) -> None:
+    # A call expression in an earlier argument closes a paren mid-list, which is
+    # why the argument list is extracted with balanced matching rather than a
+    # negated character class.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "tee2.go").write_text(
+        'package internal\nimport ("bufio"; "io"; "os")\n'
+        "func Tee(f io.Writer) { w := io.MultiWriter(bufio.NewWriter(f), os.Stdout); _ = w }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_multiwriter_with_stdout_first(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "tee3.go").write_text(
+        'package internal\nimport ("io"; "os")\n'
+        "func Tee(f io.Writer) { w := io.MultiWriter(os.Stdout, f); _ = w }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
 def test_proto_013_pass_when_stdout_is_not_the_destination_writer(tmp_path: Path) -> None:
     # Only the first argument is the destination. os.Stdout as a copy *source*,
     # and a writer built over an injected `out`, leave the frame stream alone —
