@@ -341,6 +341,83 @@ def test_proto_022_ignores_registrations_in_a_vendored_tree(tmp_path: Path) -> N
     assert _check(tmp_path, "go", "PROTO-022") is not None
 
 
+def test_go_tool_literal_brace_inside_a_description_does_not_end_the_literal(
+    tmp_path: Path,
+) -> None:
+    # Literals are kept by design, so brace counting has to ignore braces inside
+    # them or the Name field lands outside the extracted region.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc register(s *mcp.Server) {\n"
+        "\taddTool(s, &mcp.Tool{\n"
+        '\t\tDescription: "Close the session }",\n'
+        '\t\tName:        "good_go_close",\n\t}, handle)\n}\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["good_go_close"]
+
+
+def test_factory_behind_a_version_guard_is_still_collected(tmp_path: Path) -> None:
+    # Reading only tree.body missed a factory declared under a module-level if,
+    # and every tool it decorated vanished with it.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "_helpers.py").write_text(
+        "import sys\n\nif sys.version_info >= (3, 12):\n"
+        "    def good_python_tool(mcp, **kw):\n"
+        "        def decorator(fn):\n"
+        "            return mcp.tool(**kw)(fn)\n"
+        "        return decorator\n",
+        encoding="utf-8",
+    )
+    (pkg / "tools.py").write_text(
+        "from good_python._helpers import good_python_tool\n\n@good_python_tool(mcp)\n"
+        "async def good_python_list(): pass\n",
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == ["good_python_list"]
+
+
+def test_proto_022_reports_python_source_it_cannot_parse(tmp_path: Path) -> None:
+    # A dropped file is invisible to every Python tool rule, and one parseable
+    # tool elsewhere used to suppress the only rule that could say so.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text(
+        '@mcp.tool()\nasync def good_python_ok() -> str:\n    """Do it.\n\n'
+        '    Returns:\n        A thing.\n    """\n    return "x"\n',
+        encoding="utf-8",
+    )
+    (pkg / "broken.py").write_text("def oops(:\n", encoding="utf-8")
+    evidence = _check(tmp_path, "python", "PROTO-022")
+    assert evidence is not None
+    assert "broken.py" in evidence
+
+
+def test_proto_022_reports_python_source_with_a_nul_byte(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "binary.py").write_bytes(b"x = 1\x00\n")
+    evidence = _check(tmp_path, "python", "PROTO-022")
+    assert evidence is not None
+    assert "binary.py" in evidence
+
+
+def test_proto_022_detects_the_low_level_python_sdk_server(tmp_path: Path) -> None:
+    # `Server(name=...)` and `Server(SETTINGS.name)` are the common spellings;
+    # requiring a literal first argument missed both.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('app = Server(name="good-python")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+    (pkg / "server.py").write_text("app = Server(SETTINGS.name)\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+
 def test_proto_022_fail_when_server_defines_no_detectable_tool(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)

@@ -40,11 +40,19 @@ def go_sources(repo: Repo) -> list[Path]:
     under git worktrees or vendor caches don't poison the heuristics, and skips
     vendored/third-party trees so a dependency's source is not graded as if the
     repo had written it.
+
+    Exclusions are tested against the repo-relative path only. Matching against
+    ``p.parts`` would test every ancestor too, so a checkout that merely *sits*
+    under a directory named ``vendor`` or ``.worktrees`` would yield no sources
+    at all and pass every Go rule on an empty list.
     """
     return [
         p
         for p in repo.path.rglob("*.go")
-        if not any(part.startswith(".") or part in _GO_EXCLUDED_DIRS for part in p.parts)
+        if not any(
+            part.startswith(".") or part in _GO_EXCLUDED_DIRS
+            for part in p.relative_to(repo.path).parts
+        )
         and not p.name.endswith("_test.go")
     ]
 
@@ -67,6 +75,26 @@ def _consume_quoted(text: str, i: int) -> int:
             return i + 1
         i += 1
     return i
+
+
+def mask_literal_braces(text: str) -> str:
+    """Blank brace characters inside string literals, keeping offsets stable.
+
+    Balanced-brace scanning over text that deliberately keeps its literals would
+    otherwise end a composite literal early at a ``}`` written inside a
+    description string.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'`":
+            end = _consume_quoted(text, i)
+            out.append(re.sub(r"[{}]", " ", text[i:end]))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
 
 
 def strip_block_comments(text: str) -> str:
@@ -100,10 +128,16 @@ def strip_block_comments(text: str) -> str:
 
 
 def code_only(text: str, line_comment: str) -> str:
-    """Strip string literals then comments, so prose cannot register as code."""
-    text = STRING_LITERAL.sub("", text)
+    """Strip comments then string literals, so prose cannot register as code.
+
+    Block comments go first because ``STRING_LITERAL`` is quote-based and
+    comment-blind: a lone ``"`` inside a ``/* */`` comment would otherwise
+    consume the comment's own terminator, leaving an unterminated ``/*`` that
+    erases the rest of the file — and an empty file passes every check.
+    """
     if line_comment == "//":
         text = strip_block_comments(text)
+    text = STRING_LITERAL.sub("", text)
     return re.sub(rf"{re.escape(line_comment)}.*", "", text)
 
 
@@ -140,13 +174,28 @@ def code_and_literals(text: str, line_comment: str) -> str:
     ``code_only`` drops literals too, which is right for call-shaped heuristics
     but wrong when the value being detected *is* a literal, e.g. a
     ``transport="streamable-http"`` argument.
+
+    ``_BLOCK_STRING`` is Python-only. Applied to Go it pairs ``\"\"\"`` sequences
+    that occur inside unrelated raw strings and deletes everything between them.
     """
-    text = _BLOCK_STRING.sub("", text)
     if line_comment == "//":
-        text = strip_block_comments(text)
+        return "\n".join(
+            _strip_line_comment(line, line_comment)
+            for line in strip_block_comments(text).splitlines()
+        )
+    text = _BLOCK_STRING.sub("", text)
     return "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
 
 
 def combined_code_text(repo: Repo) -> str:
-    """``combined_source_text`` with docstrings and comments removed, literals kept."""
-    return code_and_literals(combined_source_text(repo), "#" if repo.language == "python" else "//")
+    """``combined_source_text`` with docstrings and comments removed, literals kept.
+
+    Each file is scrubbed before the join: a span deleted from the concatenation
+    could otherwise start in one file and end in another, erasing every file
+    between them.
+    """
+    marker = "#" if repo.language == "python" else "//"
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
+    return "\n".join(
+        code_and_literals(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
+    )

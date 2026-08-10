@@ -13,6 +13,7 @@ from consistency_check.sources import (
     combined_code_text,
     combined_source_text,
     go_sources,
+    mask_literal_braces,
     python_sources,
 )
 from consistency_check.types import Rule, Stage, Tier
@@ -96,6 +97,7 @@ def _go_tool_names(text: str) -> list[str]:
     fields are unordered, so ``Name`` may sit after a nested composite that a
     ``[^{}]*`` window would stop at.
     """
+    text = mask_literal_braces(text)
     names = [next(g for g in m.groups() if g) for m in _GO_TOOL_REGISTER.finditer(text)]
     for m in _GO_TOOL_LITERAL.finditer(text):
         names.extend(_literal_tool_names(_balanced(text, m.end() - 1, "{", "}")))
@@ -170,19 +172,22 @@ def _returns_tool_decorator(node: ast.AST) -> bool:
     )
 
 
-def _named_funcs(tree: ast.Module) -> list[_ToolFunc]:
-    """Collect module- and class-level defs, the only names a decorator can reference.
+def _named_funcs(scope: ast.AST) -> list[_ToolFunc]:
+    """Collect defs reachable without entering another function's body.
 
-    Nested defs are excluded deliberately. A factory's inner plumbing is
-    conventionally called ``decorator`` or ``wrapper``, and matching a decorator
-    against names that generic collides with unrelated code.
+    These are the only names a decorator elsewhere can reference. Descent
+    continues through ``if``/``try``/``with`` and class bodies, so a factory
+    guarded by a version check is still found, but stops at a function body: a
+    factory's inner plumbing is conventionally called ``decorator`` or
+    ``wrapper``, and matching a decorator against names that generic collides
+    with unrelated code.
     """
-    funcs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef):
-            funcs.extend(
-                n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-            )
+    funcs: list[_ToolFunc] = []
+    for node in ast.iter_child_nodes(scope):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            funcs.append(node)
+        elif not isinstance(node, ast.Lambda):
+            funcs.extend(_named_funcs(node))
     return funcs
 
 
@@ -212,14 +217,21 @@ def _is_tool_func(node: _ToolFunc, factories: frozenset[str]) -> bool:
     )
 
 
-def _python_trees(repo: Repo) -> list[ast.Module]:
+def _python_trees(repo: Repo) -> tuple[list[ast.Module], list[str]]:
+    """Parse every Python source, returning the trees and the files that failed.
+
+    The failures are returned rather than dropped because a file the auditor
+    cannot parse is a file every Python tool rule is blind to, and blindness
+    that reports as a pass is the thing PROTO-022 exists to surface.
+    """
     trees: list[ast.Module] = []
+    unparseable: list[str] = []
     for p in python_sources(repo):
         try:
             trees.append(ast.parse(p.read_text(encoding="utf-8", errors="replace")))
-        except SyntaxError:
-            continue
-    return trees
+        except (SyntaxError, ValueError, RecursionError):
+            unparseable.append(p.name)
+    return trees, unparseable
 
 
 def _repo_tool_funcs(repo: Repo) -> list[_ToolFunc]:
@@ -230,7 +242,7 @@ def _repo_tool_funcs(repo: Repo) -> list[_ToolFunc]:
     ``register_*`` helpers are reached. Decorator factories are collected across
     the whole repo because the factory usually lives in a shared helper module.
     """
-    trees = _python_trees(repo)
+    trees = _python_trees(repo)[0]
     factories = frozenset[str]().union(*(_tool_factories(t) for t in trees))
     return [
         node
@@ -583,17 +595,21 @@ _CAPABILITY_GUARD = re.compile(
 
 # Anchored on the MCP server constructors: a bare ``NewServer(`` also matches
 # ``httptest.NewServer(`` and ``grpc.NewServer(``, which are not tool surfaces.
-# ``Server("name")`` catches the low-level Python SDK (``app = Server("x")``),
-# whose ``@app.list_tools()`` registrations this module cannot name yet —
-# exactly the state this rule exists to report. The literal first argument is
-# required so an accessor like ``cfg.Server()`` or ``uvicorn.Server(cfg)`` is
-# not read as a server construction.
+# Bare ``Server(...)`` catches the low-level Python SDK (``app = Server("x")``,
+# ``Server(name=...)``, ``Server(SETTINGS.name)``), whose ``@app.list_tools()``
+# registrations this module cannot name yet — exactly the state this rule exists
+# to report. The receiver lookbehind is what keeps an accessor or an unrelated
+# library out: ``cfg.Server()`` and ``uvicorn.Server(cfg)`` are both qualified,
+# and at least one argument is required so a no-arg accessor cannot match.
 _SERVER_MARKER = re.compile(
-    r"FastMCP\s*\(|mcp\.NewServer\s*\(|server\.NewMCPServer\s*\(|\bServer\s*\(\s*[\"']"
+    r"FastMCP\s*\(|mcp\.NewServer\s*\(|server\.NewMCPServer\s*\("
+    r"|(?<![.\w])Server\s*\(\s*[^)\s]"
 )
 
 
 def _check_tools_detected(repo: Repo) -> str | None:
+    if repo.language == "python" and (unparseable := _python_trees(repo)[1]):
+        return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
     if _tool_names(repo):
         return None
     if not _SERVER_MARKER.search(combined_code_text(repo)):

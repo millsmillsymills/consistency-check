@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import pytest
-from consistency_check.sources import code_and_literals, code_only, strip_block_comments
+from consistency_check.sources import (
+    code_and_literals,
+    code_only,
+    mask_literal_braces,
+    strip_block_comments,
+)
 
 
 @pytest.mark.parametrize(
@@ -33,6 +38,26 @@ def test_go_block_comments_are_stripped_by_both_entry_points() -> None:
     assert "os.Stdout" not in code_and_literals(go, "//")
     # code_and_literals keeps literals; code_only drops them.
     assert '"x"' in code_and_literals(go, "//")
+
+
+def test_quote_inside_a_block_comment_does_not_erase_the_file() -> None:
+    # STRING_LITERAL is comment-blind: run before block-comment stripping it
+    # consumed the comment's own terminator, and the unterminated /* that was
+    # left deleted every line below. An empty file passes every check.
+    go = 'package main\n\n/* helper for the " character */\n\nvar c = &http.Client{}\n'
+    assert "http.Client" in code_only(go, "//")
+    assert "helper" not in code_only(go, "//")
+
+
+def test_go_raw_string_triple_quotes_do_not_span_files() -> None:
+    # _BLOCK_STRING is a Python docstring pattern. Applied to Go it paired two
+    # unrelated `"""` sequences and deleted the registration between them.
+    go = 'package t\nconst a = `ex: """`\nfunc r() { s.AddTool(mcp.NewTool("x_go"), h) }\n'
+    assert "AddTool" in code_and_literals(go, "//")
+
+
+def test_mask_literal_braces_only_touches_literals() -> None:
+    assert mask_literal_braces('a{ x = "}" }') == 'a{ x = " " }'
 
 
 def test_python_slash_star_is_not_a_comment() -> None:
