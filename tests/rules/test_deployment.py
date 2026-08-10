@@ -253,3 +253,49 @@ def test_drift_rule_fires_on_contradiction(tmp_path: Path) -> None:
         '[project]\ndependencies = ["httpx==0.27.0"]\n', encoding="utf-8"
     )
     assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is not None
+
+
+def _write_source(root: Path, body: str) -> None:
+    pkg = root / "src" / "x"
+    pkg.mkdir(parents=True, exist_ok=True)
+    (pkg / "server.py").write_text(body, encoding="utf-8")
+
+
+def test_transport_ignores_a_comment_denying_a_listener(tmp_path: Path) -> None:
+    # A comment ruling out the listener must not be read as one.
+    _scaffold(tmp_path, "host-local")
+    _write_source(tmp_path, "# stdio only; never streamable HTTP or uvicorn\nmcp.run()\n")
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+
+
+def test_transport_ignores_a_docstring_denying_a_listener(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    _write_source(tmp_path, '"""Not a web app: no uvicorn, no listener."""\nmcp.run()\n')
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+
+
+def test_transport_still_flags_a_real_listener(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    _write_source(tmp_path, "import uvicorn\n\nuvicorn.run(app)\n")
+    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    assert evidence is not None
+    assert "uvicorn.run(" in evidence
+
+
+def test_transport_flags_a_streamable_run_argument(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "host-local")
+    _write_source(tmp_path, 'mcp.run(transport="streamable-http")\n')
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+
+
+def test_transport_remote_hostable_needs_a_real_transport_not_a_comment(tmp_path: Path) -> None:
+    # The mirror-image failure: a promise in a comment must not clear the MUST.
+    _scaffold(tmp_path, "remote-hostable")
+    _write_source(tmp_path, "# TODO: streamable HTTP is not supported yet\nmcp.run()\n")
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+
+
+def test_transport_remote_hostable_passes_on_a_real_transport(tmp_path: Path) -> None:
+    _scaffold(tmp_path, "remote-hostable")
+    _write_source(tmp_path, 'mcp.run(transport="streamable-http")\n')
+    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None

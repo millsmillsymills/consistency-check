@@ -175,3 +175,96 @@ def test_mcp_018_contributing_fallback_removed(tmp_path: Path) -> None:
 
 def test_mcp_018_is_must_tier() -> None:
     assert _BY_ID["MCP-018"].tier is Tier.MUST
+
+
+def _replace_ci_step(repo: Path, old: str, new: str) -> None:
+    ci = repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(ci.read_text().replace(old, new), encoding="utf-8")
+
+
+def test_mcp_025_pass_on_gate_inside_make_recipe(good_go_repo: Path) -> None:
+    # The gate token lives in the Makefile recipe, not the workflow YAML.
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make cover")
+    (good_go_repo / "Makefile").write_text(
+        "build:\n\tgo build ./...\n\ncover:\n\tgo-test-coverage --config .testcoverage.yml\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
+def test_mcp_025_pass_on_gate_inside_script_called_by_make(good_go_repo: Path) -> None:
+    # workflow -> make target -> shell script, the protonmail-mcp shape.
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make cover")
+    (good_go_repo / "Makefile").write_text(
+        "cover:\n\t./scripts/cover.sh cov.out\n", encoding="utf-8"
+    )
+    script = good_go_repo / "scripts" / "cover.sh"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text("#!/usr/bin/env bash\ngo-test-coverage --config x.yml\n", encoding="utf-8")
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
+def test_mcp_025_pass_on_gate_inside_script_called_directly(good_python_repo: Path) -> None:
+    _replace_ci_step(good_python_repo, "--cov=good_python --cov-fail-under=90", "")
+    _replace_ci_step(good_python_repo, "- run: uv run pip-audit", "- run: ./scripts/cov.sh")
+    script = good_python_repo / "scripts" / "cov.sh"
+    script.parent.mkdir(parents=True, exist_ok=True)
+    script.write_text("pytest --cov-fail-under=85\n", encoding="utf-8")
+    assert _check(good_python_repo, "python", "MCP-025") is None
+
+
+def test_mcp_025_still_fails_when_recipe_only_reports(good_go_repo: Path) -> None:
+    # Following the indirection must not turn a report-only recipe into a gate.
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make cover")
+    (good_go_repo / "Makefile").write_text(
+        "cover:\n\tgo test ./... -coverprofile=cov.out -covermode=atomic\n", encoding="utf-8"
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_ignores_script_path_outside_the_repo(good_go_repo: Path) -> None:
+    outside = good_go_repo.parent / "escape.sh"
+    outside.write_text("go-test-coverage --config x.yml\n", encoding="utf-8")
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "../escape.sh")
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_unknown_make_target_is_not_a_gate(good_go_repo: Path) -> None:
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make absent")
+    (good_go_repo / "Makefile").write_text("cover:\n\tgo-test-coverage\n", encoding="utf-8")
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_ignores_gate_token_in_a_recipe_comment(good_go_repo: Path) -> None:
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make cover")
+    (good_go_repo / "Makefile").write_text(
+        "cover:\n\t# TODO: wire up go-test-coverage here\n\tgo test ./...\n", encoding="utf-8"
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_ignores_gate_token_in_a_script_comment(good_go_repo: Path) -> None:
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "./cover.sh")
+    (good_go_repo / "cover.sh").write_text(
+        "#!/usr/bin/env bash\n# we should add go-test-coverage one day\ngo test ./...\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_follows_make_prerequisites(good_go_repo: Path) -> None:
+    # ``make ci`` aggregating a coverage target is as common as calling it directly.
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make ci")
+    (good_go_repo / "Makefile").write_text(
+        "ci: lint cover\n\ncover:\n\tgo-test-coverage --config x.yml\n", encoding="utf-8"
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
+def test_mcp_026_ignores_scanner_named_in_a_script(good_go_repo: Path) -> None:
+    # MCP-026 is a MUST and stays on the workflow corpus: a scanner reachable
+    # only through an unrelated script must not clear it.
+    ci = good_go_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(ci.read_text().replace("govulncheck ./...", "./bootstrap.sh"), encoding="utf-8")
+    (good_go_repo / "bootstrap.sh").write_text("govulncheck ./...\n", encoding="utf-8")
+    assert _check(good_go_repo, "go", "MCP-026") is not None

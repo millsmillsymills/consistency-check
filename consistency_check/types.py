@@ -65,6 +65,9 @@ class Finding:
     status: FindingStatus
     evidence: str = ""
     min_stage: Stage = Stage.S3
+    # False when the rule's language does not match the repo's, which is a
+    # permanent n/a: no promotion can ever turn it into work for this repo.
+    applicable: bool = True
 
 
 @dataclass(frozen=True, slots=True)
