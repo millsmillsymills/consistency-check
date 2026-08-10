@@ -30,16 +30,22 @@ def python_sources(repo: Repo) -> list[Path]:
     return list(src.rglob("*.py")) if src.is_dir() else []
 
 
+_GO_EXCLUDED_DIRS = frozenset({"vendor", "third_party", "testdata"})
+
+
 def go_sources(repo: Repo) -> list[Path]:
-    """Every non-test .go file in the repo.
+    """Every non-test .go file the repo itself owns.
 
     Skips dot-prefix dirs (.git, .worktrees, .venv, etc.) so stale copies
-    under git worktrees or vendor caches don't poison the heuristics.
+    under git worktrees or vendor caches don't poison the heuristics, and skips
+    vendored/third-party trees so a dependency's source is not graded as if the
+    repo had written it.
     """
     return [
         p
         for p in repo.path.rglob("*.go")
-        if not any(part.startswith(".") for part in p.parts) and not p.name.endswith("_test.go")
+        if not any(part.startswith(".") or part in _GO_EXCLUDED_DIRS for part in p.parts)
+        and not p.name.endswith("_test.go")
     ]
 
 
