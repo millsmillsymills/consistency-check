@@ -191,3 +191,38 @@ def test_mcp_025_unknown_make_target_is_not_a_gate(good_go_repo: Path) -> None:
     _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make absent")
     (good_go_repo / "Makefile").write_text("cover:\n\tgo-test-coverage\n", encoding="utf-8")
     assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_ignores_gate_token_in_a_recipe_comment(good_go_repo: Path) -> None:
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make cover")
+    (good_go_repo / "Makefile").write_text(
+        "cover:\n\t# TODO: wire up go-test-coverage here\n\tgo test ./...\n", encoding="utf-8"
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_ignores_gate_token_in_a_script_comment(good_go_repo: Path) -> None:
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "./cover.sh")
+    (good_go_repo / "cover.sh").write_text(
+        "#!/usr/bin/env bash\n# we should add go-test-coverage one day\ngo test ./...\n",
+        encoding="utf-8",
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is not None
+
+
+def test_mcp_025_follows_make_prerequisites(good_go_repo: Path) -> None:
+    # ``make ci`` aggregating a coverage target is as common as calling it directly.
+    _replace_ci_step(good_go_repo, "go-test-coverage --config .testcoverage.yml", "make ci")
+    (good_go_repo / "Makefile").write_text(
+        "ci: lint cover\n\ncover:\n\tgo-test-coverage --config x.yml\n", encoding="utf-8"
+    )
+    assert _check(good_go_repo, "go", "MCP-025") is None
+
+
+def test_mcp_026_ignores_scanner_named_in_a_script(good_go_repo: Path) -> None:
+    # MCP-026 is a MUST and stays on the workflow corpus: a scanner reachable
+    # only through an unrelated script must not clear it.
+    ci = good_go_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(ci.read_text().replace("govulncheck ./...", "./bootstrap.sh"), encoding="utf-8")
+    (good_go_repo / "bootstrap.sh").write_text("govulncheck ./...\n", encoding="utf-8")
+    assert _check(good_go_repo, "go", "MCP-026") is not None
