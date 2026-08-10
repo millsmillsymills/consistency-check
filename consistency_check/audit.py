@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import importlib
 import traceback
+from functools import partial
 from typing import TYPE_CHECKING
 
 from consistency_check.deployment import declared_archetype
 from consistency_check.stage import declared_stage, stage_rank
-from consistency_check.types import Finding, FindingStatus, Repo, Rule, Tier
+from consistency_check.types import Archetype, Finding, FindingStatus, Repo, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -37,6 +38,27 @@ def all_rules() -> tuple[Rule, ...]:
     return tuple(out)
 
 
+def _skip_finding(
+    rule: Rule, repo: Repo, declared: Stage | None, declared_arch: Archetype | None
+) -> Finding | None:
+    """Return the n/a Finding for a rule that should not run, or None to run it."""
+    na = partial(Finding, rule_id=rule.id, tier=rule.tier, status=FindingStatus.NA)
+    if repo.language not in rule.applies_to:
+        return na(min_stage=rule.min_stage, applicable=False)
+    if declared is not None and stage_rank(rule.min_stage) > stage_rank(declared):
+        return na(
+            evidence=f"min_stage {rule.min_stage.value} above declared {declared.value}",
+            min_stage=rule.min_stage,
+        )
+    if rule.applies_to_archetype is None:
+        return None
+    if declared_arch is None:
+        return na(evidence="no Deployment archetype declared", min_stage=rule.min_stage)
+    if declared_arch not in rule.applies_to_archetype:
+        return na(evidence=f"not applicable to {declared_arch.value}", min_stage=rule.min_stage)
+    return None
+
+
 def audit_repo(repo: Repo) -> list[Finding]:
     """Run all applicable rules against ``repo`` and return findings, isolating crashes."""
     if not repo.path.exists():
@@ -53,50 +75,10 @@ def audit_repo(repo: Repo) -> list[Finding]:
     declared_arch = declared_archetype(repo)
     findings: list[Finding] = []
     for rule in all_rules():
-        if repo.language not in rule.applies_to:
-            findings.append(
-                Finding(
-                    rule_id=rule.id,
-                    tier=rule.tier,
-                    status=FindingStatus.NA,
-                    min_stage=rule.min_stage,
-                )
-            )
+        skipped = _skip_finding(rule, repo, declared, declared_arch)
+        if skipped is not None:
+            findings.append(skipped)
             continue
-        if declared is not None and stage_rank(rule.min_stage) > stage_rank(declared):
-            findings.append(
-                Finding(
-                    rule_id=rule.id,
-                    tier=rule.tier,
-                    status=FindingStatus.NA,
-                    evidence=f"min_stage {rule.min_stage.value} above declared {declared.value}",
-                    min_stage=rule.min_stage,
-                )
-            )
-            continue
-        if rule.applies_to_archetype is not None:
-            if declared_arch is None:
-                findings.append(
-                    Finding(
-                        rule_id=rule.id,
-                        tier=rule.tier,
-                        status=FindingStatus.NA,
-                        evidence="no Deployment archetype declared",
-                        min_stage=rule.min_stage,
-                    )
-                )
-                continue
-            if declared_arch not in rule.applies_to_archetype:
-                findings.append(
-                    Finding(
-                        rule_id=rule.id,
-                        tier=rule.tier,
-                        status=FindingStatus.NA,
-                        evidence=f"not applicable to {declared_arch.value}",
-                        min_stage=rule.min_stage,
-                    )
-                )
-                continue
         try:
             evidence = rule.check(repo)
         except Exception as exc:  # noqa: BLE001 — isolation by design

@@ -6,7 +6,13 @@ import ast
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.sources import combined_source_text, go_sources, python_sources
+from consistency_check.sources import (
+    STRING_LITERAL,
+    code_only,
+    combined_source_text,
+    go_sources,
+    python_sources,
+)
 from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
@@ -209,24 +215,13 @@ def _check_no_secret_cli_args(repo: Repo) -> str | None:
     return _secret_in_go_flags(repo)
 
 
-_STRING_LITERAL = re.compile(
-    r"""
-    '''.*?'''               # triple single
-    | \"\"\".*?\"\"\"       # triple double
-    | "(?:\\.|[^"\\])*"     # double-quoted
-    | '(?:\\.|[^'\\])*'     # single-quoted
-    """,
-    re.VERBOSE | re.DOTALL,
-)
-
-
 def _check_no_secret_logging(repo: Repo) -> str | None:
     sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
     for p in sources:
         # Strip string-literal contents up front so human-readable format text
         # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
         # "...not set (see README)") cannot truncate the log-call match.
-        text = _STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
+        text = STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
         for m in re.finditer(r"(?:logger|log)\.\w+\(", text):
             # Balanced extraction (not ``[^)]*``) so a credential logged after a
             # nested call — ``logger.info("%s", redact(x), api_key)`` — is still
@@ -254,22 +249,28 @@ def _balanced(text: str, open_idx: int, open_ch: str, close_ch: str) -> str:
     return text[open_idx + 1 :]
 
 
-def _code_only(text: str, line_comment: str) -> str:
-    # Drop string literals (docstrings included) then line comments so a
-    # ``print(`` mentioned in prose cannot register as a real call.
-    text = _STRING_LITERAL.sub("", text)
-    return re.sub(rf"{re.escape(line_comment)}.*", "", text)
-
-
 _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
 # A bare `os.Stdout` reference is usually dependency injection — the CLI hands
 # os.Stdout to a run() that also serves stdio — not a write that corrupts the
 # protocol stream. Flag only actual writes: the fmt.Print* family, an explicit
-# fmt.Fprint*(os.Stdout, …), or os.Stdout.Write[String].
+# fmt.Fprint*(os.Stdout, …), os.Stdout.Write[String], or os.Stdout as the
+# destination writer of a copy helper / writer constructor. Only the first
+# argument position counts: that is the destination for every helper listed, so
+# `io.Copy(w, os.Stdout)` (stdout as *source*) stays clean.
+_GO_STDOUT_WRITER_SINKS = (
+    r"bufio\.NewWriter(?:Size)?",
+    r"io\.Copy(?:N)?",
+    r"io\.WriteString",
+    r"io\.MultiWriter",
+    r"json\.NewEncoder",
+    r"log\.New",
+    r"log\.SetOutput",
+)
 _GO_STDOUT = re.compile(
     r"\bfmt\.(?:Print|Printf|Println)\s*\("
     r"|\bfmt\.Fprint(?:f|ln)?\s*\(\s*os\.Stdout\b"
-    r"|\bos\.Stdout\.(?:Write|WriteString)\b",
+    r"|\bos\.Stdout\.(?:Write|WriteString)\b"
+    rf"|\b(?:{'|'.join(_GO_STDOUT_WRITER_SINKS)})\s*\(\s*os\.Stdout\b",
 )
 
 
@@ -277,7 +278,7 @@ def _stdout_writers(repo: Repo) -> list[str]:
     bad: list[str] = []
     if repo.language == "python":
         for p in python_sources(repo):
-            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+            text = code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
             for m in _PY_PRINT.finditer(text):
                 # ``print(..., file=sys.stderr)`` is fine; only stdout corrupts.
                 if "file=" not in _balanced(text, m.end() - 1, "(", ")"):
@@ -287,7 +288,7 @@ def _stdout_writers(repo: Repo) -> list[str]:
     bad.extend(
         p.name
         for p in go_sources(repo)
-        if _GO_STDOUT.search(_code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
+        if _GO_STDOUT.search(code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
     )
     return bad
 
@@ -307,7 +308,7 @@ def _untimed_http_clients(repo: Repo) -> list[str]:
     bad: list[str] = []
     if repo.language == "python":
         for p in python_sources(repo):
-            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+            text = code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
             bad.extend(
                 p.name
                 for m in _PY_HTTP_CLIENT.finditer(text)
@@ -315,7 +316,7 @@ def _untimed_http_clients(repo: Repo) -> list[str]:
             )
         return bad
     for p in go_sources(repo):
-        text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "//")
+        text = code_only(p.read_text(encoding="utf-8", errors="replace"), "//")
         bad.extend(
             p.name
             for m in _GO_HTTP_CLIENT.finditer(text)

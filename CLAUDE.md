@@ -34,7 +34,7 @@ The whole tool is a registry of pure check functions plus a driver. Data model i
 Flow: `__main__.py` → `audit.audit_repo` → `report.render_umbrella` → (optionally) `filer.file_repo_findings`.
 
 - **`audit.py`** discovers rules by importing each module in `_RULE_MODULES` and reading its `RULES` tuple. For each rule it skips repos whose `language` isn't in `applies_to` (recorded as `n/a`), and wraps every `check` call so an exception becomes an `error` Finding rather than crashing the run.
-- **`repos.py`** is the hardcoded `REGISTRY` of audited repos (paths under `~/Projects`).
+- **`repos.py`** is the hardcoded `REGISTRY` of audited repos (paths under `~/Desktop/Projects/mcp-server-dev`).
 - **`filer.py`** wraps the `gh` CLI. Idempotent: it upserts issues by exact title (umbrella per repo + one child per MUST/SHOULD failure), edits the umbrella in place, refuses to touch when multiple open issues match a title. Dry-run unless `--apply`.
 - **`report.py`** renders umbrella and child-issue markdown. Titles here (`umbrella_issue_title`, `child_issue_title`) are the idempotency keys the filer relies on — don't change their format casually.
 - **`_git.py`** — `tracked_files()` helper for checks that need to know what git tracks.
