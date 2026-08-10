@@ -1,6 +1,12 @@
 # MCP Protocol Standards (`PROTO-*`)
 
-Applies to every MCP server. Anchored on the upstream MCP specification (modelcontextprotocol.io) and idiomatic SDK patterns (FastMCP for Python, mcp-go for Go).
+Applies to every MCP server. Anchored on the upstream MCP specification (modelcontextprotocol.io, revision `2026-07-28`) and idiomatic SDK patterns (FastMCP for Python, mcp-go for Go).
+
+## Spec revision 2026-07-28
+
+The `2026-07-28` revision makes the protocol stateless — no `initialize` handshake or `Mcp-Session-Id`; protocol version and capabilities travel per-request in `_meta` and are advertised via `server/discover` — and formally deprecates Roots, Sampling, protocol-level Logging, the HTTP+SSE transport, and OAuth Dynamic Client Registration. New servers must not adopt deprecated features; the rules below call out the legacy markers where the auditor can detect them.
+
+Guidance from this revision not yet mechanically audited (adopt as SDKs ship it): all results carry a `resultType` field; server-initiated requests are replaced by Multi Round-Trip Requests (`resultType: "input_required"`); list/read results carry `ttlMs`/`cacheScope`; long-running work uses the `io.modelcontextprotocol/tasks` extension; resource-not-found is `-32602`.
 
 ## Tool surface
 
@@ -46,11 +52,13 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Mechanical check.** Server constructor passes a non-default capabilities object enumerating tools (and prompts/resources if used).
 
-### PROTO-008 — Default transport is stdio; SSE/HTTP behind explicit flag [MUST]
+**Note (2026-07-28).** The stateless revision advertises capabilities per-request in `_meta` and via `server/discover`; SDK-level registration is the source those are derived from, so the check is unchanged.
 
-**Rationale.** stdio is the lowest-friction transport for desktop clients and the project default.
+### PROTO-008 — Default transport is stdio; Streamable HTTP behind explicit flag [MUST]
 
-**Mechanical check.** `__main__.py` (Python) or `main.go` (Go) starts in stdio mode unless a `--transport sse|http` flag (or matching env var) is set.
+**Rationale.** stdio is the lowest-friction transport for desktop clients and the project default. The legacy HTTP+SSE transport is Deprecated as of spec `2026-07-28` — migrate to Streamable HTTP; never add SSE to new code.
+
+**Mechanical check.** `__main__.py` (Python) or `main.go` (Go) starts in stdio mode unless a `--transport http|streamable-http` flag (or matching env var) is set.
 
 ## Errors
 
@@ -102,11 +110,11 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Mechanical check.** A repo that defines at least one tool also references a tool-annotation marker somewhere in its source: one of `readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint` (or their snake_case forms) or a `ToolAnnotations` constructor. A server that exposes no tools passes vacuously.
 
-### PROTO-017 — HTTP/SSE transport requires auth and a loopback guard [MUST]
+### PROTO-017 — Network transport requires auth and a loopback guard [MUST]
 
-**Rationale.** PROTO-008 keeps stdio the default and puts HTTP/SSE behind a flag, but once a network transport is enabled the server is reachable by other processes and, via DNS rebinding, by web pages. The MCP spec requires local HTTP servers to authenticate requests and to validate the `Origin`/`Host` header (or bind to loopback) so a browser cannot drive the server.
+**Rationale.** PROTO-008 keeps stdio the default and puts Streamable HTTP behind a flag, but once a network transport is enabled the server is reachable by other processes and, via DNS rebinding, by web pages. The MCP spec requires local HTTP servers to authenticate requests and to validate the `Origin`/`Host` header (or bind to loopback) so a browser cannot drive the server.
 
-**Mechanical check.** Only fires when the source enables a network transport (an `sse`/`streamable-http`/`http` transport selection, an SSE server/mux/listener, or an `MCP_TRANSPORT` switch). When it does, the source must also show **both** an auth marker (`bearer` / `authorization` / `auth`) **and** a host-guard marker (`127.0.0.1` / `localhost` / `loopback` / `origin`). stdio-only servers pass vacuously.
+**Mechanical check.** Only fires when the source enables a network transport (an `sse`/`streamable-http`/`http` transport selection, an SSE server/mux/listener, or an `MCP_TRANSPORT` switch — the `sse` markers stay in the check to catch the deprecated legacy transport). When it does, the source must also show **both** an auth marker (`bearer` / `authorization` / `auth`) **and** a host-guard marker (`127.0.0.1` / `localhost` / `loopback` / `origin`). stdio-only servers pass vacuously.
 
 ## Directory submission surface
 
@@ -135,3 +143,5 @@ These rules encode pass/fail criteria from the Anthropic Directory review and th
 **Rationale.** Elicitation and sampling depend on client support that not every host advertises. The SDKs raise (`CapabilityNotSupported` in FastMCP) when a tool calls `elicit` / `sample` against a client that never declared the capability, turning an optional nicety into a hard tool failure. A server that uses either feature must check the client's declared capabilities first and fall back gracefully.
 
 **Mechanical check.** Only fires when the source calls an elicitation or sampling primitive (`.elicit(...)` / `.elicitInput(...)`, `ctx.sample(...)` / `.sample(...)`, or `createMessage(...)`). When it does, the source must also reference a capability guard: `CapabilityNotSupported`, `client_capabilities` / `clientCapabilities`, `getClientCapabilities`, `get_client_capabilities`, or `client_params`. A server that uses neither feature passes vacuously.
+
+**Note (2026-07-28).** Sampling is Deprecated — new servers must not adopt it; integrate with the LLM provider API directly. Elicitation is restructured as Multi Round-Trip Requests (`resultType: "input_required"`). The guard requirement stands wherever the legacy primitives still appear.
