@@ -76,6 +76,12 @@ _VULN_SCAN = re.compile(
 # in a YAML/shell comment or a sibling step.
 _RUN_KEY = re.compile(r"^([ \t]*-?[ \t]*)run:[ \t]*([|>][+-]?)?[ \t]*(.*)$")
 _SAFETY_CHECK = re.compile(r"(?i)\bsafety\s+check\b")
+# ``make <target>`` and ``./scripts/x.sh`` in a run: body name the file that
+# actually holds the gate. Only these two shapes are followed, one hop deep.
+_MAKE_CALL = re.compile(r"(?:^|[\s;&|])make\b([^\n;&|]*)")
+_SCRIPT_CALL = re.compile(r"(?:^|[\s;&|])(?:(?:ba)?sh\s+)?([\w./-]+\.(?:sh|bash))\b")
+_MAX_FOLLOWED_FILES = 20
+_MAX_MAKE_DEPTH = 2
 
 
 def _strip_comment(line: str) -> str:
@@ -104,6 +110,77 @@ def _run_command_bodies(corpus: str) -> list[str]:
     return bodies
 
 
+def _make_targets(body: str) -> list[str]:
+    targets: list[str] = []
+    for m in _MAKE_CALL.finditer(body):
+        targets.extend(w for w in m.group(1).split() if not w.startswith("-") and "=" not in w)
+    return targets
+
+
+def _make_recipe(makefile: str, target: str) -> tuple[str, list[str]]:
+    """Return the commands of ``target`` and the prerequisite targets it depends on."""
+    recipe: list[str] = []
+    prereqs: list[str] = []
+    collecting = False
+    for line in makefile.splitlines():
+        m = re.match(rf"^{re.escape(target)}\s*:=?(.*)$", line)
+        if m:
+            collecting = True
+            prereqs = m.group(1).split()
+        elif collecting:
+            if line.strip() and not line.startswith((" ", "\t")):
+                break
+            recipe.append(_strip_comment(line))
+    return "\n".join(recipe), prereqs
+
+
+def _read_makefile(repo: Repo) -> str:
+    for name in ("Makefile", "makefile", "GNUmakefile"):
+        p = repo.path / name
+        if p.is_file():
+            return p.read_text(encoding="utf-8", errors="replace")
+    return ""
+
+
+def _expand_make_targets(makefile: str, targets: list[str]) -> tuple[list[str], list[str]]:
+    """Recipes for ``targets`` and their prerequisites, following one extra level."""
+    recipes: list[str] = []
+    scripts: list[str] = []
+    seen: set[str] = set()
+    pending = list(targets)
+    for _ in range(_MAX_MAKE_DEPTH):
+        following, pending = [t for t in pending if t not in seen], []
+        seen.update(following)
+        for target in following:
+            recipe, prereqs = _make_recipe(makefile, target)
+            pending.extend(prereqs)
+            if recipe.strip():
+                recipes.append(recipe)
+                scripts.extend(_SCRIPT_CALL.findall(recipe))
+    return recipes, scripts
+
+
+def _indirect_refs(workflows: str, makefile: str) -> tuple[list[str], list[str]]:
+    """Recipes and script paths the workflow ``run:`` steps reach."""
+    recipes: list[str] = []
+    scripts: list[str] = []
+    for body in _run_command_bodies(workflows):
+        scripts.extend(_SCRIPT_CALL.findall(body))
+        target_recipes, target_scripts = _expand_make_targets(makefile, _make_targets(body))
+        recipes.extend(target_recipes)
+        scripts.extend(target_scripts)
+    return recipes, scripts
+
+
+def _script_text(repo: Repo, rel: str) -> str:
+    root = repo.path.resolve()
+    candidate = (repo.path / rel).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return ""
+    text = candidate.read_text(encoding="utf-8", errors="replace")
+    return "\n".join(_strip_comment(line) for line in text.splitlines())
+
+
 def _ci_corpus(repo: Repo) -> str:
     parts = [wf.read_text(encoding="utf-8", errors="replace") for wf in _read_workflows(repo)]
     pyproject = repo.path / "pyproject.toml"
@@ -112,8 +189,25 @@ def _ci_corpus(repo: Repo) -> str:
     return "\n".join(parts)
 
 
+def _coverage_corpus(repo: Repo) -> str:
+    """Return the CI corpus plus the Makefile recipes and scripts a ``run:`` step calls.
+
+    A coverage floor is routinely held in the target a workflow shells out to
+    rather than in the YAML. Comments are stripped from everything followed, so
+    a mention of a gate cannot stand in for one. Scoped to MCP-025: widening the
+    corpus for MCP-026 would let an unreached line in an unrelated script clear
+    a MUST.
+    """
+    workflows = "\n".join(
+        wf.read_text(encoding="utf-8", errors="replace") for wf in _read_workflows(repo)
+    )
+    recipes, scripts = _indirect_refs(workflows, _read_makefile(repo))
+    followed = [*recipes, *(_script_text(repo, rel) for rel in dict.fromkeys(scripts))]
+    return "\n".join([_ci_corpus(repo), *followed[:_MAX_FOLLOWED_FILES]])
+
+
 def _check_coverage_threshold(repo: Repo) -> str | None:
-    if _COVERAGE_GATE.search(_ci_corpus(repo)):
+    if _COVERAGE_GATE.search(_coverage_corpus(repo)):
         return None
     return "CI does not enforce a coverage threshold (cov-fail-under / -covermode)"
 
