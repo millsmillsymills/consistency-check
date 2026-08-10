@@ -70,3 +70,20 @@ def test_umbrella_unstaged_section() -> None:
 def test_umbrella_staged_section(snapshot) -> None:
     body = render_umbrella(repo_name="s", findings=_staged_findings(), declared_stage=Stage.S1)
     assert body == snapshot
+
+
+def test_promotion_checklist_skips_other_language_rules() -> None:
+    # A GO rule is n/a on a Python repo for good: promoting a stage will never
+    # turn it into work, so it must not appear in the "To reach S2" list.
+    findings = [
+        *_staged_findings(),
+        Finding(
+            rule_id="GO-011",
+            tier=Tier.MUST,
+            status=FindingStatus.NA,
+            min_stage=Stage.S2,
+            applicable=False,
+        ),
+    ]
+    body = render_umbrella(repo_name="s", findings=findings, declared_stage=Stage.S1)
+    assert "To reach **S2**: MCP-014." in body
