@@ -145,3 +145,11 @@ These rules encode pass/fail criteria from the Anthropic Directory review and th
 **Mechanical check.** Only fires when the source calls an elicitation or sampling primitive (`.elicit(...)` / `.elicitInput(...)`, `ctx.sample(...)` / `.sample(...)`, or `createMessage(...)`). When it does, the source must also reference a capability guard: `CapabilityNotSupported`, `client_capabilities` / `clientCapabilities`, `getClientCapabilities`, `get_client_capabilities`, or `client_params`. A server that uses neither feature passes vacuously.
 
 **Note (2026-07-28).** Sampling is Deprecated — new servers must not adopt it; integrate with the LLM provider API directly. Elicitation is restructured as Multi Round-Trip Requests (`resultType: "input_required"`). The guard requirement stands wherever the legacy primitives still appear.
+
+### PROTO-022 — Server registers at least one detectable tool [MUST]
+
+**Rationale.** Every tool-surface rule (PROTO-001..004, 015, 016, 018, 020) derives its subject from the registrations the auditor can find. When it finds none, all of them pass, and a vacuous pass is indistinguishable from a real one in the report — a server reads as fully compliant on its entire tool surface precisely because none of it was audited. This rule makes that state visible.
+
+**Mechanical check.** A repo whose source constructs a server (`FastMCP(...)`, `mcp.NewServer(...)`, `NewServer(...)`, `server.NewMCPServer(...)`) registers at least one tool the auditor can name. Python registrations are found by AST: any decorator whose attribute is `tool` (`@mcp.tool`, `@server.tool`), and any decorator that names a local factory which itself applies `x.tool(...)` to a function. Go registrations are found by pattern: `WithTools("name")`, `AddTool(...)` / `NewTool("name", ...)`, and a `Tool{Name: "name"}` composite literal. A repo that constructs no server — a library, a client — passes.
+
+**Failing this rule means the tool rules above carry no signal for that repo**; fix the registration shape (or the matcher) before reading them as passes.

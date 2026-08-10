@@ -46,6 +46,103 @@ def test_proto_002_detects_multiline_decorator_tool(tmp_path: Path) -> None:
     assert _check(repo_root, "python", "PROTO-002") is not None
 
 
+def test_proto_002_detects_tool_on_a_non_mcp_receiver(tmp_path: Path) -> None:
+    # shortcut-mcp names its FastMCP instance ``server``; anchoring the decorator
+    # on the receiver name ``mcp`` hid every one of its tools.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@server.tool(\n    name="x",\n)\ndef list_things(): pass\n', encoding="utf-8"
+    )
+    assert _check(repo_root, "python", "PROTO-002") is not None
+
+
+def test_proto_002_detects_tool_registered_through_a_local_factory(tmp_path: Path) -> None:
+    # unraid-mcp wraps registration in its own decorator factory, so no ``.tool``
+    # attribute appears at the decoration site.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "_helpers.py").write_text(
+        "def unraid_tool(mcp, **tool_kwargs):\n"
+        "    def decorator(fn):\n"
+        "        async def wrapper(*a, **kw):\n"
+        "            return await fn(*a, **kw)\n"
+        "        return mcp.tool(**tool_kwargs)(wrapper)\n"
+        "    return decorator\n",
+        encoding="utf-8",
+    )
+    (pkg / "tools.py").write_text(
+        'from good_python._helpers import unraid_tool\n\n@unraid_tool(mcp, tags={"system"})\n'
+        "async def list_things(): pass\n",
+        encoding="utf-8",
+    )
+    assert _check(repo_root, "python", "PROTO-002") is not None
+
+
+def test_factory_wrapper_is_not_counted_as_a_tool(tmp_path: Path) -> None:
+    # The factory's inner ``wrapper`` carries neither the tool's name nor its
+    # signature; counting it would fail PROTO-002 on a correctly named tool.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "_helpers.py").write_text(
+        "def good_python_tool(mcp, **tool_kwargs):\n"
+        "    def decorator(fn):\n"
+        "        async def wrapper(*a, **kw):\n"
+        "            return await fn(*a, **kw)\n"
+        "        return mcp.tool(**tool_kwargs)(wrapper)\n"
+        "    return decorator\n",
+        encoding="utf-8",
+    )
+    (pkg / "tools.py").write_text(
+        "from good_python._helpers import good_python_tool\n\n@good_python_tool(mcp)\n"
+        "async def good_python_list(): pass\n",
+        encoding="utf-8",
+    )
+    assert _check(repo_root, "python", "PROTO-002") is None
+
+
+def test_proto_001_detects_go_add_tool_registration(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc Register(s *server.MCPServer) {\n"
+        '\ts.AddTool(mcp.NewTool("BadName"), handle)\n}\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_proto_001_detects_go_tool_composite_literal(tmp_path: Path) -> None:
+    # protonmail-mcp registers through a helper taking a &mcp.Tool{...} literal,
+    # which the WithTools-only matcher never saw.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc registerAddresses(server *mcp.Server, d Deps) {\n"
+        '\taddTool(server, d, &mcp.Tool{\n\t\tName:        "BadName",\n'
+        '\t\tDescription: "Lists addresses.",\n\t}, handle)\n}\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_proto_022_fail_when_server_defines_no_detectable_tool(tmp_path: Path) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('mcp = FastMCP("good-python")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+
+def test_proto_022_pass_when_repo_constructs_no_server(tmp_path: Path) -> None:
+    # A client or library has no tool surface to audit, so there is nothing to
+    # pass vacuously.
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text("def fetch(url):\n    return url\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is None
+
+
 def test_proto_015_pass_with_multiline_decorator_description(tmp_path: Path) -> None:
     # ``description=`` on its own decorator line must satisfy PROTO-015.
     pkg = tmp_path / "src" / "good_python"
