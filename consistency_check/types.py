@@ -28,6 +28,16 @@ class FindingStatus(StrEnum):
     ERROR = "error"
 
 
+class Stage(StrEnum):
+    """MCP server maturity stage. Completeness axis, orthogonal to Tier."""
+
+    S0 = "S0"
+    S1 = "S1"
+    S2 = "S2"
+    S3 = "S3"
+    S4 = "S4"
+
+
 @dataclass(frozen=True, slots=True)
 class Repo:
     """A target repository to be audited."""
@@ -46,6 +56,10 @@ class Finding:
     tier: Tier
     status: FindingStatus
     evidence: str = ""
+    min_stage: Stage = Stage.S3
+    # False when the rule's language does not match the repo's, which is a
+    # permanent n/a: no promotion can ever turn it into work for this repo.
+    applicable: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,3 +74,4 @@ class Rule:
     statement: str
     check: Callable[[Repo], str | None]
     applies_to: frozenset[str] = field(default_factory=lambda: frozenset({"python", "go"}))
+    min_stage: Stage = Stage.S3

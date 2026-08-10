@@ -6,7 +6,7 @@ from consistency_check.report import (
     render_child_issue,
     render_umbrella,
 )
-from consistency_check.types import Finding, FindingStatus, Tier
+from consistency_check.types import Finding, FindingStatus, Stage, Tier
 
 
 def _findings() -> list[Finding]:
@@ -25,6 +25,26 @@ def _findings() -> list[Finding]:
     ]
 
 
+def _staged_findings() -> list[Finding]:
+    return [
+        Finding(rule_id="MCP-001", tier=Tier.MUST, status=FindingStatus.PASS, min_stage=Stage.S0),
+        Finding(
+            rule_id="MCP-014",
+            tier=Tier.MUST,
+            status=FindingStatus.NA,
+            evidence="min_stage S2 above declared S1",
+            min_stage=Stage.S2,
+        ),
+        Finding(
+            rule_id="PROTO-001",
+            tier=Tier.MUST,
+            status=FindingStatus.FAIL,
+            evidence="tool not snake_case",
+            min_stage=Stage.S1,
+        ),
+    ]
+
+
 def test_umbrella_lists_failures_grouped_by_tier(snapshot) -> None:
     body = render_umbrella(repo_name="good", findings=_findings())
     assert body == snapshot
@@ -39,3 +59,31 @@ def test_child_issue_only_for_must_or_should(snapshot) -> None:
 def test_child_issue_returns_none_for_may_failures() -> None:
     may_fail = next(f for f in _findings() if f.rule_id == "MCP-018")
     assert render_child_issue(repo_name="good", finding=may_fail) is None
+
+
+def test_umbrella_unstaged_section() -> None:
+    body = render_umbrella(repo_name="u", findings=_findings(), declared_stage=None)
+    assert "## Stage" in body
+    assert "Unstaged" in body
+
+
+def test_umbrella_staged_section(snapshot) -> None:
+    body = render_umbrella(repo_name="s", findings=_staged_findings(), declared_stage=Stage.S1)
+    assert body == snapshot
+
+
+def test_promotion_checklist_skips_other_language_rules() -> None:
+    # A GO rule is n/a on a Python repo for good: promoting a stage will never
+    # turn it into work, so it must not appear in the "To reach S2" list.
+    findings = [
+        *_staged_findings(),
+        Finding(
+            rule_id="GO-011",
+            tier=Tier.MUST,
+            status=FindingStatus.NA,
+            min_stage=Stage.S2,
+            applicable=False,
+        ),
+    ]
+    body = render_umbrella(repo_name="s", findings=findings, declared_stage=Stage.S1)
+    assert "To reach **S2**: MCP-014." in body

@@ -7,7 +7,7 @@ from importlib import resources
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
-from consistency_check.types import Rule, Tier
+from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -168,6 +168,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="README has required sections",
         check=_check_readme_sections,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-008",
@@ -180,12 +181,14 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="CLAUDE.md references canonical standards",
         check=_check_claude_md_link,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-010",
         tier=Tier.SHOULD,
         statement="docs/ exists with markdown content",
         check=_check_docs_dir,
+        min_stage=Stage.S0,
     ),
     Rule(
         id="MCP-027",

@@ -44,9 +44,12 @@ _BAD: dict[str, Callable[[Path], Path]] = {
 #                    dir exists, which the package-content rules require.
 #   go:     MCP-024  as above.
 #           PROTO-003/004/015 only inspect Python tool signatures/docstrings.
+#   both:   MCP-STAGE-DRIFT cannot fire on the bad fixtures: they are unstaged,
+#           so the drift check returns None (it only compares against a declared
+#           stage). MCP-STAGE-DECL still fails them.
 _CANNOT_FAIL: dict[str, frozenset[str]] = {
-    "python": frozenset({"MCP-024", "PROTO-008", "PY-003"}),
-    "go": frozenset({"MCP-024", "PROTO-003", "PROTO-004", "PROTO-015"}),
+    "python": frozenset({"MCP-024", "PROTO-008", "PY-003", "MCP-STAGE-DRIFT"}),
+    "go": frozenset({"MCP-024", "PROTO-003", "PROTO-004", "PROTO-015", "MCP-STAGE-DRIFT"}),
 }
 
 
