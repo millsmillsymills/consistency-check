@@ -608,8 +608,11 @@ _SERVER_MARKER = re.compile(
 
 
 def _check_tools_detected(repo: Repo) -> str | None:
-    if repo.language == "python" and (unparseable := _python_trees(repo)[1]):
-        return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
+    if repo.language == "python":
+        if not python_sources(repo):
+            return "no Python source under src/, so no tool rule read anything"
+        if unparseable := _python_trees(repo)[1]:
+            return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
     if _tool_names(repo):
         return None
     if not _SERVER_MARKER.search(combined_code_text(repo)):

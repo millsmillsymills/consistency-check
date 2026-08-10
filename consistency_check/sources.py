@@ -130,15 +130,16 @@ def strip_block_comments(text: str) -> str:
 def code_only(text: str, line_comment: str) -> str:
     """Strip comments then string literals, so prose cannot register as code.
 
-    Block comments go first because ``STRING_LITERAL`` is quote-based and
-    comment-blind: a lone ``"`` inside a ``/* */`` comment would otherwise
-    consume the comment's own terminator, leaving an unterminated ``/*`` that
-    erases the rest of the file — and an empty file passes every check.
+    Every comment goes first because ``STRING_LITERAL`` is quote-based and
+    comment-blind: an apostrophe or a lone ``"`` written in a comment pairs with
+    the next quote in real code, and the span between them — up to the whole
+    rest of the file — is deleted before any check reads it. An empty file
+    passes everything.
     """
     if line_comment == "//":
         text = strip_block_comments(text)
-    text = STRING_LITERAL.sub("", text)
-    return re.sub(rf"{re.escape(line_comment)}.*", "", text)
+    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
+    return STRING_LITERAL.sub("", text)
 
 
 _BLOCK_STRING = re.compile(r"'''.*?'''|\"\"\".*?\"\"\"", re.DOTALL)
@@ -177,14 +178,13 @@ def code_and_literals(text: str, line_comment: str) -> str:
 
     ``_BLOCK_STRING`` is Python-only. Applied to Go it pairs ``\"\"\"`` sequences
     that occur inside unrelated raw strings and deletes everything between them.
+    It also runs last, because two ``#`` comments that merely *mention* ``\"\"\"``
+    would otherwise pair and erase the code between them.
     """
     if line_comment == "//":
-        return "\n".join(
-            _strip_line_comment(line, line_comment)
-            for line in strip_block_comments(text).splitlines()
-        )
-    text = _BLOCK_STRING.sub("", text)
-    return "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
+        text = strip_block_comments(text)
+    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
+    return _BLOCK_STRING.sub("", text) if line_comment == "#" else text
 
 
 def combined_code_text(repo: Repo) -> str:
