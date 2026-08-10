@@ -50,7 +50,7 @@ def build_good_python(root: Path) -> Path:
         root / "CONTRIBUTING.md",
         "## How to contribute\nRun ``prek install``.\n\n## Release\nTag and push.\n",
     )
-    _write(root / "CLAUDE.md", "See ~/Projects/consistency-check/docs/standards/.\n")
+    _write(root / "CLAUDE.md", "See ~/Desktop/Projects/consistency-check/docs/standards/.\n")
     _write(root / ".gitignore", "__pycache__/\n*.pyc\n.venv/\n")
 
     _write(
@@ -265,7 +265,7 @@ def build_good_go(root: Path) -> Path:
     _write(root / "SECURITY.md", "## Reporting\nUse GitHub Security Advisories.\n")
     _write(root / "CHANGELOG.md", "## [Unreleased]\n")
     _write(root / "CONTRIBUTING.md", "## How to contribute\n\n## Release\nTag and push.\n")
-    _write(root / "CLAUDE.md", "See ~/Projects/consistency-check/docs/standards/.\n")
+    _write(root / "CLAUDE.md", "See ~/Desktop/Projects/consistency-check/docs/standards/.\n")
     _write(root / ".gitignore", "*.test\n*.out\n")
     _write(
         root / "go.mod",
