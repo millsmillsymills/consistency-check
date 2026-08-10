@@ -425,6 +425,79 @@ def test_proto_022_fail_when_server_defines_no_detectable_tool(tmp_path: Path) -
     assert _check(tmp_path, "python", "PROTO-022") is not None
 
 
+def test_go_tool_name_with_non_word_characters_is_still_graded(tmp_path: Path) -> None:
+    # An anchored [a-zA-Z0-9_]+ capture dropped the name entirely, so PROTO-001
+    # passed on exactly the names it exists to catch.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nfunc R(s *server.MCPServer) { s.AddTool(mcp.NewTool("Bad-Name"), h) }\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_go_tool_literal_name_with_a_space_is_still_graded(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nfunc R() { addTool(s, &mcp.Tool{Name: "Bad Name"}, h) }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_go_unreadable_name_field_does_not_fall_back_to_a_nested_literal(
+    tmp_path: Path,
+) -> None:
+    # `Name: toolName` names one tool the auditor cannot read. Recursing into the
+    # nested literal graded an internal id as if it were the tool name.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc R() {\n"
+        '\taddTool(s, &mcp.Tool{Name: toolName, Meta: &mcp.Meta{Name: "internal_id"}}, h)\n}\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == []
+
+
+def test_python_tool_graded_on_its_registered_name_not_the_def(tmp_path: Path) -> None:
+    # @mcp.tool(name=...) publishes that string; grading the def name let a
+    # non-conforming registered name pass because the def beside it was fine.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(name="Bad-Name")\ndef good_python_search(q: str) -> str:\n    return q\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+    assert _check(repo_root, "python", "PROTO-001") is not None
+
+
+def test_proto_022_ignores_a_constructor_named_inside_a_string(tmp_path: Path) -> None:
+    # A client library that merely mentions FastMCP in an error message failed a
+    # MUST with evidence reading "server constructed".
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        'def go():\n    raise RuntimeError("FastMCP(...) not initialised")\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-022") is None
+
+
+def test_proto_022_still_sees_a_real_construction_after_literal_masking(
+    tmp_path: Path,
+) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('app = Server("good-python")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+
 def test_proto_022_pass_when_repo_constructs_no_server(tmp_path: Path) -> None:
     # A client or library has no tool surface to audit, so there is nothing to
     # pass vacuously.

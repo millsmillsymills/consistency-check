@@ -11,6 +11,7 @@ from consistency_check.sources import (
     combined_code_text,
     go_sources,
     mask_literal_braces,
+    mask_literal_contents,
     strip_block_comments,
 )
 from consistency_check.types import Repo
@@ -123,3 +124,15 @@ def test_python_slash_star_is_not_a_comment() -> None:
     # `/*` carries no meaning in Python; stripping it there would eat real code.
     py = 'x = 1 /* 2\nprint("kept")\n'
     assert "kept" in code_and_literals(py, "#")
+
+
+def test_mask_literal_contents_keeps_the_call_shape() -> None:
+    assert mask_literal_contents('Server("x")') == 'Server("_")'
+    assert "FastMCP(" not in mask_literal_contents('raise E("FastMCP( bad")')
+
+
+def test_quote_does_not_span_lines_except_a_raw_string() -> None:
+    # A Go interpreted string or rune cannot contain a newline, so an unbalanced
+    # one must not consume the rest of the file.
+    assert mask_literal_contents("a = 'unbalanced\nb = 1\n") == "a = '__________\nb = 1\n"
+    assert mask_literal_contents("a = `two\nlines`\n") == "a = `___\n_____`\n"

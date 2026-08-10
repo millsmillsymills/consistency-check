@@ -14,6 +14,7 @@ from consistency_check.sources import (
     combined_source_text,
     go_sources,
     mask_literal_braces,
+    mask_literal_contents,
     python_sources,
 )
 from consistency_check.types import Rule, Stage, Tier
@@ -26,11 +27,14 @@ if TYPE_CHECKING:
 # ``&mcp.Tool{Name: "name"}`` composite literal handed to a register helper. The
 # name is read from the first argument only — a wider window captures any string
 # in the call (``AddTool(registry.Get("search"), h)``) as a tool name.
-_GO_TOOL_REGISTER = re.compile(
-    r'WithTools\([^,]*"([a-zA-Z0-9_]+)"|\bNewTool\s*\(\s*"([a-zA-Z0-9_]+)"'
-)
+# The capture is deliberately ``[^"]*`` and not ``[a-zA-Z0-9_]+``: an anchored
+# charset drops the name entirely when it contains anything else, so
+# ``NewTool("Bad-Name-Here")`` registered nothing and PROTO-001 — the rule whose
+# whole job is catching that name — passed on it.
+_GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([^"]*)"|\bNewTool\s*\(\s*"([^"]*)"')
 _GO_TOOL_LITERAL = re.compile(r"\bTool\{")
-_GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([a-zA-Z0-9_]+)"')
+_GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([^"]*)"')
+_GO_TOOL_LITERAL_NAME_FIELD = re.compile(r"\bName:")
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
 # Anchored variant for whole Python identifiers in log calls. ``token``,
 # ``secret`` and ``password`` are credentials even standalone, but a bare
@@ -84,9 +88,15 @@ def _literal_tool_names(region: str) -> list[str]:
     the tool's name. When the region has no ``Name`` of its own it is a slice
     literal (``[]mcp.Tool{{...}, {...}}``), whose elements each name a tool.
     """
-    own = [m.group(1) for m in _GO_TOOL_LITERAL_NAME.finditer(_mask_nested(region))]
+    top = _mask_nested(region)
+    own = [m.group(1) for m in _GO_TOOL_LITERAL_NAME.finditer(top)]
     if own:
         return own
+    # A literal that has a Name field the auditor cannot read — ``Name: toolName``
+    # — names exactly one tool, and it is not any nested literal's. Recursing
+    # would grade an inner ``&mcp.Meta{Name: "internal_id"}`` as the tool name.
+    if _GO_TOOL_LITERAL_NAME_FIELD.search(top):
+        return []
     return [name for group in _brace_groups(region) for name in _literal_tool_names(group)]
 
 
@@ -98,15 +108,33 @@ def _go_tool_names(text: str) -> list[str]:
     ``[^{}]*`` window would stop at.
     """
     text = mask_literal_braces(text)
-    names = [next(g for g in m.groups() if g) for m in _GO_TOOL_REGISTER.finditer(text)]
+    names = [next(g for g in m.groups() if g is not None) for m in _GO_TOOL_REGISTER.finditer(text)]
     for m in _GO_TOOL_LITERAL.finditer(text):
         names.extend(_literal_tool_names(_balanced(text, m.end() - 1, "{", "}")))
     return names
 
 
+def _declared_tool_name(func: _ToolFunc) -> str:
+    """Return the name the tool registers under, which need not be the def's name.
+
+    ``@mcp.tool(name="thing-list")`` publishes ``thing-list``; grading the
+    function name instead let a non-conforming registered name pass PROTO-001,
+    PROTO-002 and PROTO-018 because the def beside it was well formed.
+    """
+    for dec in func.decorator_list:
+        if not isinstance(dec, ast.Call):
+            continue
+        for kw in dec.keywords:
+            if kw.arg != "name" or not isinstance(kw.value, ast.Constant):
+                continue
+            if isinstance(kw.value.value, str):
+                return kw.value.value
+    return func.name
+
+
 def _tool_names(repo: Repo) -> list[str]:
     if repo.language == "python":
-        return [func.name for func in _repo_tool_funcs(repo)]
+        return [_declared_tool_name(func) for func in _repo_tool_funcs(repo)]
     # Comments are stripped (literals kept) so a registration shape quoted in a
     # doc comment cannot invent a tool name.
     return [
@@ -627,7 +655,10 @@ def _check_tools_detected(repo: Repo) -> str | None:
             return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
     if _tool_names(repo):
         return None
-    if not _SERVER_MARKER.search(combined_code_text(repo)):
+    # Literal *contents* are masked: an error message that quotes a constructor
+    # — ``raise RuntimeError("FastMCP(...) not initialised")`` — made a toolless
+    # client library fail a MUST with evidence reading "server constructed".
+    if not _SERVER_MARKER.search(mask_literal_contents(combined_code_text(repo))):
         return None
     return (
         "server constructed but no tool registration detected — every tool-surface "
