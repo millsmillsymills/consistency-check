@@ -71,3 +71,33 @@ def test_unstaged_repo_runs_all_rules(
         f for f in findings if f.status == FindingStatus.NA and f.evidence.startswith("min_stage")
     ]
     assert not above
+
+
+def test_archetype_rule_na_when_undeclared(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
+    repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
+    findings = {f.rule_id: f for f in audit_repo(repo)}
+    assert findings["MCP-DEPLOY-ARTIFACT"].status is FindingStatus.NA
+    assert "no Deployment archetype declared" in findings["MCP-DEPLOY-ARTIFACT"].evidence
+
+
+def test_archetype_rule_runs_when_archetype_matches(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text(
+        "# x\n\n## Status\nStage: S4\nDeployment: site-local\n", encoding="utf-8"
+    )
+    repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
+    findings = {f.rule_id: f for f in audit_repo(repo)}
+    assert findings["MCP-DEPLOY-ARTIFACT"].status is FindingStatus.FAIL
+
+
+def test_archetype_rule_na_when_archetype_excluded(tmp_path: Path) -> None:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "README.md").write_text(
+        "# x\n\n## Status\nStage: S4\nDeployment: site-local\n", encoding="utf-8"
+    )
+    repo = Repo(name="x", path=tmp_path, language="python", github_slug="x/y")
+    findings = {f.rule_id: f for f in audit_repo(repo)}
+    assert findings["MCP-DEPLOY-REGISTRY"].status is FindingStatus.NA
+    assert "site-local" in findings["MCP-DEPLOY-REGISTRY"].evidence

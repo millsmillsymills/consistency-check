@@ -6,11 +6,16 @@ import ast
 import re
 from typing import TYPE_CHECKING
 
+from consistency_check.sources import (
+    STRING_LITERAL,
+    code_only,
+    combined_source_text,
+    go_sources,
+    python_sources,
+)
 from consistency_check.types import Rule, Stage, Tier
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from consistency_check.types import Repo
 
 # The optional ``(...)`` block (one level of nesting) lets the decorator args
@@ -34,21 +39,6 @@ _SECRET_IDENTIFIER = re.compile(
 )
 
 
-def _python_sources(repo: Repo) -> list[Path]:
-    src = repo.path / "src"
-    return list(src.rglob("*.py")) if src.is_dir() else []
-
-
-def _go_sources(repo: Repo) -> list[Path]:
-    # Skip dot-prefix dirs (.git, .worktrees, .venv, etc.) so stale copies
-    # under git worktrees or vendor caches don't poison the heuristics.
-    return [
-        p
-        for p in repo.path.rglob("*.go")
-        if not any(part.startswith(".") for part in p.parts) and not p.name.endswith("_test.go")
-    ]
-
-
 def _expected_namespace(repo: Repo) -> str:
     return repo.path.name.removesuffix("-mcp").replace("-", "_") + "_"
 
@@ -57,12 +47,12 @@ def _tool_names(repo: Repo) -> list[str]:
     if repo.language == "python":
         return [
             m.group(1)
-            for p in _python_sources(repo)
+            for p in python_sources(repo)
             for m in _TOOL_DECORATOR.finditer(p.read_text(encoding="utf-8", errors="replace"))
         ]
     return [
         m.group(1)
-        for p in _go_sources(repo)
+        for p in go_sources(repo)
         for m in _GO_TOOL_REGISTER.finditer(p.read_text(encoding="utf-8", errors="replace"))
     ]
 
@@ -131,7 +121,7 @@ def _check_typed_inputs(repo: Repo) -> str | None:
         return None
     bad = [
         func.name
-        for p in _python_sources(repo)
+        for p in python_sources(repo)
         for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
         if any(arg.annotation is None for arg in _documentable_args(func))
     ]
@@ -142,7 +132,7 @@ def _check_docstrings(repo: Repo) -> str | None:
     if repo.language != "python":
         return None
     bad: list[str] = []
-    for p in _python_sources(repo):
+    for p in python_sources(repo):
         for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace")):
             doc = ast.get_docstring(func) or ""
             has_return = "Returns:" in doc or "Yields:" in doc
@@ -152,11 +142,6 @@ def _check_docstrings(repo: Repo) -> str | None:
     return f"tools missing Args/Returns docstring: {bad[:5]}" if bad else None
 
 
-def _combined_source_text(repo: Repo) -> str:
-    sources = _python_sources(repo) if repo.language == "python" else _go_sources(repo)
-    return "\n".join(p.read_text(encoding="utf-8", errors="replace") for p in sources)
-
-
 # Shared so PROTO-005 (split) and PROTO-006 (gate) recognise the same env-flag
 # spellings. PROTO-005 additionally accepts structural separation (register_read
 # / register_write); PROTO-006 requires the flag itself.
@@ -164,21 +149,21 @@ _WRITE_FLAG = re.compile(r"(?i)(enable_?writes?|allow_?writes?|writes?_enabled)"
 
 
 def _check_read_write_split(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if _WRITE_FLAG.search(text) or "register_read" in text or "register_write" in text:
         return None
     return "no read/write tool separation detected"
 
 
 def _check_write_gate(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if _WRITE_FLAG.search(text):
         return None
     return "no env-flag write-gate detected"
 
 
 def _check_capabilities(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if "FastMCP(" in text or "mcp.NewServer" in text or "Capabilities" in text:
         return None
     return "no capabilities registration detected"
@@ -191,14 +176,14 @@ def _check_stdio_default(repo: Repo) -> str | None:
 
 
 def _check_mcp_errors(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if "ToolError" in text or "IsError" in text or "CallToolResult" in text:
         return None
     return "no MCP-error-shaped error returns detected"
 
 
 def _check_error_mapping(repo: Repo) -> str | None:
-    sources = _python_sources(repo) if repo.language == "python" else _go_sources(repo)
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
     for p in sources:
         text = p.read_text(encoding="utf-8", errors="replace")
         if re.search(r"def\s+_classify_\w+|func\s+errToMCP", text):
@@ -207,7 +192,7 @@ def _check_error_mapping(repo: Repo) -> str | None:
 
 
 def _secret_in_python_args(repo: Repo) -> str | None:
-    for p in _python_sources(repo):
+    for p in python_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")
         for m in re.finditer(r"add_argument\(\s*['\"]([^'\"]+)['\"]", text):
             if _SECRET_NAME.search(m.group(1)):
@@ -216,7 +201,7 @@ def _secret_in_python_args(repo: Repo) -> str | None:
 
 
 def _secret_in_go_flags(repo: Repo) -> str | None:
-    for p in _go_sources(repo):
+    for p in go_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")
         for m in re.finditer(r'flag\.\w+\(\s*"([^"]+)"', text):
             if _SECRET_NAME.search(m.group(1)):
@@ -230,24 +215,13 @@ def _check_no_secret_cli_args(repo: Repo) -> str | None:
     return _secret_in_go_flags(repo)
 
 
-_STRING_LITERAL = re.compile(
-    r"""
-    '''.*?'''               # triple single
-    | \"\"\".*?\"\"\"       # triple double
-    | "(?:\\.|[^"\\])*"     # double-quoted
-    | '(?:\\.|[^'\\])*'     # single-quoted
-    """,
-    re.VERBOSE | re.DOTALL,
-)
-
-
 def _check_no_secret_logging(repo: Repo) -> str | None:
-    sources = _python_sources(repo) if repo.language == "python" else _go_sources(repo)
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
     for p in sources:
         # Strip string-literal contents up front so human-readable format text
         # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
         # "...not set (see README)") cannot truncate the log-call match.
-        text = _STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
+        text = STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
         for m in re.finditer(r"(?:logger|log)\.\w+\(", text):
             # Balanced extraction (not ``[^)]*``) so a credential logged after a
             # nested call — ``logger.info("%s", redact(x), api_key)`` — is still
@@ -273,13 +247,6 @@ def _balanced(text: str, open_idx: int, open_ch: str, close_ch: str) -> str:
             if depth == 0:
                 return text[open_idx + 1 : i]
     return text[open_idx + 1 :]
-
-
-def _code_only(text: str, line_comment: str) -> str:
-    # Drop string literals (docstrings included) then line comments so a
-    # ``print(`` mentioned in prose cannot register as a real call.
-    text = _STRING_LITERAL.sub("", text)
-    return re.sub(rf"{re.escape(line_comment)}.*", "", text)
 
 
 _PY_PRINT = re.compile(r"(?<![.\w])print\s*\(")
@@ -310,8 +277,8 @@ _GO_STDOUT = re.compile(
 def _stdout_writers(repo: Repo) -> list[str]:
     bad: list[str] = []
     if repo.language == "python":
-        for p in _python_sources(repo):
-            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+        for p in python_sources(repo):
+            text = code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
             for m in _PY_PRINT.finditer(text):
                 # ``print(..., file=sys.stderr)`` is fine; only stdout corrupts.
                 if "file=" not in _balanced(text, m.end() - 1, "(", ")"):
@@ -320,8 +287,8 @@ def _stdout_writers(repo: Repo) -> list[str]:
         return bad
     bad.extend(
         p.name
-        for p in _go_sources(repo)
-        if _GO_STDOUT.search(_code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
+        for p in go_sources(repo)
+        if _GO_STDOUT.search(code_only(p.read_text(encoding="utf-8", errors="replace"), "//"))
     )
     return bad
 
@@ -340,16 +307,16 @@ _GO_HTTP_CLIENT = re.compile(r"http\.Client\s*\{")
 def _untimed_http_clients(repo: Repo) -> list[str]:
     bad: list[str] = []
     if repo.language == "python":
-        for p in _python_sources(repo):
-            text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
+        for p in python_sources(repo):
+            text = code_only(p.read_text(encoding="utf-8", errors="replace"), "#")
             bad.extend(
                 p.name
                 for m in _PY_HTTP_CLIENT.finditer(text)
                 if "timeout=" not in _balanced(text, m.end() - 1, "(", ")")
             )
         return bad
-    for p in _go_sources(repo):
-        text = _code_only(p.read_text(encoding="utf-8", errors="replace"), "//")
+    for p in go_sources(repo):
+        text = code_only(p.read_text(encoding="utf-8", errors="replace"), "//")
         bad.extend(
             p.name
             for m in _GO_HTTP_CLIENT.finditer(text)
@@ -383,7 +350,7 @@ def _check_tool_descriptions(repo: Repo) -> str | None:
     if repo.language != "python":
         return None
     bad: list[str] = []
-    for p in _python_sources(repo):
+    for p in python_sources(repo):
         text = p.read_text(encoding="utf-8", errors="replace")
         for m in _TOOL_DECORATOR.finditer(text):
             if "description=" in m.group(0):
@@ -403,7 +370,7 @@ _ANNOTATION_MARKER = re.compile(
 def _check_tool_annotations(repo: Repo) -> str | None:
     if not _tool_names(repo):
         return None
-    if _ANNOTATION_MARKER.search(_combined_source_text(repo)):
+    if _ANNOTATION_MARKER.search(combined_source_text(repo)):
         return None
     return "tools defined but none declare MCP annotations (readOnlyHint/destructiveHint/...)"
 
@@ -417,7 +384,7 @@ _TRANSPORT_HOST_GUARD = re.compile(r"(?i)127\.0\.0\.1|localhost|loopback|\borigi
 
 
 def _check_http_transport_security(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if not _HTTP_TRANSPORT.search(text):
         return None
     missing = [
@@ -445,7 +412,7 @@ _SERVER_INSTRUCTIONS = re.compile(r"(?i)instructions\s*[=:]|with_?instructions\s
 
 
 def _check_server_instructions(repo: Repo) -> str | None:
-    if _SERVER_INSTRUCTIONS.search(_combined_source_text(repo)):
+    if _SERVER_INSTRUCTIONS.search(combined_source_text(repo)):
         return None
     return "server sets no instructions string"
 
@@ -458,7 +425,7 @@ _TITLE_MARKER = re.compile(r"(?i)\btitle\s*[=:]|[\"']title[\"']|with_?title_?ann
 def _check_tool_titles(repo: Repo) -> str | None:
     if not _tool_names(repo):
         return None
-    if _TITLE_MARKER.search(_combined_source_text(repo)):
+    if _TITLE_MARKER.search(combined_source_text(repo)):
         return None
     return "tools defined but none declare a human-readable title"
 
@@ -476,7 +443,7 @@ _CAPABILITY_GUARD = re.compile(
 
 
 def _check_capability_guard(repo: Repo) -> str | None:
-    text = _combined_source_text(repo)
+    text = combined_source_text(repo)
     if not _ELICIT_SAMPLE_CALL.search(text):
         return None
     if _CAPABILITY_GUARD.search(text):
