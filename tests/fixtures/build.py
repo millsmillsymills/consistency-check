@@ -131,6 +131,16 @@ def build_good_python(root: Path) -> Path:
         _ = structlog
     """,
     )
+    _write(
+        pkg / "protocol.py",
+        """
+        from __future__ import annotations
+
+        DISCOVER_METHOD = "server/discover"
+        RESOURCE_NOT_FOUND = -32602
+        RESULT_ENVELOPE = {"resultType": "tool_result", "ttlMs": 60000, "cacheScope": "session"}
+    """,
+    )
     _write(pkg / "clients" / "__init__.py", "")
     _write(pkg / "tools" / "__init__.py", "")
     # One real tool, so the tool-surface rules (PROTO-001..004, 015, 016, 018,
@@ -263,6 +273,7 @@ def build_bad_python(root: Path) -> Path:
         pkg / "cli.py",
         """
         import argparse
+        RESOURCE_NOT_FOUND = -32002
         parser = argparse.ArgumentParser()
         parser.add_argument("--api-key")
         mcp.run(transport="sse", host="0.0.0.0")
@@ -375,6 +386,16 @@ def build_good_go(root: Path) -> Path:
             "github.com/mark3labs/mcp-go/server"
         )
 
+        const DiscoverMethod = "server/discover"
+
+        const ResourceNotFound = -32602
+
+        type Envelope struct {
+            ResultType string `json:"resultType"`
+            TTLMs      int    `json:"ttlMs"`
+            CacheScope string `json:"cacheScope"`
+        }
+
         func Register(srv *server.MCPServer) {
             srv.AddTool(mcp.NewTool(
                 "good_go_search",
@@ -479,6 +500,8 @@ def build_bad_go(root: Path) -> Path:
             d := 4
             _ = a + b + c + d
         }
+
+        const resourceNotFound = -32002
 
         var key = flag.String("api-key", "", "secret token")
         var _ = WithTools("BadToolNameThatGreatlyExceedsTheSixtyFourCharacterToolNameHardLimitYes")
