@@ -252,6 +252,76 @@ def test_proto_013_fail_on_go_fprintln_to_stdout(tmp_path: Path) -> None:
     assert _check(tmp_path, "go", "PROTO-013") is not None
 
 
+def test_proto_013_fail_on_go_io_copy_into_stdout(tmp_path: Path) -> None:
+    # os.Stdout handed to a copying writer is a write, not injection: the bytes
+    # land on the protocol stream just the same.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "dump.go").write_text(
+        'package internal\nimport ("io"; "os")\n'
+        "func Dump(r io.Reader) { _, _ = io.Copy(os.Stdout, r) }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_bufio_writer_on_stdout(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "buf.go").write_text(
+        'package internal\nimport ("bufio"; "os")\n'
+        "func Boot() { w := bufio.NewWriter(os.Stdout); _ = w }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_io_writestring_to_stdout(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "note.go").write_text(
+        'package internal\nimport ("io"; "os")\n'
+        'func Boot() { _, _ = io.WriteString(os.Stdout, "up") }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_json_encoder_on_stdout(tmp_path: Path) -> None:
+    # The idiomatic Go way to emit structured output, and the one most likely to
+    # interleave with JSON-RPC frames.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "emit.go").write_text(
+        'package internal\nimport ("encoding/json"; "os")\n'
+        "func Emit(v any) { _ = json.NewEncoder(os.Stdout).Encode(v) }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_fail_on_go_sized_bufio_writer_on_stdout(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "sized.go").write_text(
+        'package internal\nimport ("bufio"; "os")\n'
+        "func Boot() { w := bufio.NewWriterSize(os.Stdout, 4096); _ = w }\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is not None
+
+
+def test_proto_013_pass_when_stdout_is_not_the_destination_writer(tmp_path: Path) -> None:
+    # Only the first argument is the destination. os.Stdout as a copy *source*,
+    # and a writer built over an injected `out`, leave the frame stream alone —
+    # matching os.Stdout in any argument position would resurrect the false
+    # positives the narrower heuristic exists to avoid.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "relay.go").write_text(
+        'package internal\nimport ("bufio"; "io"; "os")\n'
+        "func Relay(w io.Writer, out io.Writer) {\n"
+        "\t_, _ = io.Copy(w, os.Stdout)\n"
+        "\tb := bufio.NewWriter(out)\n\t_ = b\n}\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-013") is None
+
+
 def test_proto_014_fail_on_httpx_client_without_timeout(tmp_path: Path) -> None:
     pkg = tmp_path / "src" / "good_python"
     pkg.mkdir(parents=True)
