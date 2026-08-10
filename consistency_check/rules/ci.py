@@ -76,6 +76,11 @@ _VULN_SCAN = re.compile(
 # in a YAML/shell comment or a sibling step.
 _RUN_KEY = re.compile(r"^([ \t]*-?[ \t]*)run:[ \t]*([|>][+-]?)?[ \t]*(.*)$")
 _SAFETY_CHECK = re.compile(r"(?i)\bsafety\s+check\b")
+# ``make <target>`` and ``./scripts/x.sh`` in a run: body name the file that
+# actually holds the gate. Only these two shapes are followed, one hop deep.
+_MAKE_CALL = re.compile(r"(?:^|[\s;&|])make\b([^\n;&|]*)")
+_SCRIPT_CALL = re.compile(r"(?:^|[\s;&|])(?:(?:ba)?sh\s+)?([\w./-]+\.(?:sh|bash))\b")
+_MAX_SCRIPTS = 20
 
 
 def _strip_comment(line: str) -> str:
@@ -104,11 +109,71 @@ def _run_command_bodies(corpus: str) -> list[str]:
     return bodies
 
 
+def _make_targets(body: str) -> list[str]:
+    targets: list[str] = []
+    for m in _MAKE_CALL.finditer(body):
+        targets.extend(w for w in m.group(1).split() if not w.startswith("-") and "=" not in w)
+    return targets
+
+
+def _make_recipe(makefile: str, target: str) -> str:
+    recipe: list[str] = []
+    collecting = False
+    for line in makefile.splitlines():
+        if re.match(rf"^{re.escape(target)}\s*:", line):
+            collecting = True
+        elif collecting:
+            if line.strip() and not line.startswith((" ", "\t")):
+                break
+            recipe.append(line)
+    return "\n".join(recipe)
+
+
+def _read_makefile(repo: Repo) -> str:
+    for name in ("Makefile", "makefile", "GNUmakefile"):
+        p = repo.path / name
+        if p.is_file():
+            return p.read_text(encoding="utf-8", errors="replace")
+    return ""
+
+
+def _indirect_refs(workflows: str, makefile: str) -> tuple[list[str], list[str]]:
+    """Recipes and script paths a workflow ``run:`` step reaches, one hop each."""
+    recipes: list[str] = []
+    scripts: list[str] = []
+    for body in _run_command_bodies(workflows):
+        scripts.extend(_SCRIPT_CALL.findall(body))
+        for target in _make_targets(body):
+            recipe = _make_recipe(makefile, target)
+            if recipe:
+                recipes.append(recipe)
+                scripts.extend(_SCRIPT_CALL.findall(recipe))
+    return recipes, scripts
+
+
+def _script_text(repo: Repo, rel: str) -> str:
+    root = repo.path.resolve()
+    candidate = (repo.path / rel).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return ""
+    return candidate.read_text(encoding="utf-8", errors="replace")
+
+
 def _ci_corpus(repo: Repo) -> str:
-    parts = [wf.read_text(encoding="utf-8", errors="replace") for wf in _read_workflows(repo)]
+    workflows = "\n".join(
+        wf.read_text(encoding="utf-8", errors="replace") for wf in _read_workflows(repo)
+    )
+    parts = [workflows]
     pyproject = repo.path / "pyproject.toml"
     if pyproject.is_file():
         parts.append(pyproject.read_text(encoding="utf-8", errors="replace"))
+
+    # A gate token often lives in the Makefile target or shell script a ``run:``
+    # step calls, not in the workflow YAML. Follow those references one hop so a
+    # real gate behind ``make coverage-check`` is not read as no gate at all.
+    recipes, scripts = _indirect_refs(workflows, _read_makefile(repo))
+    parts.extend(recipes)
+    parts.extend(_script_text(repo, rel) for rel in list(dict.fromkeys(scripts))[:_MAX_SCRIPTS])
     return "\n".join(parts)
 
 

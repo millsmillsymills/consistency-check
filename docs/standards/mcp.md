@@ -150,7 +150,7 @@ These rules apply to every MCP server in the suite regardless of language.
 
 **Rationale.** A test suite with no coverage floor silently rots: new code lands untested and the suite still goes green. A gate makes the regression visible at PR time rather than in production.
 
-**Mechanical check.** A workflow file or `pyproject.toml` references a coverage-floor token: `--cov-fail-under` / `fail_under` (Python) or a Go coverage-gate (`go-test-coverage` or a `threshold-total`/`threshold-file`/`threshold-package` check). A bare `-coverprofile` / `-covermode` only emits a report and does not satisfy the gate.
+**Mechanical check.** A workflow file or `pyproject.toml` references a coverage-floor token: `--cov-fail-under` / `fail_under` (Python) or a Go coverage-gate (`go-test-coverage` or a `threshold-total`/`threshold-file`/`threshold-package` check). A workflow `run:` step that calls `make <target>` or a `.sh` script inside the repo is followed one hop, so a gate held in the Makefile recipe or the script counts. A bare `-coverprofile` / `-covermode` only emits a report and does not satisfy the gate, wherever it lives.
 
 ### MCP-026 — CI runs a dependency vulnerability scan [MUST]
 
