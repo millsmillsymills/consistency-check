@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+from importlib import resources
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from consistency_check.types import Repo
 
 _README_GROUPS = (
@@ -23,23 +25,9 @@ _CLIENT_NAMES = ("Claude Desktop", "Cursor", "Continue.dev", "Claude Code")
 _STANDARDS_LINK = "consistency-check/docs/standards"
 
 _PROSE_ROOT_FILES = ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")
-_BANNED_PHRASES = (
-    Path.home()
-    / "Desktop/Projects/claude-defaults-private/skills/writing-voice-review/banned-phrases.txt"
-)
-# The pattern file is written for ripgrep's PCRE2 engine, which accepts POSIX
-# bracket expressions; Python's ``re`` reads ``[[:space:]]`` as a literal class.
-_POSIX_CLASSES = {
-    "alnum": r"a-zA-Z0-9",
-    "alpha": r"a-zA-Z",
-    "blank": r" \t",
-    "digit": r"0-9",
-    "lower": r"a-z",
-    "punct": r"!-/:-@\[-`{-~",
-    "space": r"\s",
-    "upper": r"A-Z",
-    "xdigit": r"0-9a-fA-F",
-}
+_BANNED_PHRASES_NAME = "consistency_check/data/banned-phrases.txt"
+_BANNED_PHRASES = resources.files("consistency_check") / "data" / "banned-phrases.txt"
+_FENCE = re.compile(r"^\s*(?:```|~~~)")
 _MAX_PROSE_HITS = 5
 
 
@@ -106,16 +94,17 @@ def _banned_phrase_patterns() -> list[tuple[str, re.Pattern[str]]]:
     try:
         raw = _BANNED_PHRASES.read_text(encoding="utf-8")
     except OSError as exc:
-        msg = f"cannot read the writing-voice banned-phrase list at {_BANNED_PHRASES}: {exc}"
+        msg = f"cannot read the banned-phrase list at {_BANNED_PHRASES_NAME}: {exc}"
         raise RuntimeError(msg) from exc
     patterns = []
     for line in raw.splitlines():
         if not line.strip():
             continue
-        translated = line
-        for name, expansion in _POSIX_CLASSES.items():
-            translated = translated.replace(f"[:{name}:]", expansion)
-        patterns.append((line, re.compile(translated, re.IGNORECASE)))
+        try:
+            patterns.append((line, re.compile(line, re.IGNORECASE)))
+        except re.error as exc:
+            msg = f"invalid pattern in {_BANNED_PHRASES_NAME}: {line!r}: {exc}"
+            raise RuntimeError(msg) from exc
     return patterns
 
 
@@ -128,12 +117,28 @@ def _prose_surfaces(repo: Repo) -> list[str]:
     return sorted(rel for rel in found if not tracked or rel in tracked)
 
 
+def _prose_lines(text: str) -> list[str]:
+    """Blank out fenced code blocks, keeping line numbers intact.
+
+    A README's usage examples are code, not prose; ``our tool`` inside a shell
+    snippet is a command, not a marketing cliche.
+    """
+    lines: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if _FENCE.match(line):
+            fenced = not fenced
+            lines.append("")
+        else:
+            lines.append("" if fenced else line)
+    return lines
+
+
 def _check_writing_voice(repo: Repo) -> str | None:
     patterns = _banned_phrase_patterns()
     hits: list[str] = []
     for rel in _prose_surfaces(repo):
-        text = _read(repo.path / rel)
-        for lineno, line in enumerate(text.splitlines(), start=1):
+        for lineno, line in enumerate(_prose_lines(_read(repo.path / rel)), start=1):
             hits.extend(
                 f"{rel}:{lineno} {match.group(0)!r} (banned: {raw})"
                 for raw, pattern in patterns
