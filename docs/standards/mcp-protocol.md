@@ -82,7 +82,7 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 **Rationale.** Under the stdio transport, stdout carries the JSON-RPC frame stream. Any stray byte written to stdout corrupts the protocol and disconnects the host.
 
-**Mechanical check.** Source contains no stdout write. Python: no `print(...)` call without `file=` routing it elsewhere. Go: no `fmt.Print`/`Printf`/`Println` and no `os.Stdout` write. Diagnostics go to stderr (see MCP-021).
+**Mechanical check.** Source contains no stdout write. Python: no `print(...)` call without `file=` routing it elsewhere. Go: no `fmt.Print`/`Printf`/`Println`, no `fmt.Fprint*(os.Stdout, …)`, no `os.Stdout.Write`/`WriteString`, and no `os.Stdout` as the destination writer of `io.Copy`/`CopyN`, `io.WriteString`, `io.MultiWriter`, `bufio.NewWriter`/`NewWriterSize`, `json.NewEncoder`, or `log.New`/`SetOutput`. Only the destination (first) argument position counts, so `io.Copy(w, os.Stdout)` — stdout as a source — and `os.Stdout` handed to a plain function parameter are dependency injection, not writes. Diagnostics go to stderr (see MCP-021).
 
 ### PROTO-014 — Outbound HTTP clients set an explicit timeout [MUST]
 

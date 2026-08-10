@@ -57,6 +57,7 @@ def audit_repo(repo: Repo) -> list[Finding]:
                     tier=rule.tier,
                     status=FindingStatus.NA,
                     min_stage=rule.min_stage,
+                    applicable=False,
                 )
             )
             continue
