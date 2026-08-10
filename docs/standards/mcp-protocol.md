@@ -145,3 +145,17 @@ These rules encode pass/fail criteria from the Anthropic Directory review and th
 **Mechanical check.** Only fires when the source calls an elicitation or sampling primitive (`.elicit(...)` / `.elicitInput(...)`, `ctx.sample(...)` / `.sample(...)`, or `createMessage(...)`). When it does, the source must also reference a capability guard: `CapabilityNotSupported`, `client_capabilities` / `clientCapabilities`, `getClientCapabilities`, `get_client_capabilities`, or `client_params`. A server that uses neither feature passes vacuously.
 
 **Note (2026-07-28).** Sampling is Deprecated — new servers must not adopt it; integrate with the LLM provider API directly. Elicitation is restructured as Multi Round-Trip Requests (`resultType: "input_required"`). The guard requirement stands wherever the legacy primitives still appear.
+
+### PROTO-022 — Server registers at least one detectable tool [MUST]
+
+**Rationale.** Every tool-surface rule (PROTO-001..004, 015, 016, 018, 020) derives its subject from the registrations the auditor can find. When it finds none, all of them pass, and a vacuous pass is indistinguishable from a real one in the report — a server reads as fully compliant on its entire tool surface precisely because none of it was audited. This rule makes that state visible.
+
+**Mechanical check.** Two conditions, either of which fails the rule.
+
+First, every Python source under `src/` must parse. A file the auditor cannot parse is a file every Python tool rule skips, and the evidence names it. Second, a repo whose source constructs a server must register at least one tool the auditor can name. A construction is `FastMCP(...)`, `mcp.NewServer(...)`, `server.NewMCPServer(...)`, or an unqualified `Server(...)` with at least one argument — the low-level Python SDK. A qualified call is not a construction, so `httptest.NewServer`, `grpc.NewServer`, `uvicorn.Server(cfg)`, and an accessor like `cfg.Server()` are all excluded.
+
+Python registrations are found by AST: any decorator whose attribute is `tool` (`@mcp.tool`, `@server.tool`), and any decorator naming a factory that returns `x.tool(...)` applied to a function. Factory names are collected from every scope except another function's body, so a factory behind a version check counts while a factory's inner `decorator`/`wrapper` plumbing does not. Go registrations are found by pattern: `WithTools("name")`, `AddTool(...)` / `NewTool("name", ...)`, and a `Tool{Name: "name"}` composite literal, whose name is read from the literal's own depth-0 fields and, for a `[]Tool{...}` slice, from each element. A repo that constructs no server — a library, a client — passes.
+
+Failing this rule means the tool rules above carry no signal for that repo; fix the registration shape (or the matcher) before reading them as passes.
+
+**Known limit.** The rule fires on *total* blindness, not partial. One detected tool suppresses it, so a repo whose registrations use two shapes — one matched, one not — still reports a clean tool surface for the unmatched half. Catching that needs a count of registration *sites* to compare against the count of named tools, which no reliable pattern yields across the SDKs in use. Treat a repo's tool count as a lower bound.

@@ -133,6 +133,29 @@ def build_good_python(root: Path) -> Path:
     )
     _write(pkg / "clients" / "__init__.py", "")
     _write(pkg / "tools" / "__init__.py", "")
+    # One real tool, so the tool-surface rules (PROTO-001..004, 015, 016, 018,
+    # 020, 022) grade something instead of passing vacuously.
+    _write(
+        pkg / "tools" / "search.py",
+        '''
+        from __future__ import annotations
+
+        from good_python.server import mcp
+
+        @mcp.tool(annotations={"readOnlyHint": True, "title": "Search things"})
+        async def good_python_search(query: str, limit: int = 10) -> list[str]:
+            """Search things by name.
+
+            Args:
+                query: Text to match against thing names.
+                limit: Maximum number of results to return.
+
+            Returns:
+                Names of the matching things.
+            """
+            return [query][:limit]
+    ''',
+    )
 
     _write(root / "tests" / "conftest.py", "import pytest\n\n@pytest.fixture\ndef x(): return 1\n")
     _write(root / "tests" / "unit" / "test_smoke.py", "def test_smoke(): assert True\n")
@@ -338,11 +361,28 @@ def build_good_go(root: Path) -> Path:
         }
     """,
     )
+    # One real registration, so the tool-surface rules grade something instead
+    # of passing vacuously.
     _write(
         root / "internal" / "tools" / "tools.go",
         """
         package tools
-        import "context"
+
+        import (
+            "context"
+
+            "github.com/mark3labs/mcp-go/mcp"
+            "github.com/mark3labs/mcp-go/server"
+        )
+
+        func Register(srv *server.MCPServer) {
+            srv.AddTool(mcp.NewTool(
+                "good_go_search",
+                mcp.WithDescription("Searches things by name."),
+                mcp.WithToolAnnotation(mcp.ToolAnnotation{Title: "Search things"}),
+            ), GetThing)
+        }
+
         func GetThing(ctx context.Context) error { return nil }
     """,
     )

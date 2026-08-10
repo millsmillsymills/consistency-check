@@ -1,4 +1,4 @@
-"""Rules: MCP protocol (PROTO-001..021)."""
+"""Rules: MCP protocol (PROTO-001..022)."""
 
 from __future__ import annotations
 
@@ -8,9 +8,12 @@ from typing import TYPE_CHECKING
 
 from consistency_check.sources import (
     STRING_LITERAL,
+    code_and_literals,
     code_only,
+    combined_code_text,
     combined_source_text,
     go_sources,
+    mask_literal_braces,
     python_sources,
 )
 from consistency_check.types import Rule, Stage, Tier
@@ -18,7 +21,16 @@ from consistency_check.types import Rule, Stage, Tier
 if TYPE_CHECKING:
     from consistency_check.types import Repo
 
-_GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([a-zA-Z0-9_]+)"')
+# Three registration shapes across the Go SDKs: mcp-go's ``WithTools("name")``
+# and ``AddTool(mcp.NewTool("name", ...))``, and the official SDK's
+# ``&mcp.Tool{Name: "name"}`` composite literal handed to a register helper. The
+# name is read from the first argument only — a wider window captures any string
+# in the call (``AddTool(registry.Get("search"), h)``) as a tool name.
+_GO_TOOL_REGISTER = re.compile(
+    r'WithTools\([^,]*"([a-zA-Z0-9_]+)"|\bNewTool\s*\(\s*"([a-zA-Z0-9_]+)"'
+)
+_GO_TOOL_LITERAL = re.compile(r"\bTool\{")
+_GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([a-zA-Z0-9_]+)"')
 _SECRET_NAME = re.compile(r"(?i)(token|key|secret|password|api[_\-]?key)")
 # Anchored variant for whole Python identifiers in log calls. ``token``,
 # ``secret`` and ``password`` are credentials even standalone, but a bare
@@ -34,17 +46,75 @@ def _expected_namespace(repo: Repo) -> str:
     return repo.path.name.removesuffix("-mcp").replace("-", "_") + "_"
 
 
+def _mask_nested(region: str) -> str:
+    """Blank every character inside a nested brace group, keeping offsets stable."""
+    out: list[str] = []
+    depth = 0
+    for ch in region:
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        out.append(" " if depth or ch in "{}" else ch)
+    return "".join(out)
+
+
+def _brace_groups(region: str) -> list[str]:
+    """Return the contents of each top-level brace group in ``region``."""
+    groups: list[str] = []
+    depth = 0
+    start = 0
+    for i, ch in enumerate(region):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                groups.append(region[start + 1 : i])
+    return groups
+
+
+def _literal_tool_names(region: str) -> list[str]:
+    """Tool names carried by one ``Tool{...}`` region.
+
+    Only the literal's *own* fields name it, so the region is masked before the
+    ``Name`` scan: an inner ``&mcp.Meta{Name: ...}`` would otherwise be read as
+    the tool's name. When the region has no ``Name`` of its own it is a slice
+    literal (``[]mcp.Tool{{...}, {...}}``), whose elements each name a tool.
+    """
+    own = [m.group(1) for m in _GO_TOOL_LITERAL_NAME.finditer(_mask_nested(region))]
+    if own:
+        return own
+    return [name for group in _brace_groups(region) for name in _literal_tool_names(group)]
+
+
+def _go_tool_names(text: str) -> list[str]:
+    """Tool names registered in one Go source file.
+
+    ``Tool{...}`` literals are read with balanced brace matching: Go struct
+    fields are unordered, so ``Name`` may sit after a nested composite that a
+    ``[^{}]*`` window would stop at.
+    """
+    text = mask_literal_braces(text)
+    names = [next(g for g in m.groups() if g) for m in _GO_TOOL_REGISTER.finditer(text)]
+    for m in _GO_TOOL_LITERAL.finditer(text):
+        names.extend(_literal_tool_names(_balanced(text, m.end() - 1, "{", "}")))
+    return names
+
+
 def _tool_names(repo: Repo) -> list[str]:
     if repo.language == "python":
-        return [
-            func.name
-            for p in python_sources(repo)
-            for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
-        ]
+        return [func.name for func in _repo_tool_funcs(repo)]
+    # Comments are stripped (literals kept) so a registration shape quoted in a
+    # doc comment cannot invent a tool name.
     return [
-        m.group(1)
+        name
         for p in go_sources(repo)
-        for m in _GO_TOOL_REGISTER.finditer(p.read_text(encoding="utf-8", errors="replace"))
+        for name in _go_tool_names(
+            code_and_literals(p.read_text(encoding="utf-8", errors="replace"), "//")
+        )
     ]
 
 
@@ -62,32 +132,124 @@ def _check_namespace_prefix(repo: Repo) -> str | None:
 _ToolFunc = ast.FunctionDef | ast.AsyncFunctionDef
 
 
+def _decorator_target(dec: ast.expr) -> ast.expr:
+    return dec.func if isinstance(dec, ast.Call) else dec
+
+
 def _is_mcp_tool_decorator(dec: ast.expr) -> bool:
-    target = dec.func if isinstance(dec, ast.Call) else dec
+    """``@mcp.tool``, ``@server.tool``, ``@self._mcp.tool`` — any receiver.
+
+    Anchoring on the receiver name ``mcp`` missed every server whose FastMCP
+    instance is called something else.
+    """
+    target = _decorator_target(dec)
+    return isinstance(target, ast.Attribute) and target.attr == "tool"
+
+
+def _applies_tool_decorator(node: ast.AST) -> bool:
+    """``mcp.tool(**kwargs)(fn)`` — the decorator built and applied by hand."""
     return (
-        isinstance(target, ast.Attribute)
-        and target.attr == "tool"
-        and isinstance(target.value, ast.Name)
-        and target.value.id == "mcp"
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Call)
+        and isinstance(node.func.func, ast.Attribute)
+        and node.func.func.attr == "tool"
     )
 
 
-def _tool_funcs(text: str) -> list[_ToolFunc]:
-    """Every ``@mcp.tool``-decorated def in the source, including nested ones.
+def _returns_tool_decorator(node: ast.AST) -> bool:
+    """Report whether ``node`` contains a ``return mcp.tool(**kw)(fn)``.
+
+    Requiring the *return* is what separates a decorator factory from a plain
+    registration helper (``def register(mcp): mcp.tool()(search)``), whose name
+    would otherwise turn every unrelated ``@x.register`` decorator — the
+    ``functools.singledispatch`` shape, say — into a phantom tool.
+    """
+    return any(
+        isinstance(inner, ast.Return)
+        and inner.value is not None
+        and _applies_tool_decorator(inner.value)
+        for inner in ast.walk(node)
+    )
+
+
+def _named_funcs(scope: ast.AST) -> list[_ToolFunc]:
+    """Collect defs reachable without entering another function's body.
+
+    These are the only names a decorator elsewhere can reference. Descent
+    continues through ``if``/``try``/``with`` and class bodies, so a factory
+    guarded by a version check is still found, but stops at a function body: a
+    factory's inner plumbing is conventionally called ``decorator`` or
+    ``wrapper``, and matching a decorator against names that generic collides
+    with unrelated code.
+    """
+    funcs: list[_ToolFunc] = []
+    for node in ast.iter_child_nodes(scope):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            funcs.append(node)
+        elif not isinstance(node, ast.Lambda):
+            funcs.extend(_named_funcs(node))
+    return funcs
+
+
+def _tool_factories(tree: ast.Module) -> set[str]:
+    """Names of functions that register a tool on their caller's behalf.
+
+    A repo may wrap registration in its own decorator factory — ``unraid_tool``
+    returns a decorator whose body ends in ``mcp.tool(**kw)(wrapper)``. Functions
+    decorated with that factory are tools even though no ``.tool`` attribute
+    appears at the decoration site.
+    """
+    return {node.name for node in _named_funcs(tree) if _returns_tool_decorator(node)}
+
+
+def _is_factory_decorator(dec: ast.expr, factories: frozenset[str]) -> bool:
+    target = _decorator_target(dec)
+    if isinstance(target, ast.Name):
+        return target.id in factories
+    # ``@helpers.unraid_tool(mcp)`` — the factory reached through its module.
+    return isinstance(target, ast.Attribute) and target.attr in factories
+
+
+def _is_tool_func(node: _ToolFunc, factories: frozenset[str]) -> bool:
+    return any(
+        _is_mcp_tool_decorator(dec) or _is_factory_decorator(dec, factories)
+        for dec in node.decorator_list
+    )
+
+
+def _python_trees(repo: Repo) -> tuple[list[ast.Module], list[str]]:
+    """Parse every Python source, returning the trees and the files that failed.
+
+    The failures are returned rather than dropped because a file the auditor
+    cannot parse is a file every Python tool rule is blind to, and blindness
+    that reports as a pass is the thing PROTO-022 exists to surface.
+    """
+    trees: list[ast.Module] = []
+    unparseable: list[str] = []
+    for p in python_sources(repo):
+        try:
+            trees.append(ast.parse(p.read_text(encoding="utf-8", errors="replace")))
+        except (SyntaxError, ValueError, RecursionError):
+            unparseable.append(p.name)
+    return trees, unparseable
+
+
+def _repo_tool_funcs(repo: Repo) -> list[_ToolFunc]:
+    """Every tool-registered def in the repo.
 
     AST-based so generics with commas (``dict[str, Any]``) and long
-    signatures/docstrings can't fool a regex; ``ast.walk`` also reaches tools
-    registered inside ``register_*`` helper functions.
+    signatures/docstrings can't fool a regex, and so tools registered inside
+    ``register_*`` helpers are reached. Decorator factories are collected across
+    the whole repo because the factory usually lives in a shared helper module.
     """
-    try:
-        tree = ast.parse(text)
-    except SyntaxError:
-        return []
+    trees = _python_trees(repo)[0]
+    factories = frozenset[str]().union(*(_tool_factories(t) for t in trees))
     return [
         node
+        for tree in trees
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and any(_is_mcp_tool_decorator(d) for d in node.decorator_list)
+        and _is_tool_func(node, factories)
     ]
 
 
@@ -112,8 +274,7 @@ def _check_typed_inputs(repo: Repo) -> str | None:
         return None
     bad = [
         func.name
-        for p in python_sources(repo)
-        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
+        for func in _repo_tool_funcs(repo)
         if any(arg.annotation is None for arg in _documentable_args(func))
     ]
     return f"tools with untyped params: {bad[:5]}" if bad else None
@@ -123,13 +284,12 @@ def _check_docstrings(repo: Repo) -> str | None:
     if repo.language != "python":
         return None
     bad: list[str] = []
-    for p in python_sources(repo):
-        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace")):
-            doc = ast.get_docstring(func) or ""
-            has_return = "Returns:" in doc or "Yields:" in doc
-            has_args = "Args:" in doc
-            if not has_return or (_documentable_args(func) and not has_args):
-                bad.append(func.name)
+    for func in _repo_tool_funcs(repo):
+        doc = ast.get_docstring(func) or ""
+        has_return = "Returns:" in doc or "Yields:" in doc
+        has_args = "Args:" in doc
+        if not has_return or (_documentable_args(func) and not has_args):
+            bad.append(func.name)
     return f"tools missing Args/Returns docstring: {bad[:5]}" if bad else None
 
 
@@ -357,8 +517,7 @@ def _check_tool_descriptions(repo: Repo) -> str | None:
         return None
     bad = [
         func.name
-        for p in python_sources(repo)
-        for func in _tool_funcs(p.read_text(encoding="utf-8", errors="replace"))
+        for func in _repo_tool_funcs(repo)
         if not _has_description_kwarg(func) and not _tool_summary_present(func)
     ]
     return f"tools missing a description summary line: {bad[:5]}" if bad else None
@@ -444,6 +603,36 @@ _CAPABILITY_GUARD = re.compile(
     r"(?i)CapabilityNotSupported|client_?capabilities"
     r"|get_?client_?capabilities|client_params"
 )
+
+
+# Anchored on the MCP server constructors: a bare ``NewServer(`` also matches
+# ``httptest.NewServer(`` and ``grpc.NewServer(``, which are not tool surfaces.
+# Bare ``Server(...)`` catches the low-level Python SDK (``app = Server("x")``,
+# ``Server(name=...)``, ``Server(SETTINGS.name)``), whose ``@app.list_tools()``
+# registrations this module cannot name yet — exactly the state this rule exists
+# to report. The receiver lookbehind is what keeps an accessor or an unrelated
+# library out: ``cfg.Server()`` and ``uvicorn.Server(cfg)`` are both qualified,
+# and at least one argument is required so a no-arg accessor cannot match.
+_SERVER_MARKER = re.compile(
+    r"FastMCP\s*\(|mcp\.NewServer\s*\(|server\.NewMCPServer\s*\("
+    r"|(?<![.\w])Server\s*\(\s*[^)\s]"
+)
+
+
+def _check_tools_detected(repo: Repo) -> str | None:
+    if repo.language == "python":
+        if not python_sources(repo):
+            return "no Python source under src/, so no tool rule read anything"
+        if unparseable := _python_trees(repo)[1]:
+            return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
+    if _tool_names(repo):
+        return None
+    if not _SERVER_MARKER.search(combined_code_text(repo)):
+        return None
+    return (
+        "server constructed but no tool registration detected — every tool-surface "
+        "rule (PROTO-001..004, 015, 016, 018, 020) passes vacuously here"
+    )
 
 
 def _check_capability_guard(repo: Repo) -> str | None:
@@ -588,5 +777,12 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Elicitation/sampling guarded by a capability check",
         check=_check_capability_guard,
+    ),
+    Rule(
+        id="PROTO-022",
+        tier=Tier.MUST,
+        statement="Server registers at least one detectable tool",
+        check=_check_tools_detected,
+        min_stage=Stage.S1,
     ),
 )
