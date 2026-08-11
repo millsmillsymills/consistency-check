@@ -10,7 +10,16 @@ from typing import TYPE_CHECKING
 
 from consistency_check.deployment import declared_archetype
 from consistency_check.stage import declared_stage, stage_rank
-from consistency_check.types import Archetype, Finding, FindingStatus, Repo, Rule, Stage, Tier
+from consistency_check.types import (
+    Archetype,
+    Finding,
+    FindingStatus,
+    NotApplicable,
+    Repo,
+    Rule,
+    Stage,
+    Tier,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -100,6 +109,19 @@ def audit_repo(repo: Repo) -> list[Finding]:
                     status=FindingStatus.ERROR,
                     evidence=type(exc).__name__,
                     min_stage=rule.min_stage,
+                )
+            )
+            continue
+        if isinstance(evidence, NotApplicable):
+            findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    tier=rule.tier,
+                    status=FindingStatus.NA,
+                    evidence=evidence.reason,
+                    min_stage=rule.min_stage,
+                    unevaluated=True,
+                    unmechanized=evidence.unmechanized,
                 )
             )
             continue

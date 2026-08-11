@@ -59,6 +59,7 @@ def render_umbrella(
     should_fails = [f for f in failures if f.tier == Tier.SHOULD]
     may_fails = [f for f in failures if f.tier == Tier.MAY]
     errors = [f for f in findings if f.status == FindingStatus.ERROR]
+    unevaluated = [f for f in findings if f.unevaluated]
 
     lines: list[str] = [
         f"# Consistency audit: `{repo_name}`",
@@ -93,6 +94,9 @@ def render_umbrella(
         lines += [f"## Suggestions (MAY) — {len(may_fails)}", ""]
         lines.extend(f"- **{f.rule_id}** — {_evidence(f)}" for f in may_fails)
         lines.append("")
+
+    if unevaluated:
+        lines += _unevaluated_section(unevaluated)
 
     if errors:
         lines += [f"## Audit errors ({len(errors)})", ""]
@@ -138,6 +142,38 @@ def umbrella_issue_title(repo_name: str) -> str:
     return f"[consistency] {repo_name}: audit umbrella"
 
 
+def _unevaluated_section(unevaluated: list[Finding]) -> list[str]:
+    """Render the rules that went ungraded, separated by whether re-running helps.
+
+    Without this section an unevaluated rule is indistinguishable from an
+    inapplicable one: both land in the n/a column, and a summary showing zero
+    failures reads as compliance the audit never established.
+    """
+    blocked = [f for f in unevaluated if not f.unmechanized]
+    unmechanized = [f for f in unevaluated if f.unmechanized]
+    out = [f"## Unevaluated ({len(unevaluated)})", ""]
+    if blocked:
+        out += [
+            f"### Could not be checked ({len(blocked)})",
+            "",
+            "The audit could not grade these. They are not passes; re-run once the "
+            "cause is cleared.",
+            "",
+        ]
+        out.extend(f"- **{f.rule_id}** ({f.tier.value}) — {_evidence(f)}" for f in blocked)
+        out.append("")
+    if unmechanized:
+        out += [
+            f"### No checker written ({len(unmechanized)})",
+            "",
+            "The standard states these; this tool does not grade them. Re-running changes nothing.",
+            "",
+        ]
+        out.extend(f"- **{f.rule_id}** ({f.tier.value}) — {_evidence(f)}" for f in unmechanized)
+        out.append("")
+    return out
+
+
 def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]:
     out = ["## Stage", ""]
     if declared is None:
@@ -148,9 +184,17 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
         return out
     at_or_below = [f for f in findings if stage_rank(f.min_stage) <= stage_rank(declared)]
     gate_fails = [f for f in at_or_below if f.tier == Tier.MUST and f.status == FindingStatus.FAIL]
+    ungraded = [f for f in at_or_below if f.tier == Tier.MUST and f.unevaluated]
     if gate_fails:
         ids = ", ".join(f.rule_id for f in gate_fails)
         out.append(f"Declared **{declared.value}**; {declared.value} gates failing: {ids}.")
+    elif ungraded:
+        ids = ", ".join(sorted({f.rule_id for f in ungraded}))
+        out.append(
+            f"Declared **{declared.value}**; no {declared.value} gate failed, but these "
+            f"were not graded: {ids}. Compliance through {declared.value} is unestablished, "
+            f"not shown."
+        )
     else:
         out.append(f"Declared **{declared.value}**; compliant through {declared.value} gates.")
     nxt = next_stage(declared)
@@ -161,6 +205,7 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
                 for f in findings
                 if f.min_stage is nxt
                 and f.applicable
+                and not f.unmechanized
                 and f.status in (FindingStatus.FAIL, FindingStatus.NA)
             }
         )

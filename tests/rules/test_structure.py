@@ -8,14 +8,16 @@ from typing import TYPE_CHECKING
 from consistency_check.rules.structure import RULES
 from consistency_check.types import Repo
 
+from tests.fixtures.build import git_add as _git_add
+from tests.rules.verdict import verdict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def _run(repo_path: Path, language: str, rule_id: str) -> str | None:
     repo = Repo(name=repo_path.name, path=repo_path, language=language, github_slug="x/y")
-    rule = next(r for r in RULES if r.id == rule_id)
-    return rule.check(repo)
+    return verdict(next(r for r in RULES if r.id == rule_id), repo)
 
 
 def test_mcp_001_pass_on_good_python(good_python_repo: Path) -> None:
@@ -35,6 +37,7 @@ def test_mcp_005_pass_on_good_python(good_python_repo: Path) -> None:
 def test_mcp_005_fail_when_pycache_committed(good_python_repo: Path) -> None:
     (good_python_repo / "src" / "good_python" / "__pycache__").mkdir()
     (good_python_repo / "src" / "good_python" / "__pycache__" / "x.pyc").write_bytes(b"")
+    _git_add(good_python_repo)
     evidence = _run(good_python_repo, "python", "MCP-005")
     assert evidence is not None
     assert "__pycache__" in evidence

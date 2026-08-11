@@ -47,6 +47,30 @@ class Archetype(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class NotApplicable:
+    """What a check returns when it cannot evaluate the repo at all.
+
+    Distinct from ``None`` (pass) and an evidence ``str`` (fail). A check that
+    is gated on something the audit does not have (network access, a tool it
+    does not run) otherwise has to return ``None``, which the driver scores as
+    a pass and the summary counts as compliance the repo never demonstrated.
+
+    ``unmechanized`` separates the two reasons a check declines, because they
+    call for opposite handling. The default, a check that could not run *this
+    time*, is an audit malfunction: the repo may well be violating the rule and
+    nobody looked, so it escalates the exit code. ``unmechanized=True`` means no
+    checker was ever written for this case; re-running changes nothing, so it is
+    reported but does not escalate.
+
+    A rule that simply does not apply to a repo's *language* does not need this:
+    ``Rule.applies_to`` already records that as a permanent n/a.
+    """
+
+    reason: str
+    unmechanized: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class Repo:
     """A target repository to be audited."""
 
@@ -68,19 +92,25 @@ class Finding:
     # False when the rule's language does not match the repo's, which is a
     # permanent n/a: no promotion can ever turn it into work for this repo.
     applicable: bool = True
+    # True when the n/a came from a check declining, not from scope. A scope
+    # n/a means the rule is not this repo's problem yet; this one means the
+    # rule is its problem and went ungraded, which has to reach the reader.
+    unevaluated: bool = False
+    unmechanized: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class Rule:
     """A single auditable standard.
 
-    The check function returns evidence on failure or None on pass.
+    The check returns ``None`` on pass, an evidence ``str`` on failure, or a
+    :class:`NotApplicable` when it cannot evaluate the repo at all.
     """
 
     id: str
     tier: Tier
     statement: str
-    check: Callable[[Repo], str | None]
+    check: Callable[[Repo], str | None | NotApplicable]
     applies_to: frozenset[str] = field(default_factory=lambda: frozenset({"python", "go"}))
     min_stage: Stage = Stage.S3
     applies_to_archetype: frozenset[Archetype] | None = None

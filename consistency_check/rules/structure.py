@@ -6,7 +6,7 @@ import re
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
-from consistency_check.types import Rule, Stage, Tier
+from consistency_check.types import NotApplicable, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
@@ -83,26 +83,37 @@ def _check_license_spdx(repo: Repo) -> str | None:
     return None
 
 
-def _check_no_committed_artifacts(repo: Repo) -> str | None:
+def _check_no_committed_artifacts(repo: Repo) -> str | None | NotApplicable:
     tracked = tracked_files(repo.path)
+    if tracked is None:
+        return NotApplicable("git unavailable; cannot tell committed artifacts from local ones")
     offenders: list[str] = []
     for pattern in _FORBIDDEN_GLOBS:
-        for hit in repo.path.rglob(pattern):
-            try:
-                rel = hit.relative_to(repo.path)
-            except ValueError:
-                continue
-            if any(part in _SKIP_DIRS for part in rel.parts):
-                continue
-            rel_str = rel.as_posix()
-            if tracked and not _hit_is_tracked(rel_str, tracked):
-                continue
-            offenders.append(str(rel))
-            if len(offenders) >= 5:
-                break
-        if len(offenders) >= 5:
+        offenders.extend(_committed_hits(repo, pattern, tracked))
+        if len(offenders) >= _MAX_OFFENDERS:
             break
-    return f"committed build artifacts: {', '.join(offenders)}" if offenders else None
+    listed = offenders[:_MAX_OFFENDERS]
+    return f"committed build artifacts: {', '.join(listed)}" if listed else None
+
+
+_MAX_OFFENDERS = 5
+
+
+def _committed_hits(repo: Repo, pattern: str, tracked: frozenset[str]) -> list[str]:
+    """Repo-relative paths matching ``pattern`` that git actually tracks."""
+    hits: list[str] = []
+    for hit in repo.path.rglob(pattern):
+        try:
+            rel = hit.relative_to(repo.path)
+        except ValueError:
+            continue
+        if any(part in _SKIP_DIRS for part in rel.parts):
+            continue
+        if _hit_is_tracked(rel.as_posix(), tracked):
+            hits.append(str(rel))
+        if len(hits) >= _MAX_OFFENDERS:
+            break
+    return hits
 
 
 def _hit_is_tracked(rel_str: str, tracked: frozenset[str]) -> bool:

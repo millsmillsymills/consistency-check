@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check.sources import go_sources, python_sources
-from consistency_check.types import Rule, Stage, Tier
+from consistency_check.types import NotApplicable, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -55,9 +55,18 @@ def _check_lockfile(repo: Repo) -> str | None:
     return None if (repo.path / "go.sum").is_file() else "go.sum missing"
 
 
-def _check_dep_age(_repo: Repo) -> str | None:
-    """Pass unconditionally — dep freshness requires network access to PyPI/proxy.go.dev."""
-    return None
+def _check_dep_age(_repo: Repo) -> NotApplicable:
+    """Report n/a: dependency freshness needs network access the audit does not use.
+
+    An unconditional pass counts every repo as compliant with a standard nothing
+    checked, which is the one thing a compliance report must not say. Marked
+    unmechanized because the audit is offline by design, so no re-run clears it
+    and it must not pin the exit code or sit on a promotion checklist forever.
+    """
+    return NotApplicable(
+        "dependency freshness needs network access; the audit runs offline",
+        unmechanized=True,
+    )
 
 
 RULES: tuple[Rule, ...] = (

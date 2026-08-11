@@ -38,13 +38,10 @@ _BAD: dict[str, Callable[[Path], Path]] = {
 
 # Rules that pass on any input of that language, and so cannot be tripped by
 # its bad fixture. Keyed by the language that cannot fail them:
-#   python: MCP-024  dep-age is a deliberate no-op (needs network access).
-#           PROTO-008 only inspects Go's cmd/.../main.go.
-#           PY-003   the src/<pkg>/ layout cannot be missing while the package
+#   python: PY-003   the src/<pkg>/ layout cannot be missing while the package
 #                    dir exists, which the package-content rules require.
-#   go:     MCP-024  as above.
-#           PROTO-003/004/015 only inspect Python tool signatures/docstrings.
-#   both:   PROTO-022 cannot fire on the bad fixtures: each registers a tool (a
+#   both:   MCP-024 is declared non-mechanical, so it never returns a verdict.
+#           PROTO-022 cannot fire on the bad fixtures: each registers a tool (a
 #           badly named one), and the guard only fires when *no* registration is
 #           detectable. A fixture with no tools would make every other
 #           tool-surface rule pass instead, which is the worse trade.
@@ -54,20 +51,8 @@ _BAD: dict[str, Callable[[Path], Path]] = {
 #           they declare no archetype, so its check returns None while
 #           MCP-DEPLOY-DECL still fails them.
 _CANNOT_FAIL: dict[str, frozenset[str]] = {
-    "python": frozenset(
-        {"MCP-024", "PROTO-008", "PROTO-022", "PY-003", "MCP-STAGE-DRIFT", "MCP-DEPLOY-DRIFT"}
-    ),
-    "go": frozenset(
-        {
-            "MCP-024",
-            "PROTO-003",
-            "PROTO-004",
-            "PROTO-015",
-            "PROTO-022",
-            "MCP-STAGE-DRIFT",
-            "MCP-DEPLOY-DRIFT",
-        }
-    ),
+    "python": frozenset({"MCP-024", "PROTO-022", "PY-003", "MCP-STAGE-DRIFT", "MCP-DEPLOY-DRIFT"}),
+    "go": frozenset({"MCP-024", "PROTO-022", "MCP-STAGE-DRIFT", "MCP-DEPLOY-DRIFT"}),
 }
 
 
@@ -83,15 +68,21 @@ def _applicable(language: str) -> list[Rule]:
 def test_good_fixture_passes_every_applicable_rule(tmp_path: Path, language: str) -> None:
     repo = _repo(_GOOD[language](tmp_path / f"good_{language}"), language)
     failed = {
-        rule.id: evidence
+        rule.id: result
         for rule in _applicable(language)
-        if (evidence := rule.check(repo)) is not None
+        if isinstance(result := rule.check(repo), str)
     }
     assert not failed, f"good_{language} should pass every rule but failed: {failed}"
 
 
 @pytest.mark.parametrize("language", ["python", "go"])
 def test_bad_fixture_fails_every_applicable_rule(tmp_path: Path, language: str) -> None:
+    """Only ``None`` counts as a pass here.
+
+    A ``NotApplicable`` is not a pass and must not be scored as one, or a rule
+    that quietly stops evaluating reads as covered by this sweep — the exact
+    regression the sentinel exists to prevent.
+    """
     repo = _repo(_BAD[language](tmp_path / f"bad_{language}"), language)
     exempt = _CANNOT_FAIL[language]
     passed = [
@@ -112,9 +103,9 @@ def test_exempt_rules_really_cannot_fail(tmp_path: Path, language: str) -> None:
     assert not stale, f"_CANNOT_FAIL[{language}] names rules that do not apply: {stale}"
 
     tripped = {
-        rule_id: evidence
+        rule_id: result
         for rule_id in sorted(exempt)
-        if (evidence := applicable[rule_id].check(repo)) is not None
+        if isinstance(result := applicable[rule_id].check(repo), str)
     }
     assert not tripped, (
         f"_CANNOT_FAIL[{language}] over-exempts: these fail on bad_{language} "

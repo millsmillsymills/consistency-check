@@ -6,16 +6,22 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.security import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
+
+from tests.fixtures.build import git_add as _git_add
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def _check(p: Path, rid: str) -> str | None:
-    return next(r for r in RULES if r.id == rid).check(
+    result = next(r for r in RULES if r.id == rid).check(
         Repo(name="x", path=p, language="python", github_slug="x/y"),
     )
+    # A rule that reports n/a never evaluated the repo; a test asking for
+    # a verdict must not silently read that as a pass.
+    assert not isinstance(result, NotApplicable), f"{rid} reported n/a: {result.reason}"
+    return result
 
 
 def test_mcp_019_pass(good_python_repo: Path) -> None:
@@ -24,7 +30,15 @@ def test_mcp_019_pass(good_python_repo: Path) -> None:
 
 def test_mcp_019_fail_on_env_file(good_python_repo: Path) -> None:
     (good_python_repo / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
+    _git_add(good_python_repo)
     assert _check(good_python_repo, "MCP-019") is not None
+
+
+def test_mcp_019_ignores_an_untracked_env_file(good_python_repo: Path) -> None:
+    # The rule grades what the repo ships. A local .env is not committed, and
+    # reporting its path would publish it into an issue on a public repo.
+    (good_python_repo / ".env").write_text("TOKEN=secret\n", encoding="utf-8")
+    assert _check(good_python_repo, "MCP-019") is None
 
 
 def test_mcp_020_pass(good_python_repo: Path) -> None:

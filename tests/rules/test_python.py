@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from consistency_check.rules.python import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _check(p: Path, rid: str) -> str | None:
+def _check(p: Path, rid: str) -> str | None | NotApplicable:
     return next(r for r in RULES if r.id == rid).check(
         Repo(name="x", path=p, language="python", github_slug="x/y"),
     )
@@ -106,3 +107,33 @@ def test_py_019_fail_when_neither_dataclass_nor_dict_yield(good_python_repo: Pat
         encoding="utf-8",
     )
     assert _check(good_python_repo, "PY-019") is not None
+
+
+@pytest.mark.parametrize(
+    ("spec", "fails"),
+    [
+        # The standard is "permits 3.13", so the specifier is evaluated, not
+        # spelled-matched. Substring matching got both of the first two wrong.
+        (">=3.11", False),
+        (">=3.14", True),
+        (">=3.13", False),
+        (">=3.11,<3.13", True),
+        ("==3.13.*", False),
+        ("~=3.13", False),
+        # 3.13 resolves to 3.13.0, so a specifier excluding that exact release
+        # does not permit it. Narrow, but it is what the specifier says.
+        ("!=3.13.0", True),
+        ("not a specifier", True),
+        ("", True),
+    ],
+)
+def test_py_002_evaluates_the_specifier(tmp_path: Path, spec: str, *, fails: bool) -> None:
+    line = f'requires-python = "{spec}"\n' if spec else ""
+    (tmp_path / "pyproject.toml").write_text(f"[project]\nname = 'x'\n{line}", encoding="utf-8")
+    assert (_check(tmp_path, "PY-002") is not None) is fails
+
+
+def test_py_002_is_na_without_a_pyproject(tmp_path: Path) -> None:
+    # No pyproject means the rule cannot evaluate the repo. Reporting a pass
+    # would count the repo as compliant with a standard nothing checked.
+    assert isinstance(_check(tmp_path, "PY-002"), NotApplicable)

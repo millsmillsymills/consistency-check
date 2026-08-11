@@ -47,7 +47,14 @@ def _audit_one(repo: Repo, out: Path | None, *, apply: bool) -> int:
     _emit(repo, findings, out)
 
     exit_code = 0
-    if any(f.status == FindingStatus.ERROR for f in findings):
+    # A MUST the audit could not grade is an audit malfunction, not a pass, and
+    # shares exit 2 with a check that raised. Rules with no checker written are
+    # excluded: re-running never clears them, so they would pin every run to 2.
+    ungraded = [f for f in findings if f.unevaluated and not f.unmechanized and f.tier == Tier.MUST]
+    if ungraded:
+        ids = ", ".join(sorted({f.rule_id for f in ungraded}))
+        print(f"[{repo.name}] MUST rules not graded: {ids}", file=sys.stderr)  # noqa: T201
+    if ungraded or any(f.status == FindingStatus.ERROR for f in findings):
         exit_code = 2
     if any(f.status == FindingStatus.FAIL and f.tier == Tier.MUST for f in findings):
         exit_code = max(exit_code, 1)

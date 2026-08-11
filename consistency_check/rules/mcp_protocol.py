@@ -17,10 +17,16 @@ from consistency_check.sources import (
     mask_literal_contents,
     python_sources,
 )
-from consistency_check.types import Rule, Stage, Tier
+from consistency_check.types import NotApplicable, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from consistency_check.types import Repo
+
+# PROTO-003 and PROTO-004 are stated for both languages, and only the Python
+# half reads the AST. Narrowing ``applies_to`` instead would mark the Go half
+# inapplicable, which no promotion can ever turn back into work — the same
+# unearned credit this sentinel exists to stop.
+_NO_GO_TOOL_PARSER = "no Go tool-registration parser; the Go half of this rule is not mechanized"
 
 # Three registration shapes across the Go SDKs: mcp-go's ``WithTools("name")``
 # and ``AddTool(mcp.NewTool("name", ...))``, and the official SDK's
@@ -319,9 +325,9 @@ def _documentable_args(func: _ToolFunc) -> list[ast.arg]:
     return [arg for arg in (*a.posonlyargs, *a.args, *a.kwonlyargs) if not _is_context_param(arg)]
 
 
-def _check_typed_inputs(repo: Repo) -> str | None:
+def _check_typed_inputs(repo: Repo) -> str | None | NotApplicable:
     if repo.language != "python":
-        return None
+        return NotApplicable(_NO_GO_TOOL_PARSER, unmechanized=True)
     bad = [
         func.name
         for func in _repo_tool_funcs(repo)
@@ -330,9 +336,9 @@ def _check_typed_inputs(repo: Repo) -> str | None:
     return f"tools with untyped params: {bad[:5]}" if bad else None
 
 
-def _check_docstrings(repo: Repo) -> str | None:
+def _check_docstrings(repo: Repo) -> str | None | NotApplicable:
     if repo.language != "python":
-        return None
+        return NotApplicable(_NO_GO_TOOL_PARSER, unmechanized=True)
     bad: list[str] = []
     for func in _repo_tool_funcs(repo):
         doc = ast.get_docstring(func) or ""
@@ -370,8 +376,13 @@ def _check_capabilities(repo: Repo) -> str | None:
     return "no capabilities registration detected"
 
 
-def _check_stdio_default(repo: Repo) -> str | None:
-    if repo.language == "go" and not next((p for p in (repo.path / "cmd").rglob("main.go")), None):
+def _check_stdio_default(repo: Repo) -> str | None | NotApplicable:
+    if repo.language != "go":
+        return NotApplicable(
+            "no Python entrypoint parser; the __main__.py half of PROTO-008 is not mechanized",
+            unmechanized=True,
+        )
+    if next((p for p in (repo.path / "cmd").rglob("main.go")), None) is None:
         return "no cmd/.../main.go found"
     return None
 
@@ -567,8 +578,6 @@ def _tool_summary_present(func: _ToolFunc) -> bool:
 
 
 def _check_tool_descriptions(repo: Repo) -> str | None:
-    if repo.language != "python":
-        return None
     bad = [
         func.name
         for func in _repo_tool_funcs(repo)
@@ -847,6 +856,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Each tool has a description summary",
         check=_check_tool_descriptions,
+        applies_to=frozenset({"python"}),
     ),
     Rule(
         id="PROTO-016",

@@ -7,12 +7,15 @@ from typing import TYPE_CHECKING
 from consistency_check.rules.go import RULES
 from consistency_check.types import Repo
 
+from tests.rules.verdict import verdict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def _check(p: Path, rid: str) -> str | None:
-    return next(r for r in RULES if r.id == rid).check(
+    return verdict(
+        next(r for r in RULES if r.id == rid),
         Repo(name="x", path=p, language="go", github_slug="x/y"),
     )
 

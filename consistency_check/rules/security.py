@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from consistency_check._git import tracked_files
-from consistency_check.types import Rule, Stage, Tier
+from consistency_check.types import NotApplicable, Rule, Stage, Tier
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,8 +39,13 @@ def _outside_skipped_dirs(hit: Path, repo_root: Path) -> bool:
     return not any(part in _SKIP_DIRS for part in rel_parts)
 
 
-def _check_no_secrets(repo: Repo) -> str | None:
+def _check_no_secrets(repo: Repo) -> str | None | NotApplicable:
     tracked = tracked_files(repo.path)
+    if tracked is None:
+        # Without git there is no way to tell a tracked secret-shaped file from
+        # one sitting in the working tree. Grading the tree anyway reports paths
+        # the repo never committed into an issue filed publicly.
+        return NotApplicable("git unavailable; cannot tell tracked files from working-tree files")
     candidates: list[Path] = []
     for name in _FORBIDDEN_NAMES:
         candidates.extend(repo.path.rglob(name))
@@ -52,7 +57,7 @@ def _check_no_secrets(repo: Repo) -> str | None:
         if not _outside_skipped_dirs(hit, repo.path):
             continue
         rel = hit.relative_to(repo.path).as_posix()
-        if tracked and rel not in tracked:
+        if rel not in tracked:
             continue
         offenders.append(rel)
     return f"secrets-shaped files in tree: {offenders[:5]}" if offenders else None

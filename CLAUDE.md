@@ -21,15 +21,16 @@ uv run ruff check . && uv run ruff format --check .
 uv run ty check
 ```
 
-Exit codes: `0` pass (or only MAY), `1` ≥1 MUST failure, `2` unknown `--repo` or a check raised, `3` `gh` filer error under `--apply`.
+Exit codes: `0` pass (or only MAY), `1` ≥1 MUST failure, `2` unknown `--repo`, a check raised, or a MUST rule went ungraded, `3` `gh` filer error under `--apply`.
 
 ## Architecture
 
 The whole tool is a registry of pure check functions plus a driver. Data model in `consistency_check/types.py`:
 
-- **`Rule`** — `id`, `tier` (`MUST`/`SHOULD`/`MAY`), `statement`, `check`, `applies_to` (frozenset of languages). The `check` is a `Callable[[Repo], str | None]`: return `None` on pass, or an evidence string on fail. Checks must be pure and side-effect-free.
+- **`Rule`** — `id`, `tier` (`MUST`/`SHOULD`/`MAY`), `statement`, `check`, `applies_to` (frozenset of languages). The `check` is a `Callable[[Repo], str | None | NotApplicable]`: return `None` on pass, an evidence string on fail, or a `NotApplicable` when the check cannot grade the repo at all. Checks must be pure and side-effect-free.
 - **`Repo`** — a target: `name`, `path`, `language`, `github_slug`.
 - **`Finding`** — one rule's outcome for one repo: `rule_id`, `tier`, `status` (`pass`/`fail`/`n/a`/`error`), `evidence`.
+- **`NotApplicable`** — `reason`, plus `unmechanized`. Reach for it when a check cannot answer; reach for `Rule.applies_to` when the rule does not apply to the repo's language. `unmechanized=True` means no checker exists, so re-running never clears it: it is reported but does not escalate the exit code or sit on a stage-promotion checklist. The default means the audit could not run the check this time, which escalates a MUST to exit 2.
 
 Flow: `__main__.py` → `audit.audit_repo` → `report.render_umbrella` → (optionally) `filer.file_repo_findings`.
 
