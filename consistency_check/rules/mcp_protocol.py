@@ -27,11 +27,14 @@ if TYPE_CHECKING:
 # ``&mcp.Tool{Name: "name"}`` composite literal handed to a register helper. The
 # name is read from the first argument only — a wider window captures any string
 # in the call (``AddTool(registry.Get("search"), h)``) as a tool name.
-# The capture is deliberately ``[^"]*`` and not ``[a-zA-Z0-9_]+``: an anchored
+# The capture is deliberately ``[^"\n]*`` and not ``[a-zA-Z0-9_]+``: an anchored
 # charset drops the name entirely when it contains anything else, so
 # ``NewTool("Bad-Name-Here")`` registered nothing and PROTO-001 — the rule whose
-# whole job is catching that name — passed on it.
-_GO_TOOL_REGISTER = re.compile(r'WithTools\([^,]*"([^"]*)"|\bNewTool\s*\(\s*"([^"]*)"')
+# whole job is catching that name — passed on it. The ``WithTools`` window
+# excludes ``)`` and newlines as well as ``,`` for the same widening: a window
+# that only stops at a comma walks out of a call with no literal in it
+# (``WithTools(tools...)``) and grades the next quoted span in the file.
+_GO_TOOL_REGISTER = re.compile(r'WithTools\(\s*[^,)"\n]*"([^"\n]*)"|\bNewTool\s*\(\s*"([^"\n]*)"')
 _GO_TOOL_LITERAL = re.compile(r"\bTool\{")
 _GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([^"]*)"')
 _GO_TOOL_LITERAL_NAME_FIELD = re.compile(r"\bName:")
@@ -114,15 +117,23 @@ def _go_tool_names(text: str) -> list[str]:
     return names
 
 
-def _declared_tool_name(func: _ToolFunc) -> str:
+def _declared_tool_name(func: _ToolFunc, factories: frozenset[str]) -> str:
     """Return the name the tool registers under, which need not be the def's name.
 
     ``@mcp.tool(name="thing-list")`` publishes ``thing-list``; grading the
     function name instead let a non-conforming registered name pass PROTO-001,
     PROTO-002 and PROTO-018 because the def beside it was well formed.
+
+    Only the registering decorator's ``name=`` counts. Reading it off any
+    decorator grades a co-located ``@app.command(name="get-devices")`` as the
+    tool name, which both fails a conforming tool and — when the non-tool
+    decorator is the one listed first — hides the registered name this function
+    exists to reach.
     """
     for dec in func.decorator_list:
         if not isinstance(dec, ast.Call):
+            continue
+        if not (_is_mcp_tool_decorator(dec) or _is_factory_decorator(dec, factories)):
             continue
         for kw in dec.keywords:
             if kw.arg != "name" or not isinstance(kw.value, ast.Constant):
@@ -134,7 +145,8 @@ def _declared_tool_name(func: _ToolFunc) -> str:
 
 def _tool_names(repo: Repo) -> list[str]:
     if repo.language == "python":
-        return [_declared_tool_name(func) for func in _repo_tool_funcs(repo)]
+        funcs, factories = _repo_tools(repo)
+        return [_declared_tool_name(func, factories) for func in funcs]
     # Comments are stripped (literals kept) so a registration shape quoted in a
     # doc comment cannot invent a tool name.
     return [
@@ -262,23 +274,30 @@ def _python_trees(repo: Repo) -> tuple[list[ast.Module], list[str]]:
     return trees, unparseable
 
 
-def _repo_tool_funcs(repo: Repo) -> list[_ToolFunc]:
-    """Every tool-registered def in the repo.
+def _repo_tools(repo: Repo) -> tuple[list[_ToolFunc], frozenset[str]]:
+    """Every tool-registered def in the repo, with the factory names that found them.
 
     AST-based so generics with commas (``dict[str, Any]``) and long
     signatures/docstrings can't fool a regex, and so tools registered inside
     ``register_*`` helpers are reached. Decorator factories are collected across
-    the whole repo because the factory usually lives in a shared helper module.
+    the whole repo because the factory usually lives in a shared helper module,
+    and returned because reading a tool's registered name needs to know which of
+    its decorators does the registering.
     """
     trees = _python_trees(repo)[0]
     factories = frozenset[str]().union(*(_tool_factories(t) for t in trees))
-    return [
+    funcs = [
         node
         for tree in trees
         for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         and _is_tool_func(node, factories)
     ]
+    return funcs, factories
+
+
+def _repo_tool_funcs(repo: Repo) -> list[_ToolFunc]:
+    return _repo_tools(repo)[0]
 
 
 def _is_context_param(arg: ast.arg) -> bool:

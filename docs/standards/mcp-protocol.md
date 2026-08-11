@@ -14,13 +14,13 @@ Guidance from this revision not yet mechanically audited (adopt as SDKs ship it)
 
 **Rationale.** Required by spec; many clients display tool names verbatim.
 
-**Mechanical check.** Every tool name registered via `@mcp.tool` (Python) or `WithTools(...)` (Go) matches `^[a-z][a-z0-9_]*$`.
+**Mechanical check.** Every tool name registered via `@mcp.tool` (Python) or `WithTools(...)` (Go) matches `^[a-z][a-z0-9_]*$`. The graded string is the name the tool registers under: a `name=` argument on the registering decorator (the tool decorator or a repo factory that forwards to it) if there is one, otherwise the function name. A `name=` on any other decorator stacked on the same function is not the tool's name and is ignored.
 
 ### PROTO-002 — Tool names prefixed with server namespace [MUST]
 
 **Rationale.** Avoids collisions when multiple MCP servers attach to the same client.
 
-**Mechanical check.** Every tool name starts with the server's namespace, equal to the project name with `-mcp` removed and hyphens replaced by underscores. E.g., `gandi-mcp` → `gandi_*`.
+**Mechanical check.** Every tool name starts with the server's namespace, equal to the project name with `-mcp` removed and hyphens replaced by underscores. E.g., `gandi-mcp` → `gandi_*`. Names are resolved as in PROTO-001.
 
 ### PROTO-003 — Each tool has a typed input schema [MUST]
 
@@ -124,7 +124,7 @@ These rules encode pass/fail criteria from the Anthropic Directory review and th
 
 **Rationale.** The Anthropic Directory rejects any tool whose name exceeds 64 characters, and several hosts truncate longer names in their UI and permission prompts. A name that survives review on one host but not another is a silent interop failure, so the limit is enforced everywhere.
 
-**Mechanical check.** Every registered tool name (`@mcp.tool` in Python, `WithTools(...)` in Go) is ≤ 64 characters. A server that exposes no tools passes vacuously.
+**Mechanical check.** Every registered tool name (`@mcp.tool` in Python, `WithTools(...)` in Go) is ≤ 64 characters, resolved as in PROTO-001. A server that exposes no tools passes vacuously.
 
 ### PROTO-019 — Server sets an `instructions` string [SHOULD]
 
@@ -154,7 +154,9 @@ These rules encode pass/fail criteria from the Anthropic Directory review and th
 
 First, every Python source under `src/` must parse. A file the auditor cannot parse is a file every Python tool rule skips, and the evidence names it. Second, a repo whose source constructs a server must register at least one tool the auditor can name. A construction is `FastMCP(...)`, `mcp.NewServer(...)`, `server.NewMCPServer(...)`, or an unqualified `Server(...)` with at least one argument — the low-level Python SDK. A qualified call is not a construction, so `httptest.NewServer`, `grpc.NewServer`, `uvicorn.Server(cfg)`, and an accessor like `cfg.Server()` are all excluded.
 
-Python registrations are found by AST: any decorator whose attribute is `tool` (`@mcp.tool`, `@server.tool`), and any decorator naming a factory that returns `x.tool(...)` applied to a function. Factory names are collected from every scope except another function's body, so a factory behind a version check counts while a factory's inner `decorator`/`wrapper` plumbing does not. Go registrations are found by pattern: `WithTools("name")`, `AddTool(...)` / `NewTool("name", ...)`, and a `Tool{Name: "name"}` composite literal, whose name is read from the literal's own depth-0 fields and, for a `[]Tool{...}` slice, from each element. A repo that constructs no server — a library, a client — passes.
+Python registrations are found by AST: any decorator whose attribute is `tool` (`@mcp.tool`, `@server.tool`), and any decorator naming a factory that returns `x.tool(...)` applied to a function. Factory names are collected from every scope except another function's body, so a factory behind a version check counts while a factory's inner `decorator`/`wrapper` plumbing does not. Go registrations are found by pattern: `WithTools("name")`, `AddTool(...)` / `NewTool("name", ...)`, and a `Tool{Name: "name"}` composite literal, whose name is read from the literal's own depth-0 fields and, for a `[]Tool{...}` slice, from each element. A literal with a `Name` field the auditor cannot read — `Name: toolName` — names one unreadable tool rather than its nested literals, so the slice descent stops there instead of grading an inner `Meta{Name: ...}` as a tool. The name may hold any character other than a quote or a newline, and the window before it stays inside the call, so a registration with no literal argument (`WithTools(tools...)`) yields no name instead of the next quoted span in the file.
+
+A repo that constructs no server — a library, a client — passes. String-literal contents are blanked before the construction patterns run, keeping each literal's shape so `Server("x")` still reads as a construction while a constructor merely named inside an error message does not.
 
 Failing this rule means the tool rules above carry no signal for that repo; fix the registration shape (or the matcher) before reading them as passes.
 
