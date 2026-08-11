@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -12,6 +14,30 @@ if TYPE_CHECKING:
 def _write(p: Path, content: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(dedent(content).lstrip(), encoding="utf-8")
+
+
+def _git(args: list[str]) -> None:
+    subprocess.run(
+        ["git", *args],
+        check=True,
+        capture_output=True,
+        env={
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_SYSTEM": "/dev/null",
+            "PATH": os.environ.get("PATH", ""),
+        },
+    )
+
+
+def _git_init(root: Path) -> None:
+    """Make the fixture a real git repo with everything committed.
+
+    The rules that grade *tracked* content ask git, and report n/a when it
+    cannot be asked. A fixture that is not a repo therefore exercises the n/a
+    branch rather than the rule, which is not what these fixtures are for.
+    """
+    _git(["init", "-q", str(root)])
+    _git(["-C", str(root), "add", "-A"])
 
 
 def build_good_python(root: Path) -> Path:
@@ -213,6 +239,7 @@ def build_good_python(root: Path) -> Path:
     """,
     )
 
+    _git_init(root)
     return root
 
 
@@ -287,6 +314,7 @@ def build_bad_python(root: Path) -> Path:
         root / ".github" / "workflows" / "extra.yml",
         "name: extra\njobs:\n  x:\n    steps:\n      - uses: actions/checkout@v4\n",
     )
+    _git_init(root)
     return root
 
 
@@ -462,6 +490,7 @@ def build_good_go(root: Path) -> Path:
     """,
     )
 
+    _git_init(root)
     return root
 
 
@@ -534,4 +563,14 @@ def build_bad_go(root: Path) -> Path:
         root / ".github" / "workflows" / "extra.yml",
         "name: extra\njobs:\n  x:\n    steps:\n      - uses: actions/checkout@v4\n",
     )
+    _git_init(root)
     return root
+
+
+def git_add(root: Path) -> None:
+    """Stage everything under ``root``, for tests that add files after the build.
+
+    Forced, because the cases worth testing are the ones a fixture's own
+    .gitignore would skip: a committed __pycache__, a committed .env.
+    """
+    _git(["-C", str(root), "add", "-A", "-f"])

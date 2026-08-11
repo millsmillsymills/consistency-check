@@ -114,7 +114,12 @@ def _prose_surfaces(repo: Repo) -> list[str]:
     if docs.is_dir():
         found.extend(p.relative_to(repo.path).as_posix() for p in docs.rglob("*.md"))
     tracked = tracked_files(repo.path)
-    return sorted(rel for rel in found if not tracked or rel in tracked)
+    # Without git, grade every prose file found. Unlike the tracked-content
+    # rules, the cost here is a false failure on an uncommitted draft, not a
+    # path disclosure: the surfaces are a fixed list of repo docs either way.
+    if tracked is None:
+        return sorted(found)
+    return sorted(rel for rel in found if rel in tracked)
 
 
 def _prose_lines(text: str) -> list[str]:
