@@ -3,7 +3,7 @@
   '''
   # MCP-007 — MUST failure in `good`
   
-  **Evidence.** README missing 'Configuration'
+  **Evidence.** `README missing 'Configuration'`
   
   **Standards reference.** See `consistency-check/docs/standards/` for rule MCP-007.
   
@@ -37,11 +37,11 @@
   
   ### MUST (1)
   
-  - **MCP-007** — README missing 'Configuration' → see child issue.
+  - **MCP-007** — `README missing 'Configuration'` → see child issue.
   
   ## Suggestions (MAY) — 1
   
-  - **MCP-018** — no release.yml
+  - **MCP-018** — `no release.yml`
   
   ---
   
@@ -73,7 +73,7 @@
   
   ### MUST (1)
   
-  - **PROTO-001** — tool not snake_case → see child issue.
+  - **PROTO-001** — `tool not snake_case` → see child issue.
   
   ---
   

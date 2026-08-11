@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import sys
 import traceback
 from functools import partial
 from typing import TYPE_CHECKING
@@ -62,12 +63,13 @@ def _skip_finding(
 def audit_repo(repo: Repo) -> list[Finding]:
     """Run all applicable rules against ``repo`` and return findings, isolating crashes."""
     if not repo.path.exists():
+        print(f"[{repo.name}] path does not exist: {repo.path}", file=sys.stderr)  # noqa: T201
         return [
             Finding(
                 rule_id="REPO-MISSING",
                 tier=Tier.MUST,
                 status=FindingStatus.ERROR,
-                evidence=f"path does not exist: {repo.path}",
+                evidence="repo path does not exist",
             )
         ]
 
@@ -82,12 +84,21 @@ def audit_repo(repo: Repo) -> list[Finding]:
         try:
             evidence = rule.check(repo)
         except Exception as exc:  # noqa: BLE001 — isolation by design
+            # Evidence is the exception type and nothing else, because the
+            # renderer feeds it to a public issue body. An exception's message
+            # is routinely the absolute path it failed to open, which would
+            # publish the auditing machine's username and directory layout. The
+            # detail a human needs goes to stderr, which is never filed.
+            print(  # noqa: T201
+                f"[{repo.name}] {rule.id} raised:\n{traceback.format_exc(limit=2)}",
+                file=sys.stderr,
+            )
             findings.append(
                 Finding(
                     rule_id=rule.id,
                     tier=rule.tier,
                     status=FindingStatus.ERROR,
-                    evidence=f"{type(exc).__name__}: {exc}\n{traceback.format_exc(limit=2)}",
+                    evidence=type(exc).__name__,
                     min_stage=rule.min_stage,
                 )
             )
