@@ -12,13 +12,18 @@ _TIER_ORDER = (Tier.MUST, Tier.SHOULD, Tier.MAY)
 # marker. `test_evidence_contract` is what enforces that; this cap is only a
 # backstop for a matcher that starts capturing a span of the audited repo's
 # source, and it bounds the issue body rather than making such a matcher safe:
-# it keeps the front of the span, which is the part worth not publishing. A body
-# over the GitHub API's 65,536-character limit aborts that repo's filing, so no
-# child issues get created for it; later repos still run.
+# it keeps the front of the span, which is the part worth not publishing. The
+# body-level bound against the GitHub API limit lives in `filer._fit_body`,
+# because this renderer also serves stdout and `--out`, where nothing truncates.
 _EVIDENCE_LIMIT = 500
 
 
-_PRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+# C0 and DEL, plus the zero-width and bidi-override characters. The latter
+# cannot link or notify inside a code span, but they make rendered evidence read
+# as something other than what the audited repo contains.
+_PRINTABLE = re.compile(
+    "[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069]"
+)
 
 
 def _fence(text: str) -> str:

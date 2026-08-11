@@ -20,6 +20,8 @@ from consistency_check.sources import (
 from consistency_check.types import NotApplicable, Rule, Stage, Tier
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from consistency_check.types import Repo
 
 # PROTO-003 and PROTO-004 are stated for both languages, and only the Python
@@ -40,10 +42,12 @@ _NO_GO_TOOL_PARSER = "no Go tool-registration parser; the Go half of this rule i
 # excludes ``)`` and newlines as well as ``,`` for the same widening: a window
 # that only stops at a comma walks out of a call with no literal in it
 # (``WithTools(tools...)``) and grades the next quoted span in the file. It
-# excludes ``(`` for the same reason: without that the window walks into a
-# nested call and publishes whatever literal it finds there — an internal URL, a
-# default token — into a public issue, labelled as a tool name.
-_GO_TOOL_REGISTER = re.compile(r'WithTools\(\s*[^,()"\n]*"([^"\n]*)"|\bNewTool\s*\(\s*"([^"\n]*)"')
+# It admits ``(`` so a registration wrapped in a helper
+# (``WithTools(ToolFor("bad-name"))``) still yields a name: excluding it made
+# PROTO-001, the rule whose whole job is catching that name, pass on it. The
+# literal a wider window can pick up is bounded by ``_elide`` before it is
+# published, so the trade no longer costs a disclosure.
+_GO_TOOL_REGISTER = re.compile(r'WithTools\(\s*[^,)"\n]*"([^"\n]*)"|\bNewTool\s*\(\s*"([^"\n]*)"')
 _GO_TOOL_LITERAL = re.compile(r"\bTool\{")
 _GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([^"]*)"')
 _GO_TOOL_LITERAL_NAME_FIELD = re.compile(r"\bName:")
@@ -152,14 +156,15 @@ def _declared_tool_name(func: _ToolFunc, factories: frozenset[str]) -> str:
     return func.name
 
 
-def _tool_names(repo: Repo) -> list[str]:
+def _tool_sites(repo: Repo) -> list[tuple[str, str]]:
+    """Each registered tool name paired with the symbol or file registering it."""
     if repo.language == "python":
         funcs, factories = _repo_tools(repo)
-        return [_declared_tool_name(func, factories) for func in funcs]
+        return [(_declared_tool_name(func, factories), func.name) for func in funcs]
     # Comments are stripped (literals kept) so a registration shape quoted in a
     # doc comment cannot invent a tool name.
     return [
-        name
+        (name, p.name)
         for p in go_sources(repo)
         for name in _go_tool_names(
             code_and_literals(p.read_text(encoding="utf-8", errors="replace"), "//")
@@ -167,15 +172,32 @@ def _tool_names(repo: Repo) -> list[str]:
     ]
 
 
+def _tool_names(repo: Repo) -> list[str]:
+    return [name for name, _ in _tool_sites(repo)]
+
+
+def _offending_sites(repo: Repo, is_bad: Callable[[str], bool]) -> list[str]:
+    """Where the offending names are declared, never the names themselves.
+
+    A registered name is an arbitrary string literal out of the audited repo:
+    ``@mcp.tool(name=...)`` will carry whatever is written there, and this
+    evidence is filed into a public issue. Truncating it does not help, because
+    a connection string or a key sits at the front. The declaring symbol is
+    bounded, is already the kind of identifier every other rule publishes, and
+    is what the reader needs in order to go fix it.
+    """
+    return sorted({site for name, site in _tool_sites(repo) if is_bad(name)})
+
+
 def _check_snake_case(repo: Repo) -> str | None:
-    bad = [n for n in _tool_names(repo) if not re.fullmatch(r"[a-z][a-z0-9_]*", n)]
-    return f"non-snake_case tool names: {bad[:5]}" if bad else None
+    bad = _offending_sites(repo, lambda n: not re.fullmatch(r"[a-z][a-z0-9_]*", n))
+    return f"tools registered under a non-snake_case name, declared at: {bad[:5]}" if bad else None
 
 
 def _check_namespace_prefix(repo: Repo) -> str | None:
     prefix = _expected_namespace(repo)
-    bad = [n for n in _tool_names(repo) if not n.startswith(prefix)]
-    return f"tools missing {prefix!r} prefix: {bad[:5]}" if bad else None
+    bad = _offending_sites(repo, lambda n: not n.startswith(prefix))
+    return f"tools missing the {prefix!r} prefix, declared at: {bad[:5]}" if bad else None
 
 
 _ToolFunc = ast.FunctionDef | ast.AsyncFunctionDef
@@ -627,8 +649,8 @@ def _check_http_transport_security(repo: Repo) -> str | None:
 
 
 def _check_tool_name_length(repo: Repo) -> str | None:
-    bad = [n for n in _tool_names(repo) if len(n) > 64]
-    return f"tool names exceed 64 chars: {bad[:5]}" if bad else None
+    bad = _offending_sites(repo, lambda n: len(n) > 64)
+    return f"tools registered under a name over 64 chars, declared at: {bad[:5]}" if bad else None
 
 
 # FastMCP ``instructions=`` kwarg, mcp-go ``server.WithInstructions(...)`` option,

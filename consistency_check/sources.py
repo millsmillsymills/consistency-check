@@ -71,6 +71,11 @@ def _consume_quoted(text: str, i: int) -> int:
         if text[i] == "\n" and quote != "`":
             return i
         if text[i] == "\\" and quote != "`":
+            # An escape must not step over the newline that ends the literal, or
+            # the scan runs on into the next line and grades that line's string
+            # contents as code.
+            if text[i + 1 : i + 2] == "\n":
+                return i + 1
             i += 2
             continue
         if text[i] == quote:
@@ -248,11 +253,11 @@ def _drop_python_literals(text: str, *, triple_only: bool) -> str:
 def strip_go_literals(text: str) -> str:
     """Drop every Go string, rune, and raw-string body, keeping the line count.
 
-    ``STRING_LITERAL`` is backtick-blind, which broke both ways on Go: a raw
-    string's contents were read as code, and an apostrophe inside one opened a
-    single-quote span that deleted every line up to the next apostrophe. The
-    same scanner the masking helpers use knows all three quote forms and ends an
-    interpreted string at the newline it cannot cross.
+    Go has three quote forms and a scanner that knows only two misreads both
+    ways: a backtick raw string's contents are graded as code, and an apostrophe
+    inside one opens a rune span that deletes every line up to the next
+    apostrophe. Only a raw string may span lines; the other two end at the
+    newline they cannot cross.
     """
     out: list[str] = []
     i = 0
