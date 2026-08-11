@@ -32,11 +32,12 @@ def _fence(text: str) -> str:
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
+def _cap(text: str) -> str:
+    return text if len(text) <= _EVIDENCE_LIMIT else text[:_EVIDENCE_LIMIT] + "… (truncated)"
+
+
 def _evidence(finding: Finding) -> str:
-    text = finding.evidence
-    if len(text) > _EVIDENCE_LIMIT:
-        text = text[:_EVIDENCE_LIMIT] + "… (truncated)"
-    return _fence(text)
+    return _fence(_cap(finding.evidence))
 
 
 def render_umbrella(
@@ -86,7 +87,7 @@ def render_umbrella(
 
     if errors:
         lines += [f"## Audit errors ({len(errors)})", ""]
-        lines.extend(f"- **{f.rule_id}** — {_fence(f.evidence or 'unknown')}" for f in errors)
+        lines.extend(f"- **{f.rule_id}** — {_fence(_cap(f.evidence or 'unknown'))}" for f in errors)
         lines += [
             "",
             "Detail is on the audit run's stderr. It is not filed, because an "

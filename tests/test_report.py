@@ -147,9 +147,9 @@ def test_evidence_containing_backticks_stays_inside_its_fence() -> None:
     assert _rendered_evidence(child) == "``` name is ``weird`` ```"
 
 
-def test_errors_render_the_exception_type_without_the_traceback() -> None:
-    # audit.py keeps the traceback off the finding for exactly this reason: the
-    # rendered body is filed publicly and an exception message carries paths.
+def test_the_error_section_renders_evidence_and_nothing_else() -> None:
+    # That the evidence *is* only the exception type is audit.py's job, asserted
+    # in test_evidence_contract. This pins the section's shape.
     errors = [
         Finding(rule_id="PY-001", tier=Tier.MUST, status=FindingStatus.ERROR, evidence="OSError"),
         Finding(rule_id="PY-002", tier=Tier.MUST, status=FindingStatus.ERROR),

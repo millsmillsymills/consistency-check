@@ -8,6 +8,10 @@ actually have is that evidence names a thing — a rule subject, a filename, a
 marker — and stays short. That is asserted here, against the fixtures that make
 every applicable rule fail, so a matcher that starts capturing a source span is
 caught where it is introduced rather than quietly shortened at render time.
+
+The assertion runs against the fixtures, not the real registry, so the bound is
+set from measurement rather than from what the fixtures happen to produce. See
+``_MAX_EVIDENCE``.
 """
 
 from __future__ import annotations
@@ -28,9 +32,13 @@ if TYPE_CHECKING:
 
 _BAD: dict[str, Callable[[Path], Path]] = {"python": build_bad_python, "go": build_bad_go}
 
-# Comfortably above the longest evidence any rule produces today and far below
-# the renderer's 500-character cap, so this trips before truncation ever does.
-_MAX_EVIDENCE = 200
+# Set from the field, not from the fixtures: the longest evidence across the
+# registered repos is 328 (PY-015 on flipperzero-mcp, a five-filename list),
+# against 166 on the fixtures. The bound has to clear a list of names while
+# still being an order of magnitude below a captured source span, which is what
+# it exists to catch. It stays under the renderer's 500-character cap so this
+# trips before truncation ever hides the growth.
+_MAX_EVIDENCE = 400
 
 
 @pytest.mark.parametrize("language", ["python", "go"])

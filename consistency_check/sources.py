@@ -202,6 +202,13 @@ def _strip_python_line_comment(line: str) -> str:
 
     Keeps `url = "https://example.com#frag"` intact, which matters because
     callers that keep literals need them whole.
+
+    Known limit, unfixed: quote state restarts on every line, so a ``#`` on the
+    line that closes a triple-quoted string is read as a comment and takes the
+    closing quotes with it. The orphaned opener then pairs with the next
+    triple-quoted string in the file and the literal scan deletes everything
+    between. This is the defect ``strip_go_comments`` exists to avoid on the Go
+    side; Python needs its own whole-text scanner to close it.
     """
     quote: str | None = None
     i = 0
