@@ -425,6 +425,156 @@ def test_proto_022_fail_when_server_defines_no_detectable_tool(tmp_path: Path) -
     assert _check(tmp_path, "python", "PROTO-022") is not None
 
 
+def test_go_tool_name_with_non_word_characters_is_still_graded(tmp_path: Path) -> None:
+    # An anchored [a-zA-Z0-9_]+ capture dropped the name entirely, so PROTO-001
+    # passed on exactly the names it exists to catch.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nfunc R(s *server.MCPServer) { s.AddTool(mcp.NewTool("Bad-Name"), h) }\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_go_tool_literal_name_with_a_space_is_still_graded(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nfunc R() { addTool(s, &mcp.Tool{Name: "Bad Name"}, h) }\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_go_unreadable_name_field_does_not_fall_back_to_a_nested_literal(
+    tmp_path: Path,
+) -> None:
+    # `Name: toolName` names one tool the auditor cannot read. Recursing into the
+    # nested literal graded an internal id as if it were the tool name.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\nfunc R() {\n"
+        '\taddTool(s, &mcp.Tool{Name: toolName, Meta: &mcp.Meta{Name: "internal_id"}}, h)\n}\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == []
+
+
+def test_python_tool_graded_on_its_registered_name_not_the_def(tmp_path: Path) -> None:
+    # @mcp.tool(name=...) publishes that string; grading the def name let a
+    # non-conforming registered name pass because the def beside it was fine.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@mcp.tool(name="Bad-Name")\ndef good_python_search(q: str) -> str:\n    return q\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+    assert _check(repo_root, "python", "PROTO-001") is not None
+
+
+def test_python_tool_name_ignores_a_co_located_non_tool_decorator(tmp_path: Path) -> None:
+    # A stacked CLI decorator carries its own name= — kebab-case by convention.
+    # Reading it as the tool name failed a conforming tool, and with the
+    # decorators in the other order it hid the name that actually registers.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        '@app.command(name="get-devices")\n@mcp.tool()\n'
+        "def good_python_search(q: str) -> str:\n    return q\n",
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == ["good_python_search"]
+    assert _check(repo_root, "python", "PROTO-001") is None
+
+
+def test_python_tool_name_read_from_a_repo_decorator_factory(tmp_path: Path) -> None:
+    # A repo's own factory forwards its kwargs to mcp.tool, so its name= is the
+    # registered name just as the tool decorator's is.
+    repo_root = tmp_path / "good_python"
+    pkg = repo_root / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "tools.py").write_text(
+        "def good_python_tool(**kw):\n"
+        "    def decorator(fn):\n"
+        "        return mcp.tool(**kw)(fn)\n"
+        "    return decorator\n\n"
+        '@good_python_tool(name="Bad-Name")\n'
+        "def good_python_search(q: str) -> str:\n    return q\n",
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_python", path=repo_root, language="python", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+
+
+def test_go_with_tools_does_not_capture_past_the_call(tmp_path: Path) -> None:
+    # A variadic WithTools( has no literal of its own. A window bounded only by
+    # the next comma left the call and graded a later quoted span as a tool name,
+    # which also suppressed PROTO-022's report that the tool surface is unread.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        "package internal\n"
+        "func R(s *server.MCPServer) {\n"
+        "\ts.AddTools(server.WithTools(tools...))\n"
+        '\tlog.Printf("failed: %v", err)\n'
+        '\tother := "tail"\n}\n'
+        'func N() { srv := server.NewMCPServer("x", "1") }\n',
+        encoding="utf-8",
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == []
+    assert _check(tmp_path, "go", "PROTO-022") is not None
+
+
+def test_go_with_tools_name_is_still_graded(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nvar _ = WithTools("Bad-Name")\n', encoding="utf-8"
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == ["Bad-Name"]
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_go_empty_tool_name_is_graded_not_an_error(tmp_path: Path) -> None:
+    # The widened capture can match nothing at all; a truthiness test on the
+    # group raised StopIteration, which audit.py records as an error finding.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "reg.go").write_text(
+        'package internal\nvar _ = WithTools("")\n', encoding="utf-8"
+    )
+    repo = Repo(name="good_go", path=tmp_path, language="go", github_slug="x/y")
+    assert _tool_names(repo) == [""]
+    assert _check(tmp_path, "go", "PROTO-001") is not None
+
+
+def test_proto_022_ignores_a_constructor_named_inside_a_string(tmp_path: Path) -> None:
+    # A client library that merely mentions FastMCP in an error message failed a
+    # MUST with evidence reading "server constructed".
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "client.py").write_text(
+        'def go():\n    raise RuntimeError("FastMCP(...) not initialised")\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-022") is None
+
+
+def test_proto_022_still_sees_a_real_construction_after_literal_masking(
+    tmp_path: Path,
+) -> None:
+    pkg = tmp_path / "src" / "good_python"
+    pkg.mkdir(parents=True)
+    (pkg / "server.py").write_text('app = Server("good-python")\n', encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+
 def test_proto_022_pass_when_repo_constructs_no_server(tmp_path: Path) -> None:
     # A client or library has no tool surface to audit, so there is nothing to
     # pass vacuously.

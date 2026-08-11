@@ -64,10 +64,16 @@ def combined_source_text(repo: Repo) -> str:
 
 
 def _consume_quoted(text: str, i: int) -> int:
-    """Index just past the string literal opening at ``i``."""
+    """Index just past the string literal opening at ``i``.
+
+    Only a backtick raw string may span lines. Ending the others at the newline
+    keeps one unbalanced quote from consuming the rest of the file.
+    """
     quote = text[i]
     i += 1
     while i < len(text):
+        if text[i] == "\n" and quote != "`":
+            return i
         if text[i] == "\\" and quote != "`":
             i += 2
             continue
@@ -75,6 +81,30 @@ def _consume_quoted(text: str, i: int) -> int:
             return i + 1
         i += 1
     return i
+
+
+def mask_literal_contents(text: str) -> str:
+    """Replace the interior of every string literal with underscores.
+
+    Keeps the literal's shape — so a construction like ``Server("x")`` still
+    reads as a call with an argument — while making the *contents* unreadable to
+    the call-shaped patterns, which would otherwise match a constructor named
+    inside an error message.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'`":
+            end = _consume_quoted(text, i)
+            span = text[i:end]
+            closed = len(span) >= 2 and span[-1] == span[0]
+            body = span[1:-1] if closed else span[1:]
+            out.append(span[0] + re.sub(r"[^\n]", "_", body) + (span[0] if closed else ""))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
 
 
 def mask_literal_braces(text: str) -> str:
