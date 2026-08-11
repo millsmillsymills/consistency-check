@@ -158,3 +158,13 @@ def test_the_error_section_renders_evidence_and_nothing_else() -> None:
     assert "## Audit errors (2)" in body
     assert "- **PY-001** — `OSError`" in body
     assert "- **PY-002** — `unknown`" in body
+
+
+def test_control_characters_are_dropped_from_evidence() -> None:
+    # Sources are decoded with errors="replace", so a NUL in an audited repo
+    # reaches evidence. subprocess rejects an argument containing one, which
+    # aborts the run with a ValueError the CLI does not catch.
+    child = render_child_issue("unifi-mcp", _fail("na\x00me\x07 here"))
+    assert child is not None
+    assert "\x00" not in child
+    assert _rendered_evidence(child) == "`name here`"

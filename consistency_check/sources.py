@@ -59,8 +59,13 @@ def _consume_quoted(text: str, i: int) -> int:
 
     Only a backtick raw string may span lines. Ending the others at the newline
     keeps one unbalanced quote from consuming the rest of the file.
+
+    An opener with no closer yields the index just past the opener itself, not
+    the end of the text: see ``_unclosed`` for why swallowing the remainder is
+    the one outcome a scanner feeding an auditor must not have.
     """
     quote = text[i]
+    start = i
     i += 1
     while i < len(text):
         if text[i] == "\n" and quote != "`":
@@ -71,7 +76,21 @@ def _consume_quoted(text: str, i: int) -> int:
         if text[i] == quote:
             return i + 1
         i += 1
-    return i
+    return _unclosed(start, 1)
+
+
+def _unclosed(start: int, delim_len: int) -> int:
+    """Where to resume after a literal opener that is never closed.
+
+    Consuming to end of input is what the language does, but it is the wrong
+    thing for an auditor: everything after the opener is blanked, so the rules
+    read a file with no stdout writes, no untimed clients and no retired error
+    codes, and the repo passes. Treating the stray delimiter as an ordinary
+    character instead keeps the rest of the file readable. The cost is that an
+    unterminated literal's prose is graded as code, which can only produce a
+    false failure — the direction an audit is allowed to be wrong in.
+    """
+    return start + delim_len
 
 
 def mask_literal_contents(text: str) -> str:
@@ -157,6 +176,7 @@ def _consume_python_quoted(text: str, i: int) -> int:
     terminated literal — so the escape branch is unconditional.
     """
     delim = text[i] * 3 if text.startswith(text[i] * 3, i) else text[i]
+    start = i
     i += len(delim)
     while i < len(text):
         if text[i] == "\\":
@@ -167,7 +187,7 @@ def _consume_python_quoted(text: str, i: int) -> int:
         if text.startswith(delim, i):
             return i + len(delim)
         i += 1
-    return i
+    return _unclosed(start, len(delim))
 
 
 def strip_python_comments(text: str) -> str:
@@ -223,11 +243,6 @@ def _drop_python_literals(text: str, *, triple_only: bool) -> str:
             out.append(text[i])
             i += 1
     return "".join(out)
-
-
-def strip_literals(text: str, line_comment: str) -> str:
-    """Drop every string literal, in whichever language ``line_comment`` names."""
-    return strip_go_literals(text) if line_comment == "//" else strip_python_literals(text)
 
 
 def strip_go_literals(text: str) -> str:

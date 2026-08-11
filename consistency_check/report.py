@@ -18,14 +18,23 @@ _TIER_ORDER = (Tier.MUST, Tier.SHOULD, Tier.MAY)
 _EVIDENCE_LIMIT = 500
 
 
+_PRINTABLE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
 def _fence(text: str) -> str:
     """Wrap evidence in a backtick fence long enough to contain it.
 
     Evidence lands in a public issue body, where an unfenced identifier holding
     ``@name`` or ``#12`` posts as a live mention or a cross-reference to whoever
     happens to own that handle or number.
+
+    Control characters are dropped rather than fenced. Sources are decoded with
+    ``errors="replace"``, so a NUL in an audited repo's file survives into
+    evidence, and ``subprocess`` rejects an argument containing one — which
+    aborts the run with a ``ValueError`` the CLI does not catch, rather than
+    the exit code 3 a filing failure is supposed to produce.
     """
-    text = " ".join(text.split()) or "(empty)"
+    text = " ".join(_PRINTABLE.sub("", text).split()) or "(empty)"
     longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
     fence = "`" * (longest + 1)
     pad = " " if text.startswith("`") or text.endswith("`") else ""

@@ -114,6 +114,20 @@ _HTTP_LISTENER = re.compile(
 )
 _STREAMABLE_TRANSPORT = re.compile(r"(?i)streamable[_-]?http")
 
+_LISTENER_KINDS = (
+    ("uvicorn.run", "uvicorn.run"),
+    (".sse_app", "sse_app"),
+    (".http_app", "http_app"),
+    ("http.ListenAndServe", "http.ListenAndServe"),
+    ("streamable", "streamable-HTTP transport"),
+)
+
+
+def _listener_kind(match: re.Match[str]) -> str:
+    """Name the listener form that matched, without quoting the source."""
+    text = match.group(0)
+    return next((label for needle, label in _LISTENER_KINDS if needle in text), "HTTP listener")
+
 
 def _check_transport(repo: Repo) -> str | None:
     arch = declared_archetype(repo)
@@ -127,7 +141,12 @@ def _check_transport(repo: Repo) -> str | None:
     if arch is Archetype.HOST_LOCAL:
         listener = _HTTP_LISTENER.search(code)
         if listener is not None:
-            return f"host-local server constructs a network listener ({listener.group(0).strip()})"
+            # The matched text, not the match: `\.run\s*\([^)]*streamable` spans
+            # newlines over source that deliberately keeps its literals, so the
+            # group is an arbitrary slice of the audited repo — hosts, ports and
+            # credential literals included — and this evidence is filed publicly.
+            # The rule's subject is that a listener exists, not its arguments.
+            return f"host-local server constructs a network listener ({_listener_kind(listener)})"
         return None
     return None
 

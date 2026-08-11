@@ -140,18 +140,19 @@ def test_combined_code_text_scrubs_each_file_before_joining(tmp_path: Path) -> N
     assert "beta" in text
 
 
-def test_an_unterminated_python_literal_stops_at_its_own_file(tmp_path: Path) -> None:
-    # Python tokenises an unterminated triple-quoted string to the end of input,
-    # so scrubbing blanks the rest of that file — the same shape as Go's
-    # unterminated raw string. The file is a syntax error either way; what
-    # matters is that the blanking cannot reach past it.
+def test_a_nested_f_string_quote_does_not_blank_the_file(tmp_path: Path) -> None:
+    # PEP 701 lets a replacement field reuse the enclosing quote, so the scanner
+    # closes the outer literal early and re-enters on `\"\"\"` that has no closer.
+    # Consuming to end of input from there hid every violation below it in a file
+    # `ast.parse` accepts — a bypass, not a syntax error.
     pkg = tmp_path / "src" / "u"
     pkg.mkdir(parents=True)
-    (pkg / "a.py").write_text('q = """A\nmcp = FastMCP("alpha")\n', encoding="utf-8")
+    (pkg / "a.py").write_text(
+        'q = f"{"""x"""}"\nRETIRED = -32002\nmcp = FastMCP("alpha")\n', encoding="utf-8"
+    )
     repo = Repo(name="u", path=tmp_path, language="python", github_slug="x/y")
-    assert combined_code_text(repo) == "q = \n\n"
-    # An unterminated single-quoted string ends at its newline instead.
-    assert strip_python_literals("a = 'open\nb = 1\n") == "a = \nb = 1\n"
+    assert "-32002" in combined_code_text(repo)
+    assert "FastMCP" in combined_code_text(repo)
 
 
 def test_go_sources_ignores_exclusions_in_the_repos_own_ancestors(tmp_path: Path) -> None:
@@ -228,12 +229,19 @@ def test_a_raw_string_closing_on_a_slash_line_keeps_the_code_after_it() -> None:
     assert "example.com" in code_and_literals(go, "//")
 
 
-def test_strip_go_literals_bounds_an_unterminated_raw_string() -> None:
-    # This is the input that turns a truncated closing line into a whole-file
-    # deletion, so pin what it does: consume to EOF, preserving the line count.
-    assert strip_go_literals("var a = `open\nvar b = 1\n") == "var a = \n\n"
-    # An unterminated interpreted string stops at the newline instead.
+def test_an_unterminated_literal_does_not_blank_the_rest_of_the_file() -> None:
+    # Consuming to end of input is what Go does with an unterminated raw string,
+    # but for an auditor it blanks every violation below the opener and the repo
+    # passes. The stray delimiter is treated as an ordinary character instead, so
+    # the code after it is still graded.
+    # The opener is dropped and its text stays, so `var b = 1` survives. Reading
+    # an unterminated literal's prose as code can only produce a false failure,
+    # which is the direction an audit is allowed to be wrong in.
+    assert strip_go_literals("var a = `open\nvar b = 1\n") == "var a = open\nvar b = 1\n"
+    # An unterminated interpreted string already stopped at its newline.
     assert strip_go_literals('var a = "open\nvar b = 1\n') == "var a = \nvar b = 1\n"
+    # Python's triple-quoted form is the same shape.
+    assert strip_python_literals('q = """open\nb = 1\n') == "q = open\nb = 1\n"
 
 
 def test_an_escaped_quote_does_not_end_a_go_literal() -> None:
