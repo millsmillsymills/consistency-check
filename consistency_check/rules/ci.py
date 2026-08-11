@@ -49,12 +49,19 @@ def _check_dependabot(repo: Repo) -> str | None:
 
 
 def _check_actions_pinned(repo: Repo) -> str | None:
-    offenders: list[str] = []
-    for wf in _read_workflows(repo):
-        text = wf.read_text(encoding="utf-8", errors="replace")
-        offenders.extend(f"{wf.name}: {m.group(0).strip()}" for m in _TAG_USED.finditer(text))
+    # Names the workflow, not the `uses:` line. The matched text carries the
+    # audited repo's org and any private composite action it depends on, and
+    # this evidence is filed into a public issue. Which file to open is what the
+    # fixer needs; the references themselves are in it.
+    offenders = sorted(
+        {
+            wf.name
+            for wf in _read_workflows(repo)
+            if _TAG_USED.search(wf.read_text(encoding="utf-8", errors="replace"))
+        }
+    )
     if offenders:
-        return f"unpinned action references: {offenders[:5]}"
+        return f"workflows with unpinned action references: {offenders[:5]}"
     return None
 
 

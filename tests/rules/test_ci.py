@@ -268,3 +268,21 @@ def test_mcp_026_ignores_scanner_named_in_a_script(good_go_repo: Path) -> None:
     ci.write_text(ci.read_text().replace("govulncheck ./...", "./bootstrap.sh"), encoding="utf-8")
     (good_go_repo / "bootstrap.sh").write_text("govulncheck ./...\n", encoding="utf-8")
     assert _check(good_go_repo, "go", "MCP-026") is not None
+
+
+def test_mcp_017_names_the_workflow_not_the_uses_line(good_python_repo: Path) -> None:
+    # The matched `uses:` line carries the audited repo's org and any private
+    # composite action it depends on, and this evidence is filed publicly.
+    ci = good_python_repo / ".github" / "workflows" / "ci.yml"
+    ci.write_text(
+        ci.read_text().replace(
+            "actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791  # v4.1.7",
+            "internal-org/private-build-action@v4",
+        ),
+        encoding="utf-8",
+    )
+    evidence = _check(good_python_repo, "python", "MCP-017")
+    assert evidence is not None
+    assert "ci.yml" in evidence
+    assert "internal-org" not in evidence
+    assert "private-build-action" not in evidence
