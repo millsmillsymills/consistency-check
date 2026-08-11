@@ -136,3 +136,26 @@ def test_quote_does_not_span_lines_except_a_raw_string() -> None:
     # one must not consume the rest of the file.
     assert mask_literal_contents("a = 'unbalanced\nb = 1\n") == "a = '__________\nb = 1\n"
     assert mask_literal_contents("a = `two\nlines`\n") == "a = `___\n_____`\n"
+
+
+def test_go_raw_string_contents_are_not_read_as_code() -> None:
+    # A backtick string is a literal; STRING_LITERAL could not see one, so its
+    # contents were graded as code.
+    go = "package internal\n\nconst doc = `sample error: -32002 was retired`\n"
+    assert "-32002" not in code_only(go, "//")
+
+
+def test_apostrophe_in_a_go_raw_string_does_not_delete_the_next_lines() -> None:
+    # The single-quote branch paired the apostrophe with the next one in the
+    # file and deleted every line between, including the code being graded.
+    go = (
+        "package internal\n\nvar H = `don't pass a raw id`\nconst C = -32002\nvar M = `it's fine`\n"
+    )
+    assert "-32002" in code_only(go, "//")
+
+
+def test_code_only_keeps_go_code_around_a_dropped_literal() -> None:
+    go = 'package internal\n\nfunc F() { log.Print("msg") }\n'
+    out = code_only(go, "//")
+    assert "log.Print(" in out
+    assert "msg" not in out

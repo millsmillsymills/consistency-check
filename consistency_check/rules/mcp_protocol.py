@@ -705,7 +705,7 @@ def _check_capability_guard(repo: Repo) -> str | None:
 # The first three read literals as well as code: the markers *are* literals (a
 # method string, a JSON key), so any identifier or string of that name anywhere
 # under src/ satisfies them. PROTO-026 is the opposite case and reads code only.
-_DISCOVER_HANDLER = re.compile(r"(?i)server/discover|\bserver_?discover\b")
+_DISCOVER_HANDLER = re.compile(r"(?i)\bserver/discover\b|\bserver_?discover\b")
 _RESULT_TYPE = re.compile(r"(?i)\bresult_?type\b")
 _TTL_MS = re.compile(r"(?i)\bttl_?ms\b")
 _CACHE_SCOPE = re.compile(r"(?i)\bcache_?scope\b")

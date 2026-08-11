@@ -87,3 +87,33 @@ def test_promotion_checklist_skips_other_language_rules() -> None:
     ]
     body = render_umbrella(repo_name="s", findings=findings, declared_stage=Stage.S1)
     assert "To reach **S2**: MCP-014." in body
+
+
+def test_long_evidence_is_truncated_in_both_renderings() -> None:
+    # Evidence is a short token by convention, not by construction. An issue
+    # body over the API limit aborts the filer run for every later repo.
+    finding = Finding(
+        rule_id="PROTO-001",
+        tier=Tier.MUST,
+        status=FindingStatus.FAIL,
+        evidence="x" * 5000,
+    )
+    child = render_child_issue("unifi-mcp", finding)
+    assert child is not None
+    assert "… (truncated)" in child
+    assert len(child) < 1500
+    umbrella = render_umbrella("unifi-mcp", [finding])
+    assert "… (truncated)" in umbrella
+
+
+def test_short_evidence_is_left_alone() -> None:
+    finding = Finding(
+        rule_id="PROTO-001",
+        tier=Tier.MUST,
+        status=FindingStatus.FAIL,
+        evidence="non-snake_case tool names: ['Bad-Name']",
+    )
+    child = render_child_issue("unifi-mcp", finding)
+    assert child is not None
+    assert "non-snake_case tool names: ['Bad-Name']" in child
+    assert "truncated" not in child

@@ -1315,3 +1315,32 @@ def test_proto_026_fail_on_a_go_constant(tmp_path: Path) -> None:
         "package internal\n\nconst resourceNotFound = -32002\n", encoding="utf-8"
     )
     assert _check(tmp_path, "go", "PROTO-026") is not None
+
+
+def test_proto_023_fail_on_a_path_that_merely_starts_with_the_marker(tmp_path: Path) -> None:
+    # The slash spelling was unanchored while the identifier spelling was not,
+    # so an import path passed a rule that `server_discovery_cache` fails.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\n\nimport _ "example.com/internal/server/discovery"\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "PROTO-023") is not None
+
+
+def test_proto_026_ignores_the_code_inside_a_go_raw_string(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "errs.go").write_text(
+        "package internal\n\nconst doc = `legacy servers returned -32002`\nconst C = -32602\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-026") is None
+
+
+def test_proto_026_sees_the_code_past_an_apostrophe_in_a_raw_string(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "errs.go").write_text(
+        "package internal\n\nvar H = `don't pass a raw id`\n"
+        "const C = -32002\nvar M = `it's fine`\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-026") is not None

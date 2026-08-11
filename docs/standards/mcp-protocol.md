@@ -174,7 +174,7 @@ The four rules below grade the stateless revision's new requirements. Each is `S
 
 **Rationale.** The `2026-07-28` revision removes the `initialize` handshake. A client learns a server's protocol version and capabilities from `server/discover`; a server that never answers it is undiscoverable to a stateless client.
 
-**Mechanical check.** Source references `server/discover` (the method string) or a `server_discover` / `serverDiscover` identifier, case-insensitively. Comments and Python docstrings are stripped first; string literals are kept, since the method name is one.
+**Mechanical check.** Source references `server/discover` (the method string) or a `server_discover` / `serverDiscover` identifier, case-insensitively. Comments and Python docstrings are stripped first; string literals are kept, since the method name is one. Both spellings are word-bounded, so a longer word or path that merely starts with the marker — `server_discovery_cache`, an `example.com/internal/server/discovery` import — does not satisfy the rule.
 
 ### PROTO-024 — Results carry a `resultType` field [SHOULD]
 
@@ -193,3 +193,5 @@ The four rules below grade the stateless revision's new requirements. Each is `S
 **Rationale.** This revision moves resource-not-found from the `-32002` server-defined code to the JSON-RPC `-32602` (invalid params). A server still returning `-32002` reports a code a conforming client no longer recognises as not-found.
 
 **Mechanical check.** Fails when `-32002` appears in source with comments, docstrings, *and* string literals stripped, so a note or an error message that names the retired code does not fail the repo that has migrated away from it. The sign must sit against the digits, so formatted subtraction (`n - 32002`) does not match, and a preceding word character or `.` suppresses the match so an identifier ending in those digits does not either. A server that returns neither code passes vacuously: this rule detects the retired code, it does not require the new one, because a repo may legitimately expose no resources.
+
+Go literals are stripped by a scanner that knows all three quote forms, so a backtick raw string is neither read as code nor able to swallow the lines after it through an apostrophe in its prose.

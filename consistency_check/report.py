@@ -6,6 +6,17 @@ from consistency_check.stage import next_stage, stage_rank
 from consistency_check.types import Finding, FindingStatus, Stage, Tier
 
 _TIER_ORDER = (Tier.MUST, Tier.SHOULD, Tier.MAY)
+# Evidence is a short token by convention — a name, a path, a marker — and every
+# rule keeps it that way today. The cap is here rather than in the rules because
+# a matcher that captures a span of the audited repo's source instead of a name
+# publishes that span into a GitHub issue body, and a body over the API's limit
+# aborts the whole filer run.
+_EVIDENCE_LIMIT = 500
+
+
+def _evidence(finding: Finding) -> str:
+    text = finding.evidence
+    return text if len(text) <= _EVIDENCE_LIMIT else text[:_EVIDENCE_LIMIT] + "… (truncated)"
 
 
 def render_umbrella(
@@ -37,24 +48,26 @@ def render_umbrella(
         lines += ["## Required fixes (MUST / SHOULD)", ""]
         if must_fails:
             lines += [f"### MUST ({len(must_fails)})", ""]
-            lines.extend(f"- **{f.rule_id}** — {f.evidence} → see child issue." for f in must_fails)
+            lines.extend(
+                f"- **{f.rule_id}** — {_evidence(f)} → see child issue." for f in must_fails
+            )
             lines.append("")
         if should_fails:
             lines += [f"### SHOULD ({len(should_fails)})", ""]
             lines.extend(
-                f"- **{f.rule_id}** — {f.evidence} → see child issue." for f in should_fails
+                f"- **{f.rule_id}** — {_evidence(f)} → see child issue." for f in should_fails
             )
             lines.append("")
 
     if may_fails:
         lines += [f"## Suggestions (MAY) — {len(may_fails)}", ""]
-        lines.extend(f"- **{f.rule_id}** — {f.evidence}" for f in may_fails)
+        lines.extend(f"- **{f.rule_id}** — {_evidence(f)}" for f in may_fails)
         lines.append("")
 
     if errors:
         lines += [f"## Audit errors ({len(errors)})", ""]
         for f in errors:
-            first_line = f.evidence.splitlines()[0] if f.evidence else "unknown"
+            first_line = _evidence(f).splitlines()[0] if f.evidence else "unknown"
             lines.append(f"- **{f.rule_id}** — {first_line}")
         lines.append("")
 
@@ -71,7 +84,7 @@ def render_child_issue(repo_name: str, finding: Finding) -> str | None:
     return (
         f"# {finding.rule_id} — {finding.tier.value} failure in `{repo_name}`\n"
         f"\n"
-        f"**Evidence.** {finding.evidence}\n"
+        f"**Evidence.** {_evidence(finding)}\n"
         f"\n"
         f"**Standards reference.** See `consistency-check/docs/standards/` "
         f"for rule {finding.rule_id}.\n"

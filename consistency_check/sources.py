@@ -9,6 +9,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from consistency_check.types import Repo
@@ -157,19 +158,40 @@ def strip_block_comments(text: str) -> str:
     return "".join(out)
 
 
+def strip_go_literals(text: str) -> str:
+    """Drop every Go string, rune, and raw-string body, keeping the line count.
+
+    ``STRING_LITERAL`` is backtick-blind, which broke both ways on Go: a raw
+    string's contents were read as code, and an apostrophe inside one opened a
+    single-quote span that deleted every line up to the next apostrophe. The
+    same scanner the masking helpers use knows all three quote forms and ends an
+    interpreted string at the newline it cannot cross.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'`":
+            end = _consume_quoted(text, i)
+            out.append("\n" * text.count("\n", i, end))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
 def code_only(text: str, line_comment: str) -> str:
     """Strip comments then string literals, so prose cannot register as code.
 
-    Every comment goes first because ``STRING_LITERAL`` is quote-based and
-    comment-blind: an apostrophe or a lone ``"`` written in a comment pairs with
-    the next quote in real code, and the span between them — up to the whole
-    rest of the file — is deleted before any check reads it. An empty file
-    passes everything.
+    Every comment goes first because the literal scan is comment-blind: an
+    apostrophe or a lone ``"`` written in a comment pairs with the next quote in
+    real code, and the span between them — up to the whole rest of the file — is
+    deleted before any check reads it. An empty file passes everything.
     """
     if line_comment == "//":
         text = strip_block_comments(text)
     text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
-    return STRING_LITERAL.sub("", text)
+    return strip_go_literals(text) if line_comment == "//" else STRING_LITERAL.sub("", text)
 
 
 _BLOCK_STRING = re.compile(r"'''.*?'''|\"\"\".*?\"\"\"", re.DOTALL)
@@ -217,6 +239,19 @@ def code_and_literals(text: str, line_comment: str) -> str:
     return _BLOCK_STRING.sub("", text) if line_comment == "#" else text
 
 
+def _combined(repo: Repo, scrub: Callable[[str, str], str]) -> str:
+    """Join the repo's sources, scrubbing each file before the join.
+
+    A span deleted from the concatenation could otherwise start in one file and
+    end in another, erasing every file between them.
+    """
+    marker = "#" if repo.language == "python" else "//"
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
+    return "\n".join(
+        scrub(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
+    )
+
+
 def combined_code_only_text(repo: Repo) -> str:
     """``combined_code_text`` with string literals dropped too.
 
@@ -224,22 +259,9 @@ def combined_code_only_text(repo: Repo) -> str:
     migration note ("do not use -32002") names the thing it forbids, and reading
     it as the thing itself inverts the rule.
     """
-    marker = "#" if repo.language == "python" else "//"
-    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
-    return "\n".join(
-        code_only(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
-    )
+    return _combined(repo, code_only)
 
 
 def combined_code_text(repo: Repo) -> str:
-    """``combined_source_text`` with docstrings and comments removed, literals kept.
-
-    Each file is scrubbed before the join: a span deleted from the concatenation
-    could otherwise start in one file and end in another, erasing every file
-    between them.
-    """
-    marker = "#" if repo.language == "python" else "//"
-    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
-    return "\n".join(
-        code_and_literals(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
-    )
+    """``combined_source_text`` with docstrings and comments removed, literals kept."""
+    return _combined(repo, code_and_literals)
