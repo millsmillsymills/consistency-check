@@ -19,15 +19,21 @@ from consistency_check.types import FindingStatus, Tier
 if TYPE_CHECKING:
     from consistency_check.types import Finding, Repo
 
+_GH_TIMEOUT_SECONDS = 30
+
 
 def gh_auth_ok() -> bool:
     """Return True iff `gh auth status` reports an authenticated user."""
-    result = subprocess.run(
-        ["gh", "auth", "status"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_GH_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
     return result.returncode == 0
 
 
@@ -140,12 +146,25 @@ def _list_issues_by_title(slug: str, title: str) -> list[dict[str, object]]:
 
 
 def _run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        ["gh", *args],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    label = " ".join(args[:2])
+    try:
+        result = subprocess.run(
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_GH_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        msg = (
+            f"gh {label} timed out after {_GH_TIMEOUT_SECONDS}s. "
+            f"Check network access and that `gh auth status` returns promptly; "
+            f"an outbound firewall prompt can block `gh` indefinitely."
+        )
+        raise RuntimeError(msg) from exc
+    except OSError as exc:
+        msg = f"gh {label} could not be executed: {exc}"
+        raise RuntimeError(msg) from exc
     if result.returncode != 0:
-        raise RuntimeError(f"gh {' '.join(args[:2])} failed: {result.stderr}")
+        raise RuntimeError(f"gh {label} failed: {result.stderr}")
     return result
