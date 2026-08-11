@@ -1318,3 +1318,88 @@ def test_proto_026_fail_on_a_go_constant(tmp_path: Path) -> None:
         "package internal\n\nconst resourceNotFound = -32002\n", encoding="utf-8"
     )
     assert _check(tmp_path, "go", "PROTO-026") is not None
+
+
+def test_proto_023_fail_on_a_path_that_merely_starts_with_the_marker(tmp_path: Path) -> None:
+    # The slash spelling was unanchored while the identifier spelling was not,
+    # so an import path passed a rule that `server_discovery_cache` fails.
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        'package internal\n\nimport _ "example.com/internal/server/discovery"\n', encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "PROTO-023") is not None
+
+
+def test_proto_026_ignores_the_code_inside_a_go_raw_string(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "errs.go").write_text(
+        "package internal\n\nconst doc = `legacy servers returned -32002`\nconst C = -32602\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-026") is None
+
+
+def test_proto_026_sees_the_code_past_an_apostrophe_in_a_raw_string(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "errs.go").write_text(
+        "package internal\n\nvar H = `don't pass a raw id`\n"
+        "const C = -32002\nvar M = `it's fine`\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-026") is not None
+
+
+def test_proto_012_is_not_blinded_by_a_quote_in_a_comment(tmp_path: Path) -> None:
+    # PROTO-012 stripped literals without stripping comments, so a lone `'''`
+    # or backtick written in a comment opened a span that swallowed the log
+    # calls below it — in the rule whose subject is credentials reaching a log.
+    pkg = tmp_path / "src" / "x_mcp"
+    pkg.mkdir(parents=True)
+    pkg.joinpath("server.py").write_text(
+        "# use ''' style\ndef connect(api_key):\n    logger.info(\"k %s\", api_key)\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "python", "PROTO-012") is not None
+
+
+def test_proto_012_is_not_blinded_by_a_backtick_in_a_go_comment(tmp_path: Path) -> None:
+    (tmp_path / "main.go").write_text(
+        "package main\n// Escape the ` char.\n"
+        'func run(apiKey string) { log.Printf("k %s", apiKey) }\nvar t = `tail`\n',
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "go", "PROTO-012") is not None
+
+
+def test_a_nested_f_string_quote_does_not_hide_violations(tmp_path: Path) -> None:
+    # PEP 701 nesting desynchronised the scanner into a triple quote with no
+    # closer. Consuming to end of input from there blanked every violation below
+    # it, in a file `ast.parse` accepts.
+    pkg = tmp_path / "src" / "x_mcp"
+    pkg.mkdir(parents=True)
+    pkg.joinpath("server.py").write_text(
+        'q = f"{"""x"""}"\n'
+        "import httpx\n"
+        "RETIRED = -32002\n"
+        "def go(api_key):\n"
+        '    logger.info("k %s", api_key)\n'
+        '    print("hello")\n'
+        '    return httpx.AsyncClient(base_url="u")\n',
+        encoding="utf-8",
+    )
+    for rule_id in ("PROTO-012", "PROTO-013", "PROTO-014", "PROTO-026"):
+        assert _check(tmp_path, "python", rule_id) is not None, rule_id
+
+
+def test_a_tool_registration_does_not_publish_a_nested_calls_literal(tmp_path: Path) -> None:
+    # The WithTools window walked into a nested call, so any literal reachable
+    # from the prefix — an internal URL, a default token — was filed publicly
+    # as a tool name.
+    (tmp_path / "main.go").write_text(
+        "package main\n"
+        "func init() { s.WithTools(newRegistry("
+        '"https://svc.internal.example:9443/v1?token=abc")) }\n',
+        encoding="utf-8",
+    )
+    evidence = _check(tmp_path, "go", "PROTO-001")
+    assert evidence is None or "token=abc" not in evidence

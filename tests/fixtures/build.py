@@ -300,6 +300,14 @@ def build_bad_python(root: Path) -> Path:
         pkg / "cli.py",
         """
         import argparse
+
+        # A docstring closing on a line that carries a `#`. A comment strip that
+        # runs per line reads it as a comment, takes the closing quotes with it,
+        # and the orphaned opener then pairs with the next docstring and deletes
+        # every violation between them.
+        HELP = \"\"\"
+        Usage: see https://example.com/docs#configuration \"\"\"
+
         RESOURCE_NOT_FOUND = -32002
         parser = argparse.ArgumentParser()
         parser.add_argument("--api-key")
@@ -521,6 +529,13 @@ def build_bad_go(root: Path) -> Path:
             "net/http"
             "os"
         )
+
+        // A raw string closing on a line that carries a URL. A comment strip
+        // that runs per line reads the slashes in it as a comment, truncates
+        // away the closing backtick, and leaves the literal scan an
+        // unterminated raw string that blanks every violation below.
+        const usage = `bad-go does things.
+        Docs: https://example.com/docs`
 
         func init() {
             a := 1

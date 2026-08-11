@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+from consistency_check import filer
 from consistency_check.filer import file_repo_findings, gh_auth_ok
 from consistency_check.types import Finding, FindingStatus, Repo, Tier
 
@@ -156,3 +157,17 @@ def test_unauthenticated_gh_still_suggests_login(repo: Repo) -> None:
         pytest.raises(RuntimeError, match="gh auth login"),
     ):
         file_repo_findings(repo, findings, apply=True)
+
+
+def test_an_oversized_body_is_cut_to_the_api_limit() -> None:
+    # GitHub rejects a body over 65,536 chars, which aborts that repo's filing.
+    # The per-finding cap in `report` scales with the rule count, so the bound
+    # has to live where the constraint does.
+    fitted = filer._fit_body("x" * 200_000)
+    assert len(fitted) <= 65_000
+    assert fitted.endswith("Re-run locally for the rest._\n")
+
+
+def test_a_body_within_the_limit_is_untouched() -> None:
+    body = "# report\n\nall good\n"
+    assert filer._fit_body(body) == body

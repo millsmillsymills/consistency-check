@@ -7,7 +7,6 @@ import re
 from typing import TYPE_CHECKING
 
 from consistency_check.sources import (
-    STRING_LITERAL,
     code_and_literals,
     code_only,
     combined_code_only_text,
@@ -34,8 +33,11 @@ if TYPE_CHECKING:
 # whole job is catching that name — passed on it. The ``WithTools`` window
 # excludes ``)`` and newlines as well as ``,`` for the same widening: a window
 # that only stops at a comma walks out of a call with no literal in it
-# (``WithTools(tools...)``) and grades the next quoted span in the file.
-_GO_TOOL_REGISTER = re.compile(r'WithTools\(\s*[^,)"\n]*"([^"\n]*)"|\bNewTool\s*\(\s*"([^"\n]*)"')
+# (``WithTools(tools...)``) and grades the next quoted span in the file. It
+# excludes ``(`` for the same reason: without that the window walks into a
+# nested call and publishes whatever literal it finds there — an internal URL, a
+# default token — into a public issue, labelled as a tool name.
+_GO_TOOL_REGISTER = re.compile(r'WithTools\(\s*[^,()"\n]*"([^"\n]*)"|\bNewTool\s*\(\s*"([^"\n]*)"')
 _GO_TOOL_LITERAL = re.compile(r"\bTool\{")
 _GO_TOOL_LITERAL_NAME = re.compile(r'\bName:\s*"([^"]*)"')
 _GO_TOOL_LITERAL_NAME_FIELD = re.compile(r"\bName:")
@@ -413,10 +415,14 @@ def _check_no_secret_cli_args(repo: Repo) -> str | None:
 def _check_no_secret_logging(repo: Repo) -> str | None:
     sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
     for p in sources:
-        # Strip string-literal contents up front so human-readable format text
-        # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
-        # "...not set (see README)") cannot truncate the log-call match.
-        text = STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
+        # Literals go so human-readable format text never reaches the identifier
+        # scan and a ``)`` inside one ("...not set (see README)") cannot truncate
+        # the log-call match. Comments go first, via the same entry point every
+        # other rule uses: stripping literals alone leaves the scan comment-blind,
+        # and then a lone ``'''`` or backtick written in a comment opens a span
+        # that swallows the log calls below it.
+        marker = "#" if repo.language == "python" else "//"
+        text = code_only(p.read_text(encoding="utf-8", errors="replace"), marker)
         for m in re.finditer(r"(?:logger|log)\.\w+\(", text):
             # Balanced extraction (not ``[^)]*``) so a credential logged after a
             # nested call — ``logger.info("%s", redact(x), api_key)`` — is still
@@ -699,7 +705,7 @@ def _check_capability_guard(repo: Repo) -> str | None:
 # The first three read literals as well as code: the markers *are* literals (a
 # method string, a JSON key), so any identifier or string of that name anywhere
 # under src/ satisfies them. PROTO-026 is the opposite case and reads code only.
-_DISCOVER_HANDLER = re.compile(r"(?i)server/discover|\bserver_?discover\b")
+_DISCOVER_HANDLER = re.compile(r"(?i)\bserver/discover\b|\bserver_?discover\b")
 _RESULT_TYPE = re.compile(r"(?i)\bresult_?type\b")
 _TTL_MS = re.compile(r"(?i)\bttl_?ms\b")
 _CACHE_SCOPE = re.compile(r"(?i)\bcache_?scope\b")

@@ -116,6 +116,20 @@ def _print_dry_run(repo: Repo, findings: list[Finding]) -> None:
         )
 
 
+# GitHub rejects an issue body over 65,536 characters. Bounding it here rather
+# than at render time is what makes the bound an invariant: the per-finding cap
+# in `report` scales with the rule count, and `render_umbrella` also serves
+# stdout and `--out`, where no API limit applies and truncating is just loss.
+_BODY_LIMIT = 65_000
+_BODY_TRUNCATED = "\n\n_Body truncated to fit the GitHub API limit. Re-run locally for the rest._\n"
+
+
+def _fit_body(body: str) -> str:
+    if len(body) <= _BODY_LIMIT:
+        return body
+    return body[: _BODY_LIMIT - len(_BODY_TRUNCATED)] + _BODY_TRUNCATED
+
+
 def _upsert_issue(
     slug: str,
     title: str,
@@ -124,6 +138,7 @@ def _upsert_issue(
     *,
     edit_if_exists: bool,
 ) -> None:
+    body = _fit_body(body)
     existing = _list_issues_by_title(slug, title)
     open_existing = [i for i in existing if i["state"] == "OPEN"]
     if len(open_existing) > 1:

@@ -9,19 +9,10 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from consistency_check.types import Repo
-
-STRING_LITERAL = re.compile(
-    r"""
-    '''.*?'''               # triple single
-    | \"\"\".*?\"\"\"       # triple double
-    | "(?:\\.|[^"\\])*"     # double-quoted
-    | '(?:\\.|[^'\\])*'     # single-quoted
-    """,
-    re.VERBOSE | re.DOTALL,
-)
 
 
 def python_sources(repo: Repo) -> list[Path]:
@@ -68,8 +59,13 @@ def _consume_quoted(text: str, i: int) -> int:
 
     Only a backtick raw string may span lines. Ending the others at the newline
     keeps one unbalanced quote from consuming the rest of the file.
+
+    An opener with no closer yields the index just past the opener itself, not
+    the end of the text: see ``_unclosed`` for why swallowing the remainder is
+    the one outcome a scanner feeding an auditor must not have.
     """
     quote = text[i]
+    start = i
     i += 1
     while i < len(text):
         if text[i] == "\n" and quote != "`":
@@ -80,7 +76,21 @@ def _consume_quoted(text: str, i: int) -> int:
         if text[i] == quote:
             return i + 1
         i += 1
-    return i
+    return _unclosed(start, 1)
+
+
+def _unclosed(start: int, delim_len: int) -> int:
+    """Where to resume after a literal opener that is never closed.
+
+    Consuming to end of input is what the language does, but it is the wrong
+    thing for an auditor: everything after the opener is blanked, so the rules
+    read a file with no stdout writes, no untimed clients and no retired error
+    codes, and the repo passes. Treating the stray delimiter as an ordinary
+    character instead keeps the rest of the file readable. The cost is that an
+    unterminated literal's prose is graded as code, which can only produce a
+    false failure — the direction an audit is allowed to be wrong in.
+    """
+    return start + delim_len
 
 
 def mask_literal_contents(text: str) -> str:
@@ -127,22 +137,22 @@ def mask_literal_braces(text: str) -> str:
     return "".join(out)
 
 
-def strip_block_comments(text: str) -> str:
-    """Remove Go ``/* */`` comments, keeping string literals and line count intact.
+def strip_go_comments(text: str) -> str:
+    """Remove Go ``//`` and ``/* */`` comments, keeping literals and line count intact.
 
-    Quote-aware because callers that keep literals would otherwise see a ``/*``
-    inside a URL open a comment that swallows the rest of the file. ``//`` lines
-    are copied through untouched for the same reason: a ``/*`` or a lone
-    apostrophe written in prose there must not open a span.
+    Quote-aware, and one pass over the whole text rather than one per line. A
+    backtick raw string spans lines, so a per-line strip cannot tell that a
+    ``//`` sits inside one; truncating the line that closes the string hands the
+    literal scanner an unterminated raw string, which then consumes every
+    remaining line. Both comment forms are recognised here so that neither can
+    be opened from inside a literal nor a literal from inside a comment.
     """
     out: list[str] = []
     i = 0
     while i < len(text):
         if text.startswith("//", i):
             end = text.find("\n", i)
-            end = len(text) if end == -1 else end
-            out.append(text[i:end])
-            i = end
+            i = len(text) if end == -1 else end
         elif text[i] in "\"'`":
             end = _consume_quoted(text, i)
             out.append(text[i:end])
@@ -157,46 +167,117 @@ def strip_block_comments(text: str) -> str:
     return "".join(out)
 
 
+def _consume_python_quoted(text: str, i: int) -> int:
+    r"""Index just past the Python string literal opening at ``i``.
+
+    Only a triple-quoted string may span lines. Ending the others at the newline
+    keeps one unbalanced quote from consuming the rest of the file. A backslash
+    escapes the following character in raw strings too — ``r"\"`` is not a
+    terminated literal — so the escape branch is unconditional.
+    """
+    delim = text[i] * 3 if text.startswith(text[i] * 3, i) else text[i]
+    start = i
+    i += len(delim)
+    while i < len(text):
+        if text[i] == "\\":
+            i += 2
+            continue
+        if text[i] == "\n" and len(delim) == 1:
+            return i
+        if text.startswith(delim, i):
+            return i + len(delim)
+        i += 1
+    return _unclosed(start, len(delim))
+
+
+def strip_python_comments(text: str) -> str:
+    """Remove ``#`` comments in one quote-aware pass, keeping literals intact.
+
+    One pass over the whole text rather than one per line, for the reason
+    ``strip_go_comments`` gives: a triple-quoted string spans lines, so a
+    per-line strip cannot tell that a ``#`` sits inside one. Truncating the line
+    that closes the string orphans the opening quotes, which then pair with the
+    next triple-quoted string in the file and delete everything between.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] == "#":
+            end = text.find("\n", i)
+            i = len(text) if end == -1 else end
+        elif text[i] in "\"'":
+            end = _consume_python_quoted(text, i)
+            out.append(text[i:end])
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def strip_python_literals(text: str) -> str:
+    """Drop every Python string literal, keeping the line count."""
+    return _drop_python_literals(text, triple_only=False)
+
+
+def strip_python_docstrings(text: str) -> str:
+    """Drop triple-quoted strings only, keeping other literals and the line count.
+
+    For callers that need the value inside a literal — a ``transport="http"``
+    argument — but not the prose inside a docstring.
+    """
+    return _drop_python_literals(text, triple_only=True)
+
+
+def _drop_python_literals(text: str, *, triple_only: bool) -> str:
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'":
+            end = _consume_python_quoted(text, i)
+            span = text[i:end]
+            keep = triple_only and not span.startswith(('"""', "'''"))
+            out.append(span if keep else "\n" * text.count("\n", i, end))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def strip_go_literals(text: str) -> str:
+    """Drop every Go string, rune, and raw-string body, keeping the line count.
+
+    ``STRING_LITERAL`` is backtick-blind, which broke both ways on Go: a raw
+    string's contents were read as code, and an apostrophe inside one opened a
+    single-quote span that deleted every line up to the next apostrophe. The
+    same scanner the masking helpers use knows all three quote forms and ends an
+    interpreted string at the newline it cannot cross.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'`":
+            end = _consume_quoted(text, i)
+            out.append("\n" * text.count("\n", i, end))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
 def code_only(text: str, line_comment: str) -> str:
     """Strip comments then string literals, so prose cannot register as code.
 
-    Every comment goes first because ``STRING_LITERAL`` is quote-based and
-    comment-blind: an apostrophe or a lone ``"`` written in a comment pairs with
-    the next quote in real code, and the span between them — up to the whole
-    rest of the file — is deleted before any check reads it. An empty file
-    passes everything.
+    Every comment goes first because the literal scan is comment-blind: an
+    apostrophe or a lone ``"`` written in a comment pairs with the next quote in
+    real code, and the span between them — up to the whole rest of the file — is
+    deleted before any check reads it. An empty file passes everything.
     """
     if line_comment == "//":
-        text = strip_block_comments(text)
-    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
-    return STRING_LITERAL.sub("", text)
-
-
-_BLOCK_STRING = re.compile(r"'''.*?'''|\"\"\".*?\"\"\"", re.DOTALL)
-
-
-def _strip_line_comment(line: str, marker: str) -> str:
-    """Drop a trailing line comment, ignoring a marker that sits inside a string.
-
-    Keeps `url = "https://example.com"` intact, which matters because callers of
-    this function — unlike ``code_only`` — need the string literals preserved.
-    """
-    quote: str | None = None
-    i = 0
-    while i < len(line):
-        ch = line[i]
-        if quote is not None:
-            if ch == "\\":
-                i += 2
-                continue
-            if ch == quote:
-                quote = None
-        elif ch in "\"'`":
-            quote = ch
-        elif line.startswith(marker, i):
-            return line[:i]
-        i += 1
-    return line
+        return strip_go_literals(strip_go_comments(text))
+    return strip_python_literals(strip_python_comments(text))
 
 
 def code_and_literals(text: str, line_comment: str) -> str:
@@ -204,17 +285,25 @@ def code_and_literals(text: str, line_comment: str) -> str:
 
     ``code_only`` drops literals too, which is right for call-shaped heuristics
     but wrong when the value being detected *is* a literal, e.g. a
-    ``transport="streamable-http"`` argument.
-
-    ``_BLOCK_STRING`` is Python-only. Applied to Go it pairs ``\"\"\"`` sequences
-    that occur inside unrelated raw strings and deletes everything between them.
-    It also runs last, because two ``#`` comments that merely *mention* ``\"\"\"``
-    would otherwise pair and erase the code between them.
+    ``transport="streamable-http"`` argument. Go has no docstring form, so its
+    path stops at comments.
     """
     if line_comment == "//":
-        text = strip_block_comments(text)
-    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
-    return _BLOCK_STRING.sub("", text) if line_comment == "#" else text
+        return strip_go_comments(text)
+    return strip_python_docstrings(strip_python_comments(text))
+
+
+def _combined(repo: Repo, scrub: Callable[[str, str], str]) -> str:
+    """Join the repo's sources, scrubbing each file before the join.
+
+    A span deleted from the concatenation could otherwise start in one file and
+    end in another, erasing every file between them.
+    """
+    marker = "#" if repo.language == "python" else "//"
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
+    return "\n".join(
+        scrub(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
+    )
 
 
 def combined_code_only_text(repo: Repo) -> str:
@@ -224,22 +313,9 @@ def combined_code_only_text(repo: Repo) -> str:
     migration note ("do not use -32002") names the thing it forbids, and reading
     it as the thing itself inverts the rule.
     """
-    marker = "#" if repo.language == "python" else "//"
-    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
-    return "\n".join(
-        code_only(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
-    )
+    return _combined(repo, code_only)
 
 
 def combined_code_text(repo: Repo) -> str:
-    """``combined_source_text`` with docstrings and comments removed, literals kept.
-
-    Each file is scrubbed before the join: a span deleted from the concatenation
-    could otherwise start in one file and end in another, erasing every file
-    between them.
-    """
-    marker = "#" if repo.language == "python" else "//"
-    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
-    return "\n".join(
-        code_and_literals(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
-    )
+    """``combined_source_text`` with docstrings and comments removed, literals kept."""
+    return _combined(repo, code_and_literals)

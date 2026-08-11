@@ -281,7 +281,7 @@ def test_transport_still_flags_a_real_listener(tmp_path: Path) -> None:
     _write_source(tmp_path, "import uvicorn\n\nuvicorn.run(app)\n")
     evidence = verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path))
     assert evidence is not None
-    assert "uvicorn.run(" in evidence
+    assert "uvicorn.run" in evidence
 
 
 def test_transport_flags_a_streamable_run_argument(tmp_path: Path) -> None:
