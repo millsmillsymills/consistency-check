@@ -11,3 +11,9 @@ build/
 .coverage
 htmlcov/
 .claude/worktrees/
+
+# Audit output names the audited repos' failing checks and the files they sit
+# in. The repos are private and this one is public, so the reports stay local.
+audit-out/
+audit-out-validation/
+.scratch/
