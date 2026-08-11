@@ -22,19 +22,38 @@ if TYPE_CHECKING:
 _GH_TIMEOUT_SECONDS = 30
 
 
-def gh_auth_ok() -> bool:
-    """Return True iff `gh auth status` reports an authenticated user."""
+def _gh(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run `gh` under a bounded wait, raising RuntimeError if it cannot complete."""
+    label = " ".join(args[:2])
     try:
-        result = subprocess.run(
-            ["gh", "auth", "status"],
+        return subprocess.run(
+            ["gh", *args],
             capture_output=True,
             text=True,
             check=False,
             timeout=_GH_TIMEOUT_SECONDS,
         )
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return result.returncode == 0
+    except subprocess.TimeoutExpired as exc:
+        msg = (
+            f"gh {label} timed out after {_GH_TIMEOUT_SECONDS}s. "
+            f"Check network access; an outbound firewall prompt on a newly "
+            f"installed gh binary can block it indefinitely."
+        )
+        raise RuntimeError(msg) from exc
+    except OSError as exc:
+        msg = f"gh {label} could not be executed: {exc}"
+        raise RuntimeError(msg) from exc
+
+
+def gh_auth_ok() -> bool:
+    """Return True iff `gh auth status` reports an authenticated user.
+
+    Raises:
+        RuntimeError: if `gh` could not be run at all, so that a hung or
+            missing binary is reported as such rather than as a stale login.
+
+    """
+    return _gh(["auth", "status"]).returncode == 0
 
 
 def file_repo_findings(repo: Repo, findings: list[Finding], *, apply: bool) -> None:
@@ -146,25 +165,7 @@ def _list_issues_by_title(slug: str, title: str) -> list[dict[str, object]]:
 
 
 def _run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
-    label = " ".join(args[:2])
-    try:
-        result = subprocess.run(
-            ["gh", *args],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=_GH_TIMEOUT_SECONDS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        msg = (
-            f"gh {label} timed out after {_GH_TIMEOUT_SECONDS}s. "
-            f"Check network access and that `gh auth status` returns promptly; "
-            f"an outbound firewall prompt can block `gh` indefinitely."
-        )
-        raise RuntimeError(msg) from exc
-    except OSError as exc:
-        msg = f"gh {label} could not be executed: {exc}"
-        raise RuntimeError(msg) from exc
+    result = _gh(args)
     if result.returncode != 0:
-        raise RuntimeError(f"gh {label} failed: {result.stderr}")
+        raise RuntimeError(f"gh {' '.join(args[:2])} failed: {result.stderr}")
     return result

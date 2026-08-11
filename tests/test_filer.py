@@ -103,22 +103,33 @@ def test_every_gh_call_passes_a_timeout(repo: Repo) -> None:
         assert call.kwargs["timeout"] > 0
 
 
-def test_gh_auth_ok_is_false_when_gh_hangs() -> None:
-    with patch(
-        "consistency_check.filer.subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=30),
-    ):
+def test_gh_auth_ok_is_true_only_on_success() -> None:
+    with patch("consistency_check.filer.subprocess.run", return_value=_run(0)):
+        assert gh_auth_ok() is True
+    with patch("consistency_check.filer.subprocess.run", return_value=_run(1)):
         assert gh_auth_ok() is False
 
 
-def test_hung_auth_check_raises_instead_of_blocking(repo: Repo) -> None:
+def test_hung_auth_check_reports_the_hang_not_a_stale_login(repo: Repo) -> None:
     findings = [Finding(rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL, evidence="x")]
     with (
         patch(
             "consistency_check.filer.subprocess.run",
             side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=30),
         ),
-        pytest.raises(RuntimeError, match="gh auth login"),
+        pytest.raises(RuntimeError, match="timed out after"),
+    ):
+        file_repo_findings(repo, findings, apply=True)
+
+
+def test_missing_gh_binary_is_reported_at_the_auth_gate(repo: Repo) -> None:
+    findings = [Finding(rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL, evidence="x")]
+    with (
+        patch(
+            "consistency_check.filer.subprocess.run",
+            side_effect=FileNotFoundError("gh"),
+        ),
+        pytest.raises(RuntimeError, match="could not be executed"),
     ):
         file_repo_findings(repo, findings, apply=True)
 
@@ -133,18 +144,15 @@ def test_hung_issue_call_raises_runtime_error(repo: Repo) -> None:
                 subprocess.TimeoutExpired(cmd="gh", timeout=30),  # issue list hangs
             ],
         ),
-        pytest.raises(RuntimeError, match="timed out after"),
+        pytest.raises(RuntimeError, match="issue list timed out"),
     ):
         file_repo_findings(repo, findings, apply=True)
 
 
-def test_missing_gh_binary_raises_runtime_error(repo: Repo) -> None:
+def test_unauthenticated_gh_still_suggests_login(repo: Repo) -> None:
     findings = [Finding(rule_id="MCP-007", tier=Tier.MUST, status=FindingStatus.FAIL, evidence="x")]
     with (
-        patch(
-            "consistency_check.filer.subprocess.run",
-            side_effect=[_run(0), FileNotFoundError("gh")],
-        ),
-        pytest.raises(RuntimeError, match="could not be executed"),
+        patch("consistency_check.filer.subprocess.run", return_value=_run(1)),
+        pytest.raises(RuntimeError, match="gh auth login"),
     ):
         file_repo_findings(repo, findings, apply=True)
