@@ -1,4 +1,4 @@
-"""Rules: MCP protocol (PROTO-001..022)."""
+"""Rules: MCP protocol (PROTO-001..026)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from consistency_check.sources import (
     STRING_LITERAL,
     code_and_literals,
     code_only,
+    combined_code_only_text,
     combined_code_text,
     combined_source_text,
     go_sources,
@@ -694,6 +695,56 @@ def _check_capability_guard(repo: Repo) -> str | None:
     return "elicitation/sampling call without a client-capability check"
 
 
+# Markers for the `2026-07-28` stateless revision. No SDK emits these fields yet,
+# so each check grades the marker's presence in source rather than the wire
+# shape. They are S4/SHOULD: a repo declaring a stage below S4 is not graded, and
+# a repo waiting on its SDK reports work toward S4, not a MUST failure. An
+# unstaged repo is still graded — the auditor runs every rule when no stage is
+# declared (see stages.md).
+#
+# The first three read literals as well as code: the markers *are* literals (a
+# method string, a JSON key), so any identifier or string of that name anywhere
+# under src/ satisfies them. PROTO-026 is the opposite case and reads code only.
+_DISCOVER_HANDLER = re.compile(r"(?i)server/discover|\bserver_?discover\b")
+_RESULT_TYPE = re.compile(r"(?i)\bresult_?type\b")
+_TTL_MS = re.compile(r"(?i)\bttl_?ms\b")
+_CACHE_SCOPE = re.compile(r"(?i)\bcache_?scope\b")
+# `-32002` was resource-not-found before this revision moved it to `-32602`.
+# Requiring the sign against the digits keeps formatted subtraction (``n -
+# 32002``) out, and the lookbehind keeps an identifier that ends in them out.
+# Literals are already gone, so a migration note naming the retired code does not
+# fail the repo that has migrated away from it.
+_RETIRED_NOT_FOUND = re.compile(r"(?<![\w.])-32002\b")
+
+
+def _check_discover_handler(repo: Repo) -> str | None:
+    if _DISCOVER_HANDLER.search(combined_code_text(repo)):
+        return None
+    return "no server/discover handler detected"
+
+
+def _check_result_type(repo: Repo) -> str | None:
+    if _RESULT_TYPE.search(combined_code_text(repo)):
+        return None
+    return "no resultType field on results"
+
+
+def _check_cache_hints(repo: Repo) -> str | None:
+    text = combined_code_text(repo)
+    missing = [
+        label
+        for label, pattern in (("ttlMs", _TTL_MS), ("cacheScope", _CACHE_SCOPE))
+        if not pattern.search(text)
+    ]
+    return f"list/read results missing {', '.join(missing)}" if missing else None
+
+
+def _check_resource_not_found_code(repo: Repo) -> str | None:
+    if _RETIRED_NOT_FOUND.search(combined_code_only_text(repo)):
+        return "uses the retired -32002 for resource-not-found (now -32602)"
+    return None
+
+
 RULES: tuple[Rule, ...] = (
     Rule(
         id="PROTO-001",
@@ -834,5 +885,33 @@ RULES: tuple[Rule, ...] = (
         statement="Server registers at least one detectable tool",
         check=_check_tools_detected,
         min_stage=Stage.S1,
+    ),
+    Rule(
+        id="PROTO-023",
+        tier=Tier.SHOULD,
+        statement="Server exposes a server/discover handler",
+        check=_check_discover_handler,
+        min_stage=Stage.S4,
+    ),
+    Rule(
+        id="PROTO-024",
+        tier=Tier.SHOULD,
+        statement="Results carry a resultType field",
+        check=_check_result_type,
+        min_stage=Stage.S4,
+    ),
+    Rule(
+        id="PROTO-025",
+        tier=Tier.SHOULD,
+        statement="List and read results carry ttlMs and cacheScope",
+        check=_check_cache_hints,
+        min_stage=Stage.S4,
+    ),
+    Rule(
+        id="PROTO-026",
+        tier=Tier.SHOULD,
+        statement="Resource-not-found uses -32602, not the retired -32002",
+        check=_check_resource_not_found_code,
+        min_stage=Stage.S4,
     ),
 )

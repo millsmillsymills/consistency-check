@@ -6,7 +6,9 @@ Applies to every MCP server. Anchored on the upstream MCP specification (modelco
 
 The `2026-07-28` revision makes the protocol stateless — no `initialize` handshake or `Mcp-Session-Id`; protocol version and capabilities travel per-request in `_meta` and are advertised via `server/discover` — and formally deprecates Roots, Sampling, protocol-level Logging, the HTTP+SSE transport, and OAuth Dynamic Client Registration. New servers must not adopt deprecated features; the rules below call out the legacy markers where the auditor can detect them.
 
-Guidance from this revision not yet mechanically audited (adopt as SDKs ship it): all results carry a `resultType` field; server-initiated requests are replaced by Multi Round-Trip Requests (`resultType: "input_required"`); list/read results carry `ttlMs`/`cacheScope`; long-running work uses the `io.modelcontextprotocol/tasks` extension; resource-not-found is `-32602`.
+Four of this revision's new requirements are audited by PROTO-023..026 below. They are `SHOULD` at `min_stage = S4`: no SDK in the suite emits these fields yet, so a repo that declares a stage below S4 is not graded, and a repo waiting on its SDK reports work toward S4 rather than a MUST failure. An unstaged repo is still graded, since the auditor runs every rule when no stage is declared (see stages.md). Promote them to `MUST` once the SDKs ship the fields.
+
+Guidance from this revision still not mechanically audited: server-initiated requests are replaced by Multi Round-Trip Requests (`resultType: "input_required"`); long-running work uses the `io.modelcontextprotocol/tasks` extension.
 
 ## Tool surface
 
@@ -160,4 +162,34 @@ A repo that constructs no server — a library, a client — passes. String-lite
 
 Failing this rule means the tool rules above carry no signal for that repo; fix the registration shape (or the matcher) before reading them as passes.
 
-**Known limit.** The rule fires on *total* blindness, not partial. One detected tool suppresses it, so a repo whose registrations use two shapes — one matched, one not — still reports a clean tool surface for the unmatched half. Catching that needs a count of registration *sites* to compare against the count of named tools, which no reliable pattern yields across the SDKs in use. Treat a repo's tool count as a lower bound.
+**Known limit (PROTO-022).** The rule fires on *total* blindness, not partial. One detected tool suppresses it, so a repo whose registrations use two shapes — one matched, one not — still reports a clean tool surface for the unmatched half. Catching that needs a count of registration *sites* to compare against the count of named tools, which no reliable pattern yields across the SDKs in use. Treat a repo's tool count as a lower bound.
+
+## Spec revision 2026-07-28 surface
+
+The four rules below grade the stateless revision's new requirements. Each is `SHOULD` at `min_stage = S4` for the reason given at the top of this file. All four detect a marker in source, not the wire shape, since the auditor never runs the server.
+
+**Known limit (PROTO-023..025).** These three markers *are* string literals on the wire — a method name, two JSON keys — so their checks read literals as well as code. Any identifier or string of that name anywhere under `src/` satisfies them: a domain `class ResultType`, an unrelated cache layer's `ttl_ms`, or a `raise NotImplementedError("server/discover is not supported")` all read as compliance. Treat a pass as "the name appears", not "the field ships". PROTO-026 is the inverse case and reads code with literals stripped, so a migration note that names the retired code does not fail a repo that has migrated away from it.
+
+### PROTO-023 — Server exposes a `server/discover` handler [SHOULD]
+
+**Rationale.** The `2026-07-28` revision removes the `initialize` handshake. A client learns a server's protocol version and capabilities from `server/discover`; a server that never answers it is undiscoverable to a stateless client.
+
+**Mechanical check.** Source references `server/discover` (the method string) or a `server_discover` / `serverDiscover` identifier, case-insensitively. Comments and Python docstrings are stripped first; string literals are kept, since the method name is one.
+
+### PROTO-024 — Results carry a `resultType` field [SHOULD]
+
+**Rationale.** `resultType` is how a stateless client tells a finished result from one that needs another round trip (`resultType: "input_required"`, which replaces server-initiated elicitation). Without it a client cannot drive a multi-round-trip tool.
+
+**Mechanical check.** Source references `resultType` or `result_type` (case-insensitive) outside comments and docstrings. String literals count, since the field is a JSON key.
+
+### PROTO-025 — List and read results carry `ttlMs` and `cacheScope` [SHOULD]
+
+**Rationale.** Statelessness moves caching to the client. `ttlMs` and `cacheScope` on list and read results are what let a client reuse a result instead of re-listing on every request; omitting them turns every tool list into a round trip.
+
+**Mechanical check.** Source references both `ttlMs`/`ttl_ms` and `cacheScope`/`cache_scope` (case-insensitive) outside comments and docstrings, string literals included. The evidence names whichever is absent.
+
+### PROTO-026 — Resource-not-found uses `-32602`, not the retired `-32002` [SHOULD]
+
+**Rationale.** This revision moves resource-not-found from the `-32002` server-defined code to the JSON-RPC `-32602` (invalid params). A server still returning `-32002` reports a code a conforming client no longer recognises as not-found.
+
+**Mechanical check.** Fails when `-32002` appears in source with comments, docstrings, *and* string literals stripped, so a note or an error message that names the retired code does not fail the repo that has migrated away from it. The sign must sit against the digits, so formatted subtraction (`n - 32002`) does not match, and a preceding word character or `.` suppresses the match so an identifier ending in those digits does not either. A server that returns neither code passes vacuously: this rule detects the retired code, it does not require the new one, because a repo may legitimately expose no resources.
