@@ -187,6 +187,20 @@ def code_and_literals(text: str, line_comment: str) -> str:
     return _BLOCK_STRING.sub("", text) if line_comment == "#" else text
 
 
+def combined_code_only_text(repo: Repo) -> str:
+    """``combined_code_text`` with string literals dropped too.
+
+    For checks whose subject is a value written in code, not in a literal: a
+    migration note ("do not use -32002") names the thing it forbids, and reading
+    it as the thing itself inverts the rule.
+    """
+    marker = "#" if repo.language == "python" else "//"
+    sources = python_sources(repo) if repo.language == "python" else go_sources(repo)
+    return "\n".join(
+        code_only(p.read_text(encoding="utf-8", errors="replace"), marker) for p in sources
+    )
+
+
 def combined_code_text(repo: Repo) -> str:
     """``combined_source_text`` with docstrings and comments removed, literals kept.
 

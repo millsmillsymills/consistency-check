@@ -1039,3 +1039,129 @@ def test_proto_015_pass_with_paren_in_description_string(tmp_path: Path) -> None
         encoding="utf-8",
     )
     assert _check(tmp_path, "python", "PROTO-015") is None
+
+
+def _py_source(root: Path, body: str) -> Path:
+    pkg = root / "src" / "good_python"
+    pkg.mkdir(parents=True, exist_ok=True)
+    (pkg / "protocol.py").write_text(body, encoding="utf-8")
+    return root
+
+
+def test_proto_023_pass_on_discover_method_string(tmp_path: Path) -> None:
+    _py_source(tmp_path, 'DISCOVER = "server/discover"\n')
+    assert _check(tmp_path, "python", "PROTO-023") is None
+
+
+def test_proto_023_fail_when_absent(tmp_path: Path) -> None:
+    _py_source(tmp_path, "x = 1\n")
+    assert _check(tmp_path, "python", "PROTO-023") is not None
+
+
+def test_proto_023_ignores_a_mention_in_a_comment(tmp_path: Path) -> None:
+    _py_source(tmp_path, "# TODO: answer server/discover once fastmcp ships it\nx = 1\n")
+    assert _check(tmp_path, "python", "PROTO-023") is not None
+
+
+def test_proto_023_pass_on_go_identifier(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "srv.go").write_text(
+        "package internal\nfunc ServerDiscover() {}\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "PROTO-023") is None
+
+
+def test_proto_024_pass_on_camel_and_snake_spellings(tmp_path: Path) -> None:
+    for body in ('R = {"resultType": "tool_result"}\n', "result_type = 'tool_result'\n"):
+        _py_source(tmp_path, body)
+        assert _check(tmp_path, "python", "PROTO-024") is None
+
+
+def test_proto_024_fail_when_absent(tmp_path: Path) -> None:
+    _py_source(tmp_path, "R = {'content': []}\n")
+    assert _check(tmp_path, "python", "PROTO-024") is not None
+
+
+def test_proto_025_fail_names_the_missing_hint(tmp_path: Path) -> None:
+    _py_source(tmp_path, 'R = {"ttlMs": 1000}\n')
+    evidence = _check(tmp_path, "python", "PROTO-025")
+    assert evidence is not None
+    assert "cacheScope" in evidence
+    assert "ttlMs" not in evidence
+
+
+def test_proto_025_pass_with_both_hints(tmp_path: Path) -> None:
+    _py_source(tmp_path, 'R = {"ttlMs": 1000, "cacheScope": "session"}\n')
+    assert _check(tmp_path, "python", "PROTO-025") is None
+
+
+def test_proto_026_fail_on_retired_code(tmp_path: Path) -> None:
+    _py_source(tmp_path, "RESOURCE_NOT_FOUND = -32002\n")
+    assert _check(tmp_path, "python", "PROTO-026") is not None
+
+
+def test_proto_026_pass_on_current_code(tmp_path: Path) -> None:
+    _py_source(tmp_path, "RESOURCE_NOT_FOUND = -32602\n")
+    assert _check(tmp_path, "python", "PROTO-026") is None
+
+
+def test_proto_026_ignores_the_code_named_in_a_comment(tmp_path: Path) -> None:
+    # Migration notes cite the old code; only a live constant is a violation.
+    _py_source(tmp_path, "# was -32002 before the 2026-07-28 revision\nCODE = -32602\n")
+    assert _check(tmp_path, "python", "PROTO-026") is None
+
+
+def test_proto_023_counts_a_method_string_literal(tmp_path: Path) -> None:
+    # The method name is a literal on the wire, so literals must count.
+    _py_source(tmp_path, 'HANDLERS = {"server/discover": _discover}\n')
+    assert _check(tmp_path, "python", "PROTO-023") is None
+
+
+def test_proto_023_matches_camel_case_identifier(tmp_path: Path) -> None:
+    _py_source(tmp_path, "def serverDiscover():\n    return {}\n")
+    assert _check(tmp_path, "python", "PROTO-023") is None
+
+
+def test_proto_023_fail_on_a_longer_word_starting_with_the_marker(tmp_path: Path) -> None:
+    _py_source(tmp_path, "server_discovery_cache = {}\n")
+    assert _check(tmp_path, "python", "PROTO-023") is not None
+
+
+def test_proto_024_ignores_a_mention_in_a_comment(tmp_path: Path) -> None:
+    _py_source(tmp_path, "# resultType lands once the SDK ships it\nR = {}\n")
+    assert _check(tmp_path, "python", "PROTO-024") is not None
+
+
+def test_proto_025_fail_names_both_missing_hints(tmp_path: Path) -> None:
+    _py_source(tmp_path, "R = {}\n")
+    evidence = _check(tmp_path, "python", "PROTO-025")
+    assert evidence is not None
+    assert "ttlMs" in evidence
+    assert "cacheScope" in evidence
+
+
+def test_proto_026_ignores_the_code_named_in_a_string_literal(tmp_path: Path) -> None:
+    # A migration note in an error message names the code it forbids; reading it
+    # as a use of the code fails the repo that has already migrated.
+    _py_source(tmp_path, 'CODE = -32602\nMSG = "do not return -32002"\n')
+    assert _check(tmp_path, "python", "PROTO-026") is None
+
+
+def test_proto_026_ignores_a_subtraction(tmp_path: Path) -> None:
+    # Formatted subtraction spaces the operator; the sign must sit against the
+    # digits to read as the error code.
+    _py_source(tmp_path, "offset = base - 32002\n")
+    assert _check(tmp_path, "python", "PROTO-026") is None
+
+
+def test_proto_026_ignores_digits_inside_an_identifier(tmp_path: Path) -> None:
+    _py_source(tmp_path, "sku_32002 = 1\n")
+    assert _check(tmp_path, "python", "PROTO-026") is None
+
+
+def test_proto_026_fail_on_a_go_constant(tmp_path: Path) -> None:
+    (tmp_path / "internal").mkdir(parents=True)
+    (tmp_path / "internal" / "errs.go").write_text(
+        "package internal\n\nconst resourceNotFound = -32002\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "PROTO-026") is not None
