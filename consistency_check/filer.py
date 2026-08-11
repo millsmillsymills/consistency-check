@@ -19,16 +19,41 @@ from consistency_check.types import FindingStatus, Tier
 if TYPE_CHECKING:
     from consistency_check.types import Finding, Repo
 
+_GH_TIMEOUT_SECONDS = 30
+
+
+def _gh(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run `gh` under a bounded wait, raising RuntimeError if it cannot complete."""
+    label = " ".join(args[:2])
+    try:
+        return subprocess.run(
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_GH_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        msg = (
+            f"gh {label} timed out after {_GH_TIMEOUT_SECONDS}s. "
+            f"Check network access; an outbound firewall prompt on a newly "
+            f"installed gh binary can block it indefinitely."
+        )
+        raise RuntimeError(msg) from exc
+    except OSError as exc:
+        msg = f"gh {label} could not be executed: {exc}"
+        raise RuntimeError(msg) from exc
+
 
 def gh_auth_ok() -> bool:
-    """Return True iff `gh auth status` reports an authenticated user."""
-    result = subprocess.run(
-        ["gh", "auth", "status"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return result.returncode == 0
+    """Return True iff `gh auth status` reports an authenticated user.
+
+    Raises:
+        RuntimeError: if `gh` could not be run at all, so that a hung or
+            missing binary is reported as such rather than as a stale login.
+
+    """
+    return _gh(["auth", "status"]).returncode == 0
 
 
 def file_repo_findings(repo: Repo, findings: list[Finding], *, apply: bool) -> None:
@@ -140,12 +165,7 @@ def _list_issues_by_title(slug: str, title: str) -> list[dict[str, object]]:
 
 
 def _run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        ["gh", *args],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _gh(args)
     if result.returncode != 0:
         raise RuntimeError(f"gh {' '.join(args[:2])} failed: {result.stderr}")
     return result
