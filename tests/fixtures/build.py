@@ -493,6 +493,13 @@ def build_bad_go(root: Path) -> Path:
             "os"
         )
 
+        // A raw string closing on a line that carries a URL. A comment strip
+        // that runs per line reads the slashes in it as a comment, truncates
+        // away the closing backtick, and leaves the literal scan an
+        // unterminated raw string that blanks every violation below.
+        const usage = `bad-go does things.
+        Docs: https://example.com/docs`
+
         func init() {
             a := 1
             b := 2

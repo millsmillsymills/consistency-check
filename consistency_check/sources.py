@@ -128,22 +128,22 @@ def mask_literal_braces(text: str) -> str:
     return "".join(out)
 
 
-def strip_block_comments(text: str) -> str:
-    """Remove Go ``/* */`` comments, keeping string literals and line count intact.
+def strip_go_comments(text: str) -> str:
+    """Remove Go ``//`` and ``/* */`` comments, keeping literals and line count intact.
 
-    Quote-aware because callers that keep literals would otherwise see a ``/*``
-    inside a URL open a comment that swallows the rest of the file. ``//`` lines
-    are copied through untouched for the same reason: a ``/*`` or a lone
-    apostrophe written in prose there must not open a span.
+    Quote-aware, and one pass over the whole text rather than one per line. A
+    backtick raw string spans lines, so a per-line strip cannot tell that a
+    ``//`` sits inside one; truncating the line that closes the string hands the
+    literal scanner an unterminated raw string, which then consumes every
+    remaining line. Both comment forms are recognised here so that neither can
+    be opened from inside a literal nor a literal from inside a comment.
     """
     out: list[str] = []
     i = 0
     while i < len(text):
         if text.startswith("//", i):
             end = text.find("\n", i)
-            end = len(text) if end == -1 else end
-            out.append(text[i:end])
-            i = end
+            i = len(text) if end == -1 else end
         elif text[i] in "\"'`":
             end = _consume_quoted(text, i)
             out.append(text[i:end])
@@ -189,19 +189,19 @@ def code_only(text: str, line_comment: str) -> str:
     deleted before any check reads it. An empty file passes everything.
     """
     if line_comment == "//":
-        text = strip_block_comments(text)
-    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
-    return strip_go_literals(text) if line_comment == "//" else STRING_LITERAL.sub("", text)
+        return strip_go_literals(strip_go_comments(text))
+    text = "\n".join(_strip_python_line_comment(line) for line in text.splitlines())
+    return STRING_LITERAL.sub("", text)
 
 
 _BLOCK_STRING = re.compile(r"'''.*?'''|\"\"\".*?\"\"\"", re.DOTALL)
 
 
-def _strip_line_comment(line: str, marker: str) -> str:
-    """Drop a trailing line comment, ignoring a marker that sits inside a string.
+def _strip_python_line_comment(line: str) -> str:
+    """Drop a trailing ``#`` comment, ignoring a ``#`` that sits inside a string.
 
-    Keeps `url = "https://example.com"` intact, which matters because callers of
-    this function — unlike ``code_only`` — need the string literals preserved.
+    Keeps `url = "https://example.com#frag"` intact, which matters because
+    callers that keep literals need them whole.
     """
     quote: str | None = None
     i = 0
@@ -213,9 +213,9 @@ def _strip_line_comment(line: str, marker: str) -> str:
                 continue
             if ch == quote:
                 quote = None
-        elif ch in "\"'`":
+        elif ch in "\"'":
             quote = ch
-        elif line.startswith(marker, i):
+        elif ch == "#":
             return line[:i]
         i += 1
     return line
@@ -234,9 +234,9 @@ def code_and_literals(text: str, line_comment: str) -> str:
     would otherwise pair and erase the code between them.
     """
     if line_comment == "//":
-        text = strip_block_comments(text)
-    text = "\n".join(_strip_line_comment(line, line_comment) for line in text.splitlines())
-    return _BLOCK_STRING.sub("", text) if line_comment == "#" else text
+        return strip_go_comments(text)
+    text = "\n".join(_strip_python_line_comment(line) for line in text.splitlines())
+    return _BLOCK_STRING.sub("", text)
 
 
 def _combined(repo: Repo, scrub: Callable[[str, str], str]) -> str:

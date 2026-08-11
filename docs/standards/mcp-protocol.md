@@ -194,4 +194,4 @@ The four rules below grade the stateless revision's new requirements. Each is `S
 
 **Mechanical check.** Fails when `-32002` appears in source with comments, docstrings, *and* string literals stripped, so a note or an error message that names the retired code does not fail the repo that has migrated away from it. The sign must sit against the digits, so formatted subtraction (`n - 32002`) does not match, and a preceding word character or `.` suppresses the match so an identifier ending in those digits does not either. A server that returns neither code passes vacuously: this rule detects the retired code, it does not require the new one, because a repo may legitimately expose no resources.
 
-Go literals are stripped by a scanner that knows all three quote forms, so a backtick raw string is neither read as code nor able to swallow the lines after it through an apostrophe in its prose.
+A Go backtick raw string counts as a literal like any other, so a repo does not fail for naming the retired code inside an embedded template, help text, or JSON sample — and a raw string is graded in isolation, so whatever it contains, the code written after it is still read.

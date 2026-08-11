@@ -12,7 +12,8 @@ from consistency_check.sources import (
     go_sources,
     mask_literal_braces,
     mask_literal_contents,
-    strip_block_comments,
+    strip_go_comments,
+    strip_go_literals,
 )
 from consistency_check.types import Repo
 
@@ -25,9 +26,9 @@ if TYPE_CHECKING:
     [
         # A `/*` written in prose on a `//` line must not open a span. It did,
         # and every registration after it vanished from the audit.
-        ("// see /* here\nvar b = 1\n", "// see /* here\nvar b = 1\n"),
+        ("// see /* here\nvar b = 1\n", "\nvar b = 1\n"),
         # Same failure via a lone apostrophe read as a rune literal.
-        ("// don't\n/* real */\nvar b = 1\n", "// don't\n\nvar b = 1\n"),
+        ("// don't\n/* real */\nvar b = 1\n", "\n\nvar b = 1\n"),
         # A `/*` inside a literal is data, not a comment.
         ('const u = "https://x/*/y"\nvar b = 1\n', 'const u = "https://x/*/y"\nvar b = 1\n'),
         ("var a = `raw /* text`\nvar b = 1\n", "var a = `raw /* text`\nvar b = 1\n"),
@@ -35,10 +36,20 @@ if TYPE_CHECKING:
         ("var a = 1 /* c */ + 2\n", "var a = 1  + 2\n"),
         # Go treats an unterminated block comment as running to EOF.
         ("var a = 1\n/* never closed\nvar b = 2\n", "var a = 1\n\n\n"),
+        # A `//` inside a literal is data. Dropping it here would take the
+        # closing quote with it and leave the literal scanner unterminated.
+        ('const u = "http://x"\nvar b = 1\n', 'const u = "http://x"\nvar b = 1\n'),
+        # The same, spanning lines: only a raw string can, and its closing line
+        # is exactly where a URL tends to sit.
+        ("var a = `one\ntwo http://x`\nvar b = 1\n", "var a = `one\ntwo http://x`\nvar b = 1\n"),
+        # A trailing comment leaves the code before it and the newline after it.
+        ('var a = "x" // note\nvar b = 1\n', 'var a = "x" \nvar b = 1\n'),
+        # A `//` comment at EOF with no trailing newline.
+        ("var a = 1\n// note", "var a = 1\n"),
     ],
 )
-def test_strip_block_comments(text: str, expected: str) -> None:
-    assert strip_block_comments(text) == expected
+def test_strip_go_comments(text: str, expected: str) -> None:
+    assert strip_go_comments(text) == expected
 
 
 def test_go_block_comments_are_stripped_by_both_entry_points() -> None:
@@ -159,3 +170,36 @@ def test_code_only_keeps_go_code_around_a_dropped_literal() -> None:
     out = code_only(go, "//")
     assert "log.Print(" in out
     assert "msg" not in out
+
+
+def test_a_raw_string_closing_on_a_slash_line_keeps_the_code_after_it() -> None:
+    # A per-line comment strip cannot see that it is inside a multi-line raw
+    # string. Truncating the closing line took the backtick with it, leaving an
+    # unterminated raw string that swallowed every remaining line — so a live
+    # `-32002` and an `os.Stdout` write both read as absent.
+    go = (
+        "package p\n\nconst tpl = `line one\nsee http://example.com/docs`\n"
+        "const C = -32002\nfunc F() { os.Stdout.Write(b) }\n"
+    )
+    out = code_only(go, "//")
+    assert "-32002" in out
+    assert "os.Stdout" in out
+    assert "example.com" not in out
+    # The same line is why the literal-keeping path must not truncate either.
+    assert "example.com" in code_and_literals(go, "//")
+
+
+def test_strip_go_literals_bounds_an_unterminated_raw_string() -> None:
+    # This is the input that turns a truncated closing line into a whole-file
+    # deletion, so pin what it does: consume to EOF, preserving the line count.
+    assert strip_go_literals("var a = `open\nvar b = 1\n") == "var a = \n\n"
+    # An unterminated interpreted string stops at the newline instead.
+    assert strip_go_literals('var a = "open\nvar b = 1\n') == "var a = \nvar b = 1\n"
+
+
+def test_an_escaped_quote_does_not_end_a_go_literal() -> None:
+    # Without the escape branch the literal ends at the inner quote and its
+    # contents leak into the code text.
+    go = 'package p\n\nvar s = "he said \\"os.Stdout\\" once"\n'
+    assert "os.Stdout" not in code_only(go, "//")
+    assert mask_literal_contents(r'"a\"b"') == '"____"'
