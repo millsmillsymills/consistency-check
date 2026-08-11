@@ -54,8 +54,11 @@ def test_every_failing_rule_reports_short_single_line_evidence(
     offenders = {
         rule.id: evidence
         for rule in all_rules()
+        # Only a str is a failure verdict. None is a pass, and a check may also
+        # report that it could not evaluate the repo at all; neither carries
+        # evidence to hold to this contract.
         if language in rule.applies_to
-        and (evidence := rule.check(repo)) is not None
+        and isinstance(evidence := rule.check(repo), str)
         and (len(evidence) > _MAX_EVIDENCE or "\n" in evidence)
     }
     assert not offenders, (
