@@ -273,6 +273,14 @@ def build_bad_python(root: Path) -> Path:
         pkg / "cli.py",
         """
         import argparse
+
+        # A docstring closing on a line that carries a `#`. A comment strip that
+        # runs per line reads it as a comment, takes the closing quotes with it,
+        # and the orphaned opener then pairs with the next docstring and deletes
+        # every violation between them.
+        HELP = \"\"\"
+        Usage: see https://example.com/docs#configuration \"\"\"
+
         RESOURCE_NOT_FOUND = -32002
         parser = argparse.ArgumentParser()
         parser.add_argument("--api-key")

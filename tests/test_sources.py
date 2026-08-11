@@ -14,6 +14,7 @@ from consistency_check.sources import (
     mask_literal_contents,
     strip_go_comments,
     strip_go_literals,
+    strip_python_literals,
 )
 from consistency_check.types import Repo
 
@@ -87,6 +88,31 @@ def test_python_comments_mentioning_triple_quotes_do_not_erase_code() -> None:
     assert "FastMCP" in code_and_literals(py, "#")
 
 
+def test_a_docstring_closing_on_a_hash_line_keeps_the_code_after_it() -> None:
+    # The Python half of the Go raw-string defect. A per-line comment strip
+    # cannot see it is inside a triple-quoted string, so a `#` on the closing
+    # line took the closing quotes with it; the orphaned opener then paired with
+    # the next docstring in the file and everything between was deleted — here a
+    # live -32002, which PROTO-026 then read as absent.
+    py = (
+        'HELP = """\nUsage: see https://example.com/docs#configuration """\n\n'
+        'RETIRED = -32002\n\ndef f():\n    """Docstring."""\n    return httpx.Client()\n'
+    )
+    out = code_only(py, "#")
+    assert "-32002" in out
+    assert "httpx.Client" in out
+    assert "example.com" not in out
+    # code_and_literals drops triple-quoted strings as docstrings, but the code
+    # below the malformed one has to survive there too.
+    assert "-32002" in code_and_literals(py, "#")
+
+
+def test_a_hash_inside_a_python_literal_is_not_a_comment() -> None:
+    py = 'url = "https://example.com#frag"\nc = httpx.Client()\n'
+    assert "httpx.Client" in code_only(py, "#")
+    assert "example.com#frag" in code_and_literals(py, "#")
+
+
 def test_python_docstrings_are_still_stripped() -> None:
     py = 'def f():\n    """Do it.\n\n    print("not a call")\n    """\n    return 1\n'
     assert "not a call" not in code_and_literals(py, "#")
@@ -100,19 +126,32 @@ def test_go_raw_string_triple_quotes_do_not_span_files() -> None:
 
 
 def test_combined_code_text_scrubs_each_file_before_joining(tmp_path: Path) -> None:
-    # An unclosed docstring used to pair with a `\"\"\"` in another file and
-    # consume everything between them, because the scrub ran over the
-    # concatenation rather than over each file. Each file here opens a docstring
-    # it never closes and then names itself, so whichever order the walk
-    # returns, a join-then-scrub eats one of the two names.
+    # An unclosed docstring runs to the end of the text it is scanned in, which
+    # is the file it appears in and must not be the whole concatenation. Scrubbed
+    # over the join, `a.py`'s opener pairs with `b.py`'s and takes every line
+    # between them; `b.py` is well-formed and its registration has to survive its
+    # neighbour being malformed.
     pkg = tmp_path / "src" / "u"
     pkg.mkdir(parents=True)
     (pkg / "a.py").write_text('q = """A\nmcp = FastMCP("alpha")\n', encoding="utf-8")
-    (pkg / "b.py").write_text('q = """B\nmcp = FastMCP("beta")\n', encoding="utf-8")
+    (pkg / "b.py").write_text('d = """B"""\nmcp = FastMCP("beta")\n', encoding="utf-8")
     repo = Repo(name="u", path=tmp_path, language="python", github_slug="x/y")
     text = combined_code_text(repo)
-    assert "alpha" in text
     assert "beta" in text
+
+
+def test_an_unterminated_python_literal_stops_at_its_own_file(tmp_path: Path) -> None:
+    # Python tokenises an unterminated triple-quoted string to the end of input,
+    # so scrubbing blanks the rest of that file — the same shape as Go's
+    # unterminated raw string. The file is a syntax error either way; what
+    # matters is that the blanking cannot reach past it.
+    pkg = tmp_path / "src" / "u"
+    pkg.mkdir(parents=True)
+    (pkg / "a.py").write_text('q = """A\nmcp = FastMCP("alpha")\n', encoding="utf-8")
+    repo = Repo(name="u", path=tmp_path, language="python", github_slug="x/y")
+    assert combined_code_text(repo) == "q = \n\n"
+    # An unterminated single-quoted string ends at its newline instead.
+    assert strip_python_literals("a = 'open\nb = 1\n") == "a = \nb = 1\n"
 
 
 def test_go_sources_ignores_exclusions_in_the_repos_own_ancestors(tmp_path: Path) -> None:

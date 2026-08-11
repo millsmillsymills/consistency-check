@@ -7,7 +7,6 @@ import re
 from typing import TYPE_CHECKING
 
 from consistency_check.sources import (
-    STRING_LITERAL,
     code_and_literals,
     code_only,
     combined_code_only_text,
@@ -17,6 +16,7 @@ from consistency_check.sources import (
     mask_literal_braces,
     mask_literal_contents,
     python_sources,
+    strip_literals,
 )
 from consistency_check.types import Rule, Stage, Tier
 
@@ -419,8 +419,12 @@ def _check_no_secret_logging(repo: Repo) -> str | None:
     for p in sources:
         # Strip string-literal contents up front so human-readable format text
         # never reaches the identifier scan, and a ``)`` inside a literal (e.g.
-        # "...not set (see README)") cannot truncate the log-call match.
-        text = STRING_LITERAL.sub("", p.read_text(encoding="utf-8", errors="replace"))
+        # "...not set (see README)") cannot truncate the log-call match. The
+        # strip is language-aware: a regex that does not know Go's backtick form
+        # reads a raw string's contents as code and lets an apostrophe inside
+        # one delete the lines up to the next apostrophe, log calls included.
+        marker = "#" if repo.language == "python" else "//"
+        text = strip_literals(p.read_text(encoding="utf-8", errors="replace"), marker)
         for m in re.finditer(r"(?:logger|log)\.\w+\(", text):
             # Balanced extraction (not ``[^)]*``) so a credential logged after a
             # nested call — ``logger.info("%s", redact(x), api_key)`` — is still

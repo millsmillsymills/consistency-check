@@ -14,16 +14,6 @@ if TYPE_CHECKING:
 
     from consistency_check.types import Repo
 
-STRING_LITERAL = re.compile(
-    r"""
-    '''.*?'''               # triple single
-    | \"\"\".*?\"\"\"       # triple double
-    | "(?:\\.|[^"\\])*"     # double-quoted
-    | '(?:\\.|[^'\\])*'     # single-quoted
-    """,
-    re.VERBOSE | re.DOTALL,
-)
-
 
 def python_sources(repo: Repo) -> list[Path]:
     """Every .py file under the repo's src/ directory."""
@@ -158,6 +148,88 @@ def strip_go_comments(text: str) -> str:
     return "".join(out)
 
 
+def _consume_python_quoted(text: str, i: int) -> int:
+    r"""Index just past the Python string literal opening at ``i``.
+
+    Only a triple-quoted string may span lines. Ending the others at the newline
+    keeps one unbalanced quote from consuming the rest of the file. A backslash
+    escapes the following character in raw strings too — ``r"\"`` is not a
+    terminated literal — so the escape branch is unconditional.
+    """
+    delim = text[i] * 3 if text.startswith(text[i] * 3, i) else text[i]
+    i += len(delim)
+    while i < len(text):
+        if text[i] == "\\":
+            i += 2
+            continue
+        if text[i] == "\n" and len(delim) == 1:
+            return i
+        if text.startswith(delim, i):
+            return i + len(delim)
+        i += 1
+    return i
+
+
+def strip_python_comments(text: str) -> str:
+    """Remove ``#`` comments in one quote-aware pass, keeping literals intact.
+
+    One pass over the whole text rather than one per line, for the reason
+    ``strip_go_comments`` gives: a triple-quoted string spans lines, so a
+    per-line strip cannot tell that a ``#`` sits inside one. Truncating the line
+    that closes the string orphans the opening quotes, which then pair with the
+    next triple-quoted string in the file and delete everything between.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] == "#":
+            end = text.find("\n", i)
+            i = len(text) if end == -1 else end
+        elif text[i] in "\"'":
+            end = _consume_python_quoted(text, i)
+            out.append(text[i:end])
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def strip_python_literals(text: str) -> str:
+    """Drop every Python string literal, keeping the line count."""
+    return _drop_python_literals(text, triple_only=False)
+
+
+def strip_python_docstrings(text: str) -> str:
+    """Drop triple-quoted strings only, keeping other literals and the line count.
+
+    For callers that need the value inside a literal — a ``transport="http"``
+    argument — but not the prose inside a docstring.
+    """
+    return _drop_python_literals(text, triple_only=True)
+
+
+def _drop_python_literals(text: str, *, triple_only: bool) -> str:
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        if text[i] in "\"'":
+            end = _consume_python_quoted(text, i)
+            span = text[i:end]
+            keep = triple_only and not span.startswith(('"""', "'''"))
+            out.append(span if keep else "\n" * text.count("\n", i, end))
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return "".join(out)
+
+
+def strip_literals(text: str, line_comment: str) -> str:
+    """Drop every string literal, in whichever language ``line_comment`` names."""
+    return strip_go_literals(text) if line_comment == "//" else strip_python_literals(text)
+
+
 def strip_go_literals(text: str) -> str:
     """Drop every Go string, rune, and raw-string body, keeping the line count.
 
@@ -190,42 +262,7 @@ def code_only(text: str, line_comment: str) -> str:
     """
     if line_comment == "//":
         return strip_go_literals(strip_go_comments(text))
-    text = "\n".join(_strip_python_line_comment(line) for line in text.splitlines())
-    return STRING_LITERAL.sub("", text)
-
-
-_BLOCK_STRING = re.compile(r"'''.*?'''|\"\"\".*?\"\"\"", re.DOTALL)
-
-
-def _strip_python_line_comment(line: str) -> str:
-    """Drop a trailing ``#`` comment, ignoring a ``#`` that sits inside a string.
-
-    Keeps `url = "https://example.com#frag"` intact, which matters because
-    callers that keep literals need them whole.
-
-    Known limit, unfixed: quote state restarts on every line, so a ``#`` on the
-    line that closes a triple-quoted string is read as a comment and takes the
-    closing quotes with it. The orphaned opener then pairs with the next
-    triple-quoted string in the file and the literal scan deletes everything
-    between. This is the defect ``strip_go_comments`` exists to avoid on the Go
-    side; Python needs its own whole-text scanner to close it.
-    """
-    quote: str | None = None
-    i = 0
-    while i < len(line):
-        ch = line[i]
-        if quote is not None:
-            if ch == "\\":
-                i += 2
-                continue
-            if ch == quote:
-                quote = None
-        elif ch in "\"'":
-            quote = ch
-        elif ch == "#":
-            return line[:i]
-        i += 1
-    return line
+    return strip_python_literals(strip_python_comments(text))
 
 
 def code_and_literals(text: str, line_comment: str) -> str:
@@ -233,17 +270,12 @@ def code_and_literals(text: str, line_comment: str) -> str:
 
     ``code_only`` drops literals too, which is right for call-shaped heuristics
     but wrong when the value being detected *is* a literal, e.g. a
-    ``transport="streamable-http"`` argument.
-
-    ``_BLOCK_STRING`` is Python-only. Applied to Go it pairs ``\"\"\"`` sequences
-    that occur inside unrelated raw strings and deletes everything between them.
-    It also runs last, because two ``#`` comments that merely *mention* ``\"\"\"``
-    would otherwise pair and erase the code between them.
+    ``transport="streamable-http"`` argument. Go has no docstring form, so its
+    path stops at comments.
     """
     if line_comment == "//":
         return strip_go_comments(text)
-    text = "\n".join(_strip_python_line_comment(line) for line in text.splitlines())
-    return _BLOCK_STRING.sub("", text)
+    return strip_python_docstrings(strip_python_comments(text))
 
 
 def _combined(repo: Repo, scrub: Callable[[str, str], str]) -> str:
