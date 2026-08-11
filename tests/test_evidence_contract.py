@@ -59,11 +59,12 @@ def test_every_failing_rule_reports_short_single_line_evidence(
         # evidence to hold to this contract.
         if language in rule.applies_to
         and isinstance(evidence := rule.check(repo), str)
-        and (len(evidence) > _MAX_EVIDENCE or "\n" in evidence)
+        and (len(evidence) > _MAX_EVIDENCE or "\n" in evidence or str(repo.path) in evidence)
     }
     assert not offenders, (
-        f"evidence must be a short single-line name, not a span of the audited "
-        f"repo's source, which the filer would publish: {offenders}"
+        f"evidence must be a short single-line name carrying no local path, not "
+        f"a span of the audited repo's source, which the filer would publish: "
+        f"{offenders}"
     )
 
 

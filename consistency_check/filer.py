@@ -125,9 +125,17 @@ _BODY_TRUNCATED = "\n\n_Body truncated to fit the GitHub API limit. Re-run local
 
 
 def _fit_body(body: str) -> str:
+    """Trim an oversized body at a line boundary.
+
+    Cutting at a fixed offset can land inside an evidence code span and drop its
+    closing backtick, and the surviving prefix is then unfenced: an ``@name`` or
+    ``#12`` in it posts as a live mention or a cross-reference. Evidence is
+    single-line, so no line boundary sits inside a span.
+    """
     if len(body) <= _BODY_LIMIT:
         return body
-    return body[: _BODY_LIMIT - len(_BODY_TRUNCATED)] + _BODY_TRUNCATED
+    head = body[: _BODY_LIMIT - len(_BODY_TRUNCATED)]
+    return head[: head.rfind("\n") + 1] + _BODY_TRUNCATED
 
 
 def _upsert_issue(

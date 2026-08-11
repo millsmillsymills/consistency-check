@@ -62,11 +62,11 @@ def test_go_block_comments_are_stripped_by_both_entry_points() -> None:
 
 
 def test_quote_inside_a_block_comment_does_not_erase_the_file() -> None:
-    # STRING_LITERAL is comment-blind: run before block-comment stripping it
-    # consumed the comment's own terminator, and the unterminated /* that was
-    # left deleted every line below. An empty file passes every check.
-    # Two quotes are needed — one in the comment, one in real code below — or
-    # STRING_LITERAL never pairs and the ordering is not exercised.
+    # Comments are recognised before literals. Reversed, a quote inside a block
+    # comment consumes the comment's own terminator and the unterminated /* left
+    # behind deletes every line below, and an empty file passes every check.
+    # Two quotes are needed, one in the comment and one in real code below, or
+    # the ordering is not exercised.
     go = 'package main\n/* helper for the " character */\nvar u = "x"\nvar c = &http.Client{}\n'
     assert "http.Client" in code_only(go, "//")
     assert "helper" not in code_only(go, "//")
@@ -82,8 +82,8 @@ def test_quote_inside_a_line_comment_does_not_erase_the_file() -> None:
 
 
 def test_python_comments_mentioning_triple_quotes_do_not_erase_code() -> None:
-    # _BLOCK_STRING pairs the two `"""` written in prose unless comments go
-    # first, taking the FastMCP construction between them with it.
+    # A `"""` written in prose is not a docstring opener. Pair the two and the
+    # FastMCP construction between them goes with them.
     py = '# a docstring is delimited by """\nmcp = FastMCP("foo")\n# close the """ too\n'
     assert "FastMCP" in code_and_literals(py, "#")
 
@@ -119,8 +119,8 @@ def test_python_docstrings_are_still_stripped() -> None:
 
 
 def test_go_raw_string_triple_quotes_do_not_span_files() -> None:
-    # _BLOCK_STRING is a Python docstring pattern. Applied to Go it paired two
-    # unrelated `"""` sequences and deleted the registration between them.
+    # Go has no triple-quote form, so two unrelated `"""` sequences must not
+    # pair and take the registration between them.
     go = 'package t\nconst a = `ex: """`\nfunc r() { s.AddTool(mcp.NewTool("x_go"), h) }\n'
     assert "AddTool" in code_and_literals(go, "//")
 
@@ -190,8 +190,7 @@ def test_quote_does_not_span_lines_except_a_raw_string() -> None:
 
 
 def test_go_raw_string_contents_are_not_read_as_code() -> None:
-    # A backtick string is a literal; STRING_LITERAL could not see one, so its
-    # contents were graded as code.
+    # A backtick string is a literal, so its contents are not code.
     go = "package internal\n\nconst doc = `sample error: -32002 was retired`\n"
     assert "-32002" not in code_only(go, "//")
 
