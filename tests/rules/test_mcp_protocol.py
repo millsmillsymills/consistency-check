@@ -10,9 +10,12 @@ if TYPE_CHECKING:
     from pathlib import Path
 from consistency_check.types import Repo
 
+from tests.rules.verdict import verdict
+
 
 def _check(p: Path, lang: str, rid: str) -> str | None:
-    return next(r for r in RULES if r.id == rid).check(
+    return verdict(
+        next(r for r in RULES if r.id == rid),
         Repo(name=p.name, path=p, language=lang, github_slug="x/y"),
     )
 

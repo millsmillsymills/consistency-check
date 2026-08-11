@@ -8,14 +8,15 @@ from typing import TYPE_CHECKING
 from consistency_check.rules.structure import RULES
 from consistency_check.types import Repo
 
+from tests.rules.verdict import verdict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def _run(repo_path: Path, language: str, rule_id: str) -> str | None:
     repo = Repo(name=repo_path.name, path=repo_path, language=language, github_slug="x/y")
-    rule = next(r for r in RULES if r.id == rule_id)
-    return rule.check(repo)
+    return verdict(next(r for r in RULES if r.id == rule_id), repo)
 
 
 def test_mcp_001_pass_on_good_python(good_python_repo: Path) -> None:

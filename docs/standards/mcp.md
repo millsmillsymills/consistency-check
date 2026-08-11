@@ -151,7 +151,7 @@ publish step: `docker/build-push-action`, `docker push`, `ghcr.io`,
 
 **Rationale.** Unmaintained deps accumulate CVEs.
 
-**Mechanical check.** For each direct dep, latest released version is within 12 months of the manifest pin OR an inline comment in the manifest explains why.
+**Mechanical check.** None. Comparing a pin against the latest release needs network access to PyPI and the Go module proxy, which the audit does not use, so this rule reports n/a rather than a pass — a pass would credit every repo with a standard nothing checked. Verify it by hand, or with `uv pip list --outdated` / `go list -m -u all`.
 
 ### MCP-025 — CI enforces a coverage threshold [SHOULD]
 

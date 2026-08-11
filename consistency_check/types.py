@@ -47,6 +47,22 @@ class Archetype(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class NotApplicable:
+    """What a check returns when it cannot evaluate the repo at all.
+
+    Distinct from ``None`` (pass) and an evidence ``str`` (fail). A check that
+    is gated on something the audit does not have — network access, a tool it
+    does not run — otherwise has to return ``None``, which the driver scores as
+    a pass and the summary counts as compliance the repo never demonstrated.
+
+    A rule that simply does not apply to a repo's *language* does not need this:
+    ``Rule.applies_to`` already records that as a permanent n/a.
+    """
+
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
 class Repo:
     """A target repository to be audited."""
 
@@ -74,13 +90,14 @@ class Finding:
 class Rule:
     """A single auditable standard.
 
-    The check function returns evidence on failure or None on pass.
+    The check returns ``None`` on pass, an evidence ``str`` on failure, or a
+    :class:`NotApplicable` when it cannot evaluate the repo at all.
     """
 
     id: str
     tier: Tier
     statement: str
-    check: Callable[[Repo], str | None]
+    check: Callable[[Repo], str | None | NotApplicable]
     applies_to: frozenset[str] = field(default_factory=lambda: frozenset({"python", "go"}))
     min_stage: Stage = Stage.S3
     applies_to_archetype: frozenset[Archetype] | None = None

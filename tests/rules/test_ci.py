@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from consistency_check.rules.ci import RULES
 from consistency_check.types import Repo, Tier
 
+from tests.rules.verdict import verdict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -19,7 +21,8 @@ def _repo(p: Path) -> Repo:
 
 
 def _check(p: Path, lang: str, rid: str) -> str | None:
-    return next(r for r in RULES if r.id == rid).check(
+    return verdict(
+        next(r for r in RULES if r.id == rid),
         Repo(name="x", path=p, language=lang, github_slug="x/y"),
     )
 
@@ -148,7 +151,7 @@ def test_mcp_018_fails_without_publish_step(tmp_path: Path) -> None:
     (wf / "release.yml").write_text(
         "jobs:\n  r:\n    steps:\n      - run: echo built\n", encoding="utf-8"
     )
-    evidence = _BY_ID["MCP-018"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-018"], _repo(tmp_path))
     assert evidence is not None
     assert "artifact" in evidence
 
@@ -159,18 +162,18 @@ def test_mcp_018_passes_with_image_push(tmp_path: Path) -> None:
     (wf / "release.yml").write_text(
         "jobs:\n  r:\n    steps:\n      - uses: docker/build-push-action@abc\n", encoding="utf-8"
     )
-    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-018"], _repo(tmp_path)) is None
 
 
 def test_mcp_018_fails_when_workflow_missing(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
-    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-018"], _repo(tmp_path)) is not None
 
 
 def test_mcp_018_contributing_fallback_removed(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "CONTRIBUTING.md").write_text("## Release\nTag and push.\n", encoding="utf-8")
-    assert _BY_ID["MCP-018"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-018"], _repo(tmp_path)) is not None
 
 
 def test_mcp_018_is_must_tier() -> None:

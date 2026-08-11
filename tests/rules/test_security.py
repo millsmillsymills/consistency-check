@@ -6,16 +6,20 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from consistency_check.rules.security import RULES
-from consistency_check.types import Repo
+from consistency_check.types import NotApplicable, Repo
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
 def _check(p: Path, rid: str) -> str | None:
-    return next(r for r in RULES if r.id == rid).check(
+    result = next(r for r in RULES if r.id == rid).check(
         Repo(name="x", path=p, language="python", github_slug="x/y"),
     )
+    # A rule that reports n/a never evaluated the repo; a test asking for
+    # a verdict must not silently read that as a pass.
+    assert not isinstance(result, NotApplicable), f"{rid} reported n/a: {result.reason}"
+    return result
 
 
 def test_mcp_019_pass(good_python_repo: Path) -> None:

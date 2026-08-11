@@ -318,8 +318,6 @@ def _documentable_args(func: _ToolFunc) -> list[ast.arg]:
 
 
 def _check_typed_inputs(repo: Repo) -> str | None:
-    if repo.language != "python":
-        return None
     bad = [
         func.name
         for func in _repo_tool_funcs(repo)
@@ -329,8 +327,6 @@ def _check_typed_inputs(repo: Repo) -> str | None:
 
 
 def _check_docstrings(repo: Repo) -> str | None:
-    if repo.language != "python":
-        return None
     bad: list[str] = []
     for func in _repo_tool_funcs(repo):
         doc = ast.get_docstring(func) or ""
@@ -369,7 +365,7 @@ def _check_capabilities(repo: Repo) -> str | None:
 
 
 def _check_stdio_default(repo: Repo) -> str | None:
-    if repo.language == "go" and not next((p for p in (repo.path / "cmd").rglob("main.go")), None):
+    if next((p for p in (repo.path / "cmd").rglob("main.go")), None) is None:
         return "no cmd/.../main.go found"
     return None
 
@@ -561,8 +557,6 @@ def _tool_summary_present(func: _ToolFunc) -> bool:
 
 
 def _check_tool_descriptions(repo: Repo) -> str | None:
-    if repo.language != "python":
-        return None
     bad = [
         func.name
         for func in _repo_tool_funcs(repo)
@@ -765,6 +759,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Each tool has a typed input schema",
         check=_check_typed_inputs,
+        applies_to=frozenset({"python"}),
         min_stage=Stage.S1,
     ),
     Rule(
@@ -772,6 +767,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Each tool has Args/Returns docstring",
         check=_check_docstrings,
+        applies_to=frozenset({"python"}),
         min_stage=Stage.S1,
     ),
     Rule(
@@ -799,6 +795,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Default transport is stdio",
         check=_check_stdio_default,
+        applies_to=frozenset({"go"}),
     ),
     Rule(
         id="PROTO-009",
@@ -841,6 +838,7 @@ RULES: tuple[Rule, ...] = (
         tier=Tier.MUST,
         statement="Each tool has a description summary",
         check=_check_tool_descriptions,
+        applies_to=frozenset({"python"}),
     ),
     Rule(
         id="PROTO-016",

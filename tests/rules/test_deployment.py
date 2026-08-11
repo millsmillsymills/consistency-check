@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING
 from consistency_check.rules.deployment import RULES
 from consistency_check.types import Archetype, Repo
 
+from tests.rules.verdict import verdict
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -41,12 +43,12 @@ def test_artifact_remote_passes_with_dockerfile_and_push(tmp_path: Path) -> None
         "release.yml",
         "on: push\njobs:\n  r:\n    steps:\n      - uses: docker/build-push-action@abc\n",
     )
-    assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path)) is None
 
 
 def test_artifact_remote_fails_without_container_def(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
-    evidence = _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path))
     assert evidence is not None
     assert "Dockerfile" in evidence
 
@@ -55,14 +57,14 @@ def test_artifact_remote_passes_with_wrangler(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
     (tmp_path / "wrangler.toml").write_text('name = "x"\n', encoding="utf-8")
     _write_workflow(tmp_path, "release.yml", "steps:\n  - run: npx wrangler deploy\n")
-    assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path)) is None
 
 
 def test_artifact_site_local_requires_compose_example(tmp_path: Path) -> None:
     _scaffold(tmp_path, "site-local")
     (tmp_path / "Dockerfile").write_text("FROM python:3.13-slim\n", encoding="utf-8")
     _write_workflow(tmp_path, "release.yml", "steps:\n  - run: docker push ghcr.io/x/y\n")
-    evidence = _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path))
     assert evidence is not None
     assert "compose" in evidence
 
@@ -72,12 +74,12 @@ def test_artifact_site_local_passes_complete(tmp_path: Path) -> None:
     (tmp_path / "Dockerfile").write_text("FROM python:3.13-slim\n", encoding="utf-8")
     (tmp_path / "compose.yaml").write_text("services: {}\n", encoding="utf-8")
     _write_workflow(tmp_path, "release.yml", "steps:\n  - run: docker push ghcr.io/x/y\n")
-    assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path)) is None
 
 
 def test_artifact_host_local_requires_mcpb_manifest(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
-    evidence = _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path))
     assert evidence is not None
     assert "manifest.json" in evidence
 
@@ -90,13 +92,13 @@ def test_artifact_host_local_passes_complete(tmp_path: Path) -> None:
         "release.yml",
         "steps:\n  - run: mcpb pack\n  - uses: softprops/action-gh-release@abc\n",
     )
-    assert _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path)) is None
 
 
 def test_artifact_fails_when_archetype_undeclared(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
-    evidence = _BY_ID["MCP-DEPLOY-ARTIFACT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-ARTIFACT"], _repo(tmp_path))
     assert evidence is not None
     assert "no Deployment archetype declared" in evidence
 
@@ -106,7 +108,7 @@ def test_artifact_fails_when_archetype_undeclared(tmp_path: Path) -> None:
 
 def test_docs_remote_requires_deploy_and_connector(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
-    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-DOCS"], _repo(tmp_path)) is not None
 
 
 def test_docs_remote_passes(tmp_path: Path) -> None:
@@ -116,7 +118,7 @@ def test_docs_remote_passes(tmp_path: Path) -> None:
         "## Deploy\nDeploy with `docker push`, then add as a custom connector.\n",
         encoding="utf-8",
     )
-    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-DOCS"], _repo(tmp_path)) is None
 
 
 def test_docs_site_local_passes_with_compose_docs(tmp_path: Path) -> None:
@@ -126,18 +128,18 @@ def test_docs_site_local_passes_with_compose_docs(tmp_path: Path) -> None:
         "## Install\nRun `docker compose up -d` next to the appliance.\n",
         encoding="utf-8",
     )
-    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-DOCS"], _repo(tmp_path)) is None
 
 
 def test_docs_host_local_requires_mcpb_install_docs(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
-    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-DOCS"], _repo(tmp_path)) is not None
     (tmp_path / "README.md").write_text(
         "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\n"
         "## Install\nDownload the .mcpb from the release and install; plug the device in first.\n",
         encoding="utf-8",
     )
-    assert _BY_ID["MCP-DEPLOY-DOCS"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-DOCS"], _repo(tmp_path)) is None
 
 
 # ── MCP-DEPLOY-TRANSPORT ──
@@ -152,7 +154,7 @@ def _write_src(root: Path, name: str, body: str) -> None:
 def test_transport_remote_requires_streamable_http(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
     _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
-    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path))
     assert evidence is not None
     assert "streamable" in evidence.lower()
 
@@ -165,19 +167,19 @@ def test_transport_remote_passes_with_streamable(tmp_path: Path) -> None:
         'transport = os.environ.get("MCP_TRANSPORT", "stdio")\n'
         'mcp.run(transport="streamable-http" if transport == "http" else "stdio")\n',
     )
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None
 
 
 def test_transport_site_local_always_passes(tmp_path: Path) -> None:
     _scaffold(tmp_path, "site-local")
     _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None
 
 
 def test_transport_host_local_fails_on_http_listener(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     _write_src(tmp_path, "__main__.py", "import uvicorn\nuvicorn.run(app)\n")
-    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path))
     assert evidence is not None
     assert "uvicorn" in evidence
 
@@ -185,13 +187,13 @@ def test_transport_host_local_fails_on_http_listener(tmp_path: Path) -> None:
 def test_transport_host_local_passes_stdio_only(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     _write_src(tmp_path, "__main__.py", 'mcp.run(transport="stdio")\n')
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None
 
 
 def test_transport_fails_when_archetype_undeclared(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S4\n", encoding="utf-8")
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is not None
 
 
 # ── MCP-DEPLOY-REGISTRY ──
@@ -200,7 +202,7 @@ def test_transport_fails_when_archetype_undeclared(tmp_path: Path) -> None:
 def test_registry_passes_with_server_json(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
     (tmp_path / "server.json").write_text("{}\n", encoding="utf-8")
-    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-REGISTRY"], _repo(tmp_path)) is None
 
 
 def test_registry_passes_with_readme_mention(tmp_path: Path) -> None:
@@ -209,17 +211,17 @@ def test_registry_passes_with_readme_mention(tmp_path: Path) -> None:
         "# x\n\n## Status\nStage: S4\nDeployment: host-local\n\nListed on the MCP registry.\n",
         encoding="utf-8",
     )
-    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-REGISTRY"], _repo(tmp_path)) is None
 
 
 def test_registry_fails_when_absent(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
-    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-REGISTRY"], _repo(tmp_path)) is not None
 
 
 def test_registry_site_local_passes_trivially(tmp_path: Path) -> None:
     _scaffold(tmp_path, "site-local")
-    assert _BY_ID["MCP-DEPLOY-REGISTRY"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-REGISTRY"], _repo(tmp_path)) is None
 
 
 def test_registry_excludes_site_local() -> None:
@@ -233,18 +235,18 @@ def test_registry_excludes_site_local() -> None:
 def test_decl_fires_when_no_deployment_token(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S3\n", encoding="utf-8")
-    assert _BY_ID["MCP-DEPLOY-DECL"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-DECL"], _repo(tmp_path)) is not None
 
 
 def test_decl_passes_when_declared(tmp_path: Path) -> None:
     _scaffold(tmp_path, "site-local")
-    assert _BY_ID["MCP-DEPLOY-DECL"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-DECL"], _repo(tmp_path)) is None
 
 
 def test_drift_rule_silent_when_undeclared(tmp_path: Path) -> None:
     tmp_path.mkdir(parents=True, exist_ok=True)
     (tmp_path / "README.md").write_text("# x\n\n## Status\nStage: S3\n", encoding="utf-8")
-    assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-DRIFT"], _repo(tmp_path)) is None
 
 
 def test_drift_rule_fires_on_contradiction(tmp_path: Path) -> None:
@@ -252,7 +254,7 @@ def test_drift_rule_fires_on_contradiction(tmp_path: Path) -> None:
     (tmp_path / "pyproject.toml").write_text(
         '[project]\ndependencies = ["httpx==0.27.0"]\n', encoding="utf-8"
     )
-    assert _BY_ID["MCP-DEPLOY-DRIFT"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-DRIFT"], _repo(tmp_path)) is not None
 
 
 def _write_source(root: Path, body: str) -> None:
@@ -265,19 +267,19 @@ def test_transport_ignores_a_comment_denying_a_listener(tmp_path: Path) -> None:
     # A comment ruling out the listener must not be read as one.
     _scaffold(tmp_path, "host-local")
     _write_source(tmp_path, "# stdio only; never streamable HTTP or uvicorn\nmcp.run()\n")
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None
 
 
 def test_transport_ignores_a_docstring_denying_a_listener(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     _write_source(tmp_path, '"""Not a web app: no uvicorn, no listener."""\nmcp.run()\n')
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None
 
 
 def test_transport_still_flags_a_real_listener(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     _write_source(tmp_path, "import uvicorn\n\nuvicorn.run(app)\n")
-    evidence = _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path))
+    evidence = verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path))
     assert evidence is not None
     assert "uvicorn.run(" in evidence
 
@@ -285,17 +287,17 @@ def test_transport_still_flags_a_real_listener(tmp_path: Path) -> None:
 def test_transport_flags_a_streamable_run_argument(tmp_path: Path) -> None:
     _scaffold(tmp_path, "host-local")
     _write_source(tmp_path, 'mcp.run(transport="streamable-http")\n')
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is not None
 
 
 def test_transport_remote_hostable_needs_a_real_transport_not_a_comment(tmp_path: Path) -> None:
     # The mirror-image failure: a promise in a comment must not clear the MUST.
     _scaffold(tmp_path, "remote-hostable")
     _write_source(tmp_path, "# TODO: streamable HTTP is not supported yet\nmcp.run()\n")
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is not None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is not None
 
 
 def test_transport_remote_hostable_passes_on_a_real_transport(tmp_path: Path) -> None:
     _scaffold(tmp_path, "remote-hostable")
     _write_source(tmp_path, 'mcp.run(transport="streamable-http")\n')
-    assert _BY_ID["MCP-DEPLOY-TRANSPORT"].check(_repo(tmp_path)) is None
+    assert verdict(_BY_ID["MCP-DEPLOY-TRANSPORT"], _repo(tmp_path)) is None

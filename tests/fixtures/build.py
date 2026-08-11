@@ -238,7 +238,7 @@ def build_bad_python(root: Path) -> Path:
         [project]
         name = "bad-python"
         version = "0.1.0"
-        requires-python = ">=3.11"
+        requires-python = ">=3.11,<3.13"
         dependencies = ["requests"]
 
         [dependency-groups]
