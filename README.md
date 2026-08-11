@@ -3,8 +3,9 @@
 Canonical MCP-server standards and audit tool for the millsmillsymills MCP suite.
 
 The standards in `docs/standards/` are the source of truth; the tool mechanically
-enforces them. It walks each target repo, runs 96 rule checks, and emits a markdown
-gap report — optionally filing the findings as GitHub issues.
+enforces them. It walks each target repo, runs the applicable subset of its 96 rule
+checks, and emits a markdown gap report — optionally filing the findings as GitHub
+issues.
 
 ## Running the audit
 
@@ -17,10 +18,11 @@ uv run consistency-check audit --out reports/           # writes per-repo <name>
 uv run consistency-check audit --repo unifi-mcp --apply # files GitHub issues (idempotent)
 ```
 
-Without `--apply` the filer prints the `gh` calls it would make. With `--apply` it
-upserts one umbrella issue per repo plus one child issue per MUST/SHOULD failure,
-keyed by exact issue title, labelled `consistency` (children also get
-`consistency:must` / `consistency:should`). MAY failures stay inline in the umbrella.
+Without `--apply` the filer prints the `gh` calls it would make. With `--apply` it files
+one umbrella issue per repo, edited in place on re-run, plus one child issue per
+MUST/SHOULD failure, created once. Both are keyed by exact issue title and labelled
+`consistency`; children also get `consistency:must` / `consistency:should`. MAY failures
+stay inline in the umbrella.
 
 Audited repos are hardcoded in `consistency_check/repos.py` — five Python servers
 (`unifi-mcp`, `unraid-mcp`, `gandi-mcp`, `shortcut-mcp`, `flipperzero-mcp`) and one
@@ -30,7 +32,7 @@ Go server (`protonmail-mcp`), all under `~/Desktop/Projects/mcp-server-dev`.
 
 | Code | Meaning |
 | --- | --- |
-| 0 | All applicable rules passed (or only MAY findings). |
+| 0 | No MUST failure and no audit error. SHOULD and MAY failures still exit 0. |
 | 1 | At least one MUST failure. |
 | 2 | Unknown `--repo` name, or a rule check raised an error. |
 | 3 | `gh` filer call raised a RuntimeError under `--apply`. |
@@ -40,7 +42,8 @@ Go server (`protonmail-mcp`), all under `~/Desktop/Projects/mcp-server-dev`.
 Each rule carries a **tier**, a **min_stage**, and optionally an **archetype**.
 
 - **Tier** (RFC 2119) — `MUST` blocks merge, `SHOULD` is the default with documented
-  exceptions, `MAY` is a preference. Only MUST failures set a nonzero exit code.
+  exceptions, `MAY` is a preference. Only MUST failures set exit 1; see the exit-code
+  table above for the error paths that also exit nonzero.
 - **Stage** (`S0`–`S4`) — how complete the server is. A repo declares its stage with a
   `Stage: S2` line in its README `## Status` section. The auditor runs only rules at or
   below the declared stage, marks the rest `n/a`, and lists the next stage's rules as a

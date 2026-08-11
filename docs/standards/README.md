@@ -43,4 +43,5 @@ The audit tool (`consistency_check/rules/`) references these IDs verbatim. Addin
 Rules are filtered by the repo's declared maturity stage and deployment archetype (both
 read from the README `## Status` section) before they run — see `stages.md` and
 `deployment.md`. Rules above the declared stage, or scoped to a different archetype, are
-reported `n/a` and listed as the promotion checklist for the next stage.
+reported `n/a`. The report's promotion checklist lists the outstanding rules of the next
+stage up, not every `n/a` rule.
