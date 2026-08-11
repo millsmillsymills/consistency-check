@@ -109,16 +109,18 @@ def _banned_phrase_patterns() -> list[tuple[str, re.Pattern[str]]]:
 
 
 def _prose_surfaces(repo: Repo) -> list[str]:
-    found = [name for name in _PROSE_ROOT_FILES if (repo.path / name).is_file()]
+    root_files = [name for name in _PROSE_ROOT_FILES if (repo.path / name).is_file()]
+    tracked = tracked_files(repo.path)
+    # ``docs/`` is a glob over whatever is on disk, so without git to confirm a
+    # file is committed, an untracked local draft's path and a quoted line from
+    # it would be published in an issue. The root files are a fixed list, so
+    # they carry no path the repo has not already named.
+    if tracked is None:
+        return sorted(root_files)
+    found = list(root_files)
     docs = repo.path / "docs"
     if docs.is_dir():
         found.extend(p.relative_to(repo.path).as_posix() for p in docs.rglob("*.md"))
-    tracked = tracked_files(repo.path)
-    # Without git, grade every prose file found. Unlike the tracked-content
-    # rules, the cost here is a false failure on an uncommitted draft, not a
-    # path disclosure: the surfaces are a fixed list of repo docs either way.
-    if tracked is None:
-        return sorted(found)
     return sorted(rel for rel in found if rel in tracked)
 
 

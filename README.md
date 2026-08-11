@@ -34,7 +34,7 @@ Go server (`protonmail-mcp`), all under `~/Desktop/Projects/mcp-server-dev`.
 | --- | --- |
 | 0 | No MUST failure and no audit error. SHOULD and MAY failures still exit 0. |
 | 1 | At least one MUST failure. |
-| 2 | Unknown `--repo` name, or a rule check raised an error. |
+| 2 | Unknown `--repo` name, a rule check raised an error, or a MUST rule could not be graded. |
 | 3 | `gh` filer call raised a RuntimeError under `--apply`. |
 
 ## Three axes
@@ -71,9 +71,15 @@ Rule IDs are referenced verbatim by both the standards doc and the rule module.
 | `MCP-DEPLOY-*` | `rules/deployment.py` | `docs/standards/deployment.md` |
 | `MCP-STAGE-*` | `rules/stage_meta.py` | `docs/standards/stages.md` |
 
-A rule's `check` is a pure `Callable[[Repo], str | None]`: `None` on pass, an evidence
-string on fail. A check that raises becomes an `error` finding rather than crashing the
-run.
+A rule's `check` is a pure `Callable[[Repo], str | None | NotApplicable]`: `None` on pass,
+an evidence string on fail, and a `NotApplicable` when it cannot grade the repo at all. A
+check that raises becomes an `error` finding rather than crashing the run.
+
+`NotApplicable` is for a check that declines, not a rule that does not apply: use
+`Rule.applies_to` when the rule's language is not the repo's. Its `unmechanized` flag
+separates "could not run this time", which escalates the exit code, from "no checker was
+ever written", which does not. Both are listed under **Unevaluated** in the report, because
+an n/a nobody can see reads as a pass.
 
 To add one: write the `### XXX-000` section in the standards doc, add the matching
 `Rule(...)` to the module's `RULES` tuple, register any new module in

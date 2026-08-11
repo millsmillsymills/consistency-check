@@ -20,6 +20,11 @@ if TYPE_CHECKING:
 _REQUIRED_BACKENDS = {"hatchling.build", "uv_build"}
 _REQUIRED_MODULES = ("server.py", "config.py", "errors.py", "__main__.py")
 _PY_ONLY = frozenset({"python"})
+# PY-001 and PY-010 fail outright on these, which is the report of the missing
+# file. Every other rule reading them has no verdict to give: a manifest it
+# cannot parse says nothing about whether the setting it grades is right.
+_NO_PYPROJECT = "pyproject.toml missing or unparseable"
+_NO_PACKAGE_DIR = "package directory missing"
 
 
 def _read_pyproject(repo: Repo) -> dict[str, Any] | None:
@@ -61,14 +66,15 @@ def _check_build_backend(repo: Repo) -> str | None:
 
 
 def _check_requires_python(repo: Repo) -> str | None | NotApplicable:
-    """Evaluate ``requires-python`` as a specifier, since the standard is "permits 3.13".
+    """Evaluate ``requires-python`` as a PEP 440 specifier.
 
-    Substring-matching ``"3.13"`` graded the spelling rather than the meaning: it
-    failed ``>=3.11``, which permits 3.13, and passed ``>=3.14``, which does not.
+    The standard is "permits 3.13", which is a property of the specifier's
+    meaning, not its spelling: ``>=3.11`` permits 3.13 and ``>=3.14`` does not,
+    and neither contains the substring.
     """
     cfg = _read_pyproject(repo)
     if cfg is None:
-        return NotApplicable("pyproject.toml missing or unparseable")
+        return NotApplicable(_NO_PYPROJECT)
     spec = cfg.get("project", {}).get("requires-python", "")
     if not spec:
         return "requires-python is not set; the standard requires a specifier permitting 3.13"
@@ -92,32 +98,32 @@ def _check_required_modules(repo: Repo) -> str | None:
     return f"missing modules: {missing}" if missing else None
 
 
-def _check_subpackages(repo: Repo) -> str | None:
+def _check_subpackages(repo: Repo) -> str | None | NotApplicable:
     pkg = _package_dir(repo)
     if pkg is None:
-        return None
+        return NotApplicable(_NO_PACKAGE_DIR)
     missing = [s for s in ("clients", "tools") if not (pkg / s / "__init__.py").is_file()]
     return f"missing subpackages: {missing}" if missing else None
 
 
-def _check_py_typed(repo: Repo) -> str | None:
+def _check_py_typed(repo: Repo) -> str | None | NotApplicable:
     pkg = _package_dir(repo)
     if pkg is None:
-        return None
+        return NotApplicable(_NO_PACKAGE_DIR)
     return None if (pkg / "py.typed").is_file() else "py.typed marker missing"
 
 
-def _check_ruff(repo: Repo) -> str | None:
+def _check_ruff(repo: Repo) -> str | None | NotApplicable:
     cfg = _read_pyproject(repo)
     if cfg is None:
-        return None
+        return NotApplicable(_NO_PYPROJECT)
     return None if "ruff" in cfg.get("tool", {}) else "no [tool.ruff] config"
 
 
-def _check_type_checker(repo: Repo) -> str | None:
+def _check_type_checker(repo: Repo) -> str | None | NotApplicable:
     cfg = _read_pyproject(repo)
     if cfg is None:
-        return None
+        return NotApplicable(_NO_PYPROJECT)
     deps = _dev_deps(cfg)
     if "ty" not in deps:
         return "ty not in dev dependencies"

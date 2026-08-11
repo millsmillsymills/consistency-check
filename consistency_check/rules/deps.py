@@ -56,13 +56,17 @@ def _check_lockfile(repo: Repo) -> str | None:
 
 
 def _check_dep_age(_repo: Repo) -> NotApplicable:
-    """Report n/a — dependency freshness needs network access the audit does not use.
+    """Report n/a: dependency freshness needs network access the audit does not use.
 
-    An unconditional pass here counted every repo as compliant with a standard
-    nothing had checked, which is the one reading a compliance report must not
-    be given.
+    An unconditional pass counts every repo as compliant with a standard nothing
+    checked, which is the one thing a compliance report must not say. Marked
+    unmechanized because the audit is offline by design, so no re-run clears it
+    and it must not pin the exit code or sit on a promotion checklist forever.
     """
-    return NotApplicable("dependency freshness needs network access; not checked offline")
+    return NotApplicable(
+        "dependency freshness needs network access; the audit runs offline",
+        unmechanized=True,
+    )
 
 
 RULES: tuple[Rule, ...] = (

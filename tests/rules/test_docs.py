@@ -9,6 +9,7 @@ from consistency_check.rules import docs
 from consistency_check.rules.docs import RULES
 from consistency_check.types import Repo
 
+from tests.fixtures.build import git_init
 from tests.rules.verdict import verdict
 
 if TYPE_CHECKING:
@@ -57,7 +58,16 @@ def test_mcp_027_scans_docs_markdown(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     docs.mkdir()
     (docs / "design.md").write_text("The client boasts a fast cache.\n", encoding="utf-8")
+    git_init(tmp_path)
     assert _check(tmp_path, "python", "MCP-027") is not None
+
+
+def test_mcp_027_skips_untracked_docs(tmp_path: Path) -> None:
+    """An untracked draft's path must not reach evidence that gets filed publicly."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "private-draft.md").write_text("The client boasts a fast cache.\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "MCP-027") is None
 
 
 def test_mcp_027_ignores_non_prose_files(tmp_path: Path) -> None:

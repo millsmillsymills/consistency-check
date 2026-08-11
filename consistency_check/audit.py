@@ -120,6 +120,8 @@ def audit_repo(repo: Repo) -> list[Finding]:
                     status=FindingStatus.NA,
                     evidence=evidence.reason,
                     min_stage=rule.min_stage,
+                    unevaluated=True,
+                    unmechanized=evidence.unmechanized,
                 )
             )
             continue

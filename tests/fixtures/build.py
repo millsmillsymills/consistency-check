@@ -29,7 +29,7 @@ def _git(args: list[str]) -> None:
     )
 
 
-def _git_init(root: Path) -> None:
+def git_init(root: Path) -> None:
     """Make the fixture a real git repo with everything committed.
 
     The rules that grade *tracked* content ask git, and report n/a when it
@@ -239,7 +239,7 @@ def build_good_python(root: Path) -> Path:
     """,
     )
 
-    _git_init(root)
+    git_init(root)
     return root
 
 
@@ -322,7 +322,7 @@ def build_bad_python(root: Path) -> Path:
         root / ".github" / "workflows" / "extra.yml",
         "name: extra\njobs:\n  x:\n    steps:\n      - uses: actions/checkout@v4\n",
     )
-    _git_init(root)
+    git_init(root)
     return root
 
 
@@ -498,7 +498,7 @@ def build_good_go(root: Path) -> Path:
     """,
     )
 
-    _git_init(root)
+    git_init(root)
     return root
 
 
@@ -578,7 +578,7 @@ def build_bad_go(root: Path) -> Path:
         root / ".github" / "workflows" / "extra.yml",
         "name: extra\njobs:\n  x:\n    steps:\n      - uses: actions/checkout@v4\n",
     )
-    _git_init(root)
+    git_init(root)
     return root
 
 

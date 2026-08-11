@@ -28,13 +28,13 @@ Guidance from this revision still not mechanically audited: server-initiated req
 
 **Rationale.** Untyped tools degrade discoverability and break stricter clients.
 
-**Mechanical check.** Python: every `@mcp.tool`-decorated function has fully type-annotated parameters (no bare `Any` for top-level args). Go: every tool registration provides `mcp.WithInputSchema(...)`.
+**Mechanical check.** Python: every `@mcp.tool`-decorated function has fully type-annotated parameters (no bare `Any` for top-level args). Go: every tool registration provides `mcp.WithInputSchema(...)`; the requirement stands but the auditor does not grade it, and reports the rule unevaluated on a Go repo.
 
 ### PROTO-004 — Each tool has Args / Returns / Raises docstring [MUST]
 
 **Rationale.** Description is surfaced to the model and to humans browsing the tool list.
 
-**Mechanical check.** Python: function docstring includes `Args:` and either `Returns:` or `Yields:`. Go: `Description` field of tool definition is non-empty.
+**Mechanical check.** Python: function docstring includes `Args:` and either `Returns:` or `Yields:`. Go: `Description` field of tool definition is non-empty; the requirement stands but the auditor does not grade it, and reports the rule unevaluated on a Go repo.
 
 ### PROTO-005 — Read tools and write tools are separated [SHOULD]
 
@@ -60,7 +60,7 @@ Guidance from this revision still not mechanically audited: server-initiated req
 
 **Rationale.** stdio is the lowest-friction transport for desktop clients and the project default. The legacy HTTP+SSE transport is Deprecated as of spec `2026-07-28` — migrate to Streamable HTTP; never add SSE to new code.
 
-**Mechanical check.** `__main__.py` (Python) or `main.go` (Go) starts in stdio mode unless a `--transport http|streamable-http` flag (or matching env var) is set.
+**Mechanical check.** `__main__.py` (Python) or `main.go` (Go) starts in stdio mode unless a `--transport http|streamable-http` flag (or matching env var) is set. Only the Go half is graded; the auditor reports the rule unevaluated on a Python repo.
 
 ## Errors
 

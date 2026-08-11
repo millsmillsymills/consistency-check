@@ -27,7 +27,9 @@ def test_audit_no_apply_runs_without_gh(
     rc = main(["audit", "--repo", "fake"])
     out = capsys.readouterr().out
     assert "fake" in out
-    assert rc in (0, 1)
+    # 2 as well as 0/1: an empty directory is not a git repo, so the rules that
+    # grade tracked content report no verdict rather than a pass.
+    assert rc in (0, 1, 2)
 
 
 def test_unknown_repo_exits_with_code() -> None:
@@ -51,7 +53,9 @@ def test_out_dir_gets_one_report_per_repo(
 
     assert sorted(p.name for p in out.iterdir()) == ["broken.md", "clean.md"]
     # The exit code is the worst outcome across every repo, not the last one's.
-    assert rc == 1
+    # The empty repo has both MUST failures and MUST rules that could not be
+    # graded, and the ungraded ones outrank a failure.
+    assert rc == 2
 
 
 def test_rule_crash_exits_two(

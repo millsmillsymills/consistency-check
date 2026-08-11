@@ -13,16 +13,26 @@ def tracked_files(repo_path: Path) -> frozenset[str] | None:
     """Return the repo-relative paths git considers tracked, or None if it cannot be asked.
 
     ``None`` and an empty set are different answers and callers must not
-    conflate them. Returning an empty set for "git is unavailable" made the
-    idiom ``if tracked and rel not in tracked`` fall through, so rules that
-    exist to grade *tracked* content silently graded the whole working tree —
-    and reported untracked files' paths into a public issue.
+    conflate them: an empty set says "git says nothing is tracked", and every
+    caller that treats the two alike grades the whole working tree, reporting
+    paths the repo never committed.
+
+    ``core.fsmonitor`` is disabled explicitly because git runs it as the
+    auditing user, and the audit points this at repos it did not clone.
     """
     if not (repo_path / ".git").exists():
         return None
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "ls-files"],
+            [
+                "git",
+                "-c",
+                "core.fsmonitor=",
+                "--no-optional-locks",
+                "-C",
+                str(repo_path),
+                "ls-files",
+            ],
             capture_output=True,
             text=True,
             check=False,

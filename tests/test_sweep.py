@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from consistency_check.audit import all_rules
-from consistency_check.types import NotApplicable, Repo
+from consistency_check.types import Repo
 
 from tests.fixtures.build import (
     build_bad_go,
@@ -64,35 +64,31 @@ def _applicable(language: str) -> list[Rule]:
     return [rule for rule in all_rules() if language in rule.applies_to]
 
 
-def _verdict(rule: Rule, repo: Repo) -> str | None:
-    """The rule's evidence, or None when it passed or returned no verdict at all.
-
-    A ``NotApplicable`` is neither a pass nor a failure, so neither side of the
-    fixture contract can assert on it.
-    """
-    result = rule.check(repo)
-    return None if isinstance(result, NotApplicable) else result
-
-
 @pytest.mark.parametrize("language", ["python", "go"])
 def test_good_fixture_passes_every_applicable_rule(tmp_path: Path, language: str) -> None:
     repo = _repo(_GOOD[language](tmp_path / f"good_{language}"), language)
     failed = {
-        rule.id: evidence
+        rule.id: result
         for rule in _applicable(language)
-        if (evidence := _verdict(rule, repo)) is not None
+        if isinstance(result := rule.check(repo), str)
     }
     assert not failed, f"good_{language} should pass every rule but failed: {failed}"
 
 
 @pytest.mark.parametrize("language", ["python", "go"])
 def test_bad_fixture_fails_every_applicable_rule(tmp_path: Path, language: str) -> None:
+    """Only ``None`` counts as a pass here.
+
+    A ``NotApplicable`` is not a pass and must not be scored as one, or a rule
+    that quietly stops evaluating reads as covered by this sweep — the exact
+    regression the sentinel exists to prevent.
+    """
     repo = _repo(_BAD[language](tmp_path / f"bad_{language}"), language)
     exempt = _CANNOT_FAIL[language]
     passed = [
         rule.id
         for rule in _applicable(language)
-        if rule.id not in exempt and _verdict(rule, repo) is None
+        if rule.id not in exempt and rule.check(repo) is None
     ]
     assert not passed, f"bad_{language} should fail every non-exempt rule but passed: {passed}"
 
@@ -107,9 +103,9 @@ def test_exempt_rules_really_cannot_fail(tmp_path: Path, language: str) -> None:
     assert not stale, f"_CANNOT_FAIL[{language}] names rules that do not apply: {stale}"
 
     tripped = {
-        rule_id: evidence
+        rule_id: result
         for rule_id in sorted(exempt)
-        if (evidence := _verdict(applicable[rule_id], repo)) is not None
+        if isinstance(result := applicable[rule_id].check(repo), str)
     }
     assert not tripped, (
         f"_CANNOT_FAIL[{language}] over-exempts: these fail on bad_{language} "
