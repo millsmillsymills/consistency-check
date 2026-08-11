@@ -2,21 +2,41 @@
 
 from __future__ import annotations
 
+import re
+
 from consistency_check.stage import next_stage, stage_rank
 from consistency_check.types import Finding, FindingStatus, Stage, Tier
 
 _TIER_ORDER = (Tier.MUST, Tier.SHOULD, Tier.MAY)
-# Evidence is a short token by convention — a name, a path, a marker — and every
-# rule keeps it that way today. The cap is here rather than in the rules because
-# a matcher that captures a span of the audited repo's source instead of a name
-# publishes that span into a GitHub issue body, and a body over the API's limit
-# aborts the whole filer run.
+# Evidence is a short single-line token by convention — a name, a filename, a
+# marker. `test_evidence_contract` is what enforces that; this cap is only a
+# backstop for a matcher that starts capturing a span of the audited repo's
+# source, and it bounds the issue body rather than making such a matcher safe:
+# it keeps the front of the span, which is the part worth not publishing. A body
+# over the GitHub API's 65,536-character limit aborts that repo's filing, so no
+# child issues get created for it; later repos still run.
 _EVIDENCE_LIMIT = 500
+
+
+def _fence(text: str) -> str:
+    """Wrap evidence in a backtick fence long enough to contain it.
+
+    Evidence lands in a public issue body, where an unfenced identifier holding
+    ``@name`` or ``#12`` posts as a live mention or a cross-reference to whoever
+    happens to own that handle or number.
+    """
+    text = " ".join(text.split()) or "(empty)"
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if text.startswith("`") or text.endswith("`") else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
 
 
 def _evidence(finding: Finding) -> str:
     text = finding.evidence
-    return text if len(text) <= _EVIDENCE_LIMIT else text[:_EVIDENCE_LIMIT] + "… (truncated)"
+    if len(text) > _EVIDENCE_LIMIT:
+        text = text[:_EVIDENCE_LIMIT] + "… (truncated)"
+    return _fence(text)
 
 
 def render_umbrella(
@@ -66,10 +86,13 @@ def render_umbrella(
 
     if errors:
         lines += [f"## Audit errors ({len(errors)})", ""]
-        for f in errors:
-            first_line = _evidence(f).splitlines()[0] if f.evidence else "unknown"
-            lines.append(f"- **{f.rule_id}** — {first_line}")
-        lines.append("")
+        lines.extend(f"- **{f.rule_id}** — {_fence(f.evidence or 'unknown')}" for f in errors)
+        lines += [
+            "",
+            "Detail is on the audit run's stderr. It is not filed, because an "
+            "exception message routinely carries a local path.",
+            "",
+        ]
 
     lines += ["---", "", f"Re-run: `uv run consistency-check audit --repo {repo_name}`."]
     return "\n".join(lines).rstrip() + "\n"
