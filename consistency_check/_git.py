@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from typing import TYPE_CHECKING
 
@@ -32,9 +33,9 @@ def tracked_files(repo_path: Path) -> frozenset[str] | None:
                 "-C",
                 str(repo_path),
                 "ls-files",
+                "-z",
             ],
             capture_output=True,
-            text=True,
             check=False,
             timeout=15,
         )
@@ -42,4 +43,7 @@ def tracked_files(repo_path: Path) -> frozenset[str] | None:
         return None
     if result.returncode != 0:
         return None
-    return frozenset(line for line in result.stdout.splitlines() if line)
+    # Git's default display output C-quotes unusual paths; NUL separators and
+    # filesystem decoding preserve the names Path uses, including embedded
+    # newlines and undecodable bytes.
+    return frozenset(os.fsdecode(path) for path in result.stdout.split(b"\0") if path)
