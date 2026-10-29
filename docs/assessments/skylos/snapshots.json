@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "registered_date": "2026-10-28",
+  "timezone": "America/Los_Angeles",
+  "status": "unmeasured",
+  "issue": 75,
+  "skylos": {
+    "release": "v5.1.5",
+    "commit": "4f32409b5aaf913ca249483dc15221118c6c56db",
+    "artifact_and_dependency_hashes": null,
+    "native_go_engine": "not yet verified"
+  },
+  "snapshots": [
+    {
+      "repo": "unraid-mcp",
+      "language": "python",
+      "commit": "cf8fca1b43ee66ceb9bd2d8e7752df1ccb42eeae",
+      "role": "dynamic-registration candidate",
+      "tracked_changes_at_inventory": 0
+    },
+    {
+      "repo": "unifi-mcp",
+      "language": "python",
+      "commit": "7ed5438d46138c872ad74116cb336063ae42417e",
+      "role": "write-gate candidate",
+      "tracked_changes_at_inventory": 0
+    },
+    {
+      "repo": "protonmail-mcp",
+      "language": "go",
+      "commit": "8fdcb76d2f503a0bee874c2db518da36ceef22fe",
+      "role": "Go primary",
+      "tracked_changes_at_inventory": 0
+    },
+    {
+      "repo": "gandi-mcp",
+      "language": "python",
+      "commit": "c4ac81d767c2f5ff9a67f672faa2b10dfc698ea1",
+      "role": "suite holdout",
+      "tracked_changes_at_inventory": 0
+    },
+    {
+      "repo": "shortcut-mcp",
+      "language": "python",
+      "commit": "16bac27070f94d1ed204a8419f8c42283906e0e9",
+      "role": "suite holdout",
+      "tracked_changes_at_inventory": 0
+    },
+    {
+      "repo": "flipperzero-mcp",
+      "language": "python",
+      "commit": "30532820e3f162630a28caf3afc49da953d53e29",
+      "role": "suite holdout",
+      "tracked_changes_at_inventory": 0
+    }
+  ]
+}
