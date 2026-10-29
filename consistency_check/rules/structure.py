@@ -107,7 +107,9 @@ def _committed_hits(repo: Repo, pattern: str, tracked: frozenset[str]) -> list[s
             rel = hit.relative_to(repo.path)
         except ValueError:
             continue
-        if any(part in _SKIP_DIRS for part in rel.parts):
+        # Ignore dependencies inside these trees, but grade a forbidden tree
+        # itself when git tracks it (e.g. dist/ or .venv/).
+        if any(part in _SKIP_DIRS for part in rel.parts[:-1]):
             continue
         if _hit_is_tracked(rel.as_posix(), tracked):
             hits.append(str(rel))
