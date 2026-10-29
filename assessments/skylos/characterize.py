@@ -92,7 +92,7 @@ def capture_capabilities(runner: Runner, root: Path) -> dict[str, Any]:
     return {"attempt": str(attempt), "diagnostics": outcomes}
 
 
-def main() -> None:
+def main() -> int:
     """Characterize registered units only; never start the scored corpus automatically."""
     plan = json.loads(PLAN.read_text())
     corpus = load_corpus()
@@ -123,7 +123,8 @@ def main() -> None:
     destination.write_text(json.dumps(records, indent=2) + "\n")
     for record in records:
         print(json.dumps({key: record[key] for key in ("case_id", "state", "reason", "resumed")}))  # noqa: T201
+    return 0 if all(record["valid_measurement"] for record in records) else 2
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

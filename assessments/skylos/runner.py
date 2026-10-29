@@ -117,7 +117,9 @@ class Runner:
             raise ValueError("verified scanner or engine changed")
         config = store / "trusted-empty.toml"
         store.mkdir(parents=True, exist_ok=True)
-        config.write_text("# Pilot deliberately overrides target scan configuration.\n")
+        config.write_text(
+            "# Pilot deliberately overrides target scan configuration.\n[tool.skylos]\n"
+        )
         args = command(self.scanner.absolute(), root, case["mode"], config)
         contract = {
             name: file_hash(Path(__file__).with_name(name))

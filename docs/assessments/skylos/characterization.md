@@ -28,6 +28,11 @@ records capture time, host load, plan/collector hashes and environment identity.
 The first diagnostic attempt stopped before any case scan: bare `skylos --help`
 shows a command overview, so it cannot validate source-scan flags. Its raw output
 is retained; source-scan help uses the pinned CLI's documented `skylos . --help`.
+The first 15 unit attempts are also retained: static invocations rejected the
+runner's empty TOML, and verification treated an unrelated TypeScript zero-file
+skip as a coverage gap. The runner now supplies an empty `[tool.skylos]` table;
+adapter revision 2 permits only explicit zero-file skips outside requested checks.
+These corrections change invocation/validation, not corpus sources or thresholds.
 
 Use corpus cases 01, 06, 09 and 15 for each language to characterize dead-code,
 workspace proof, security and quality coverage. Retain failures, malformed

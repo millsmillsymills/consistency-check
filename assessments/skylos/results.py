@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-ADAPTER_VERSION = 1
+ADAPTER_VERSION = 2
 _DEAD_FIELDS = (
     "unused_functions",
     "unused_imports",
@@ -76,7 +76,7 @@ def _verify(payload: dict[str, Any], code: int, language: str) -> dict[str, Any]
         and coverage.get("state") == "complete"
         and bool(coverage.get("completed_checks"))
         and not coverage.get("missing_checks")
-        and not coverage.get("skipped_checks")
+        and _only_out_of_scope_skips(coverage["skipped_checks"], by_id, required)
         and bool(required)
         and required.issubset(coverage["completed_checks"])
         and all(
@@ -93,6 +93,27 @@ def _verify(payload: dict[str, Any], code: int, language: str) -> dict[str, Any]
         "coverage": coverage,
         "upstream_schema": 2,
     }
+
+
+def _only_out_of_scope_skips(
+    skipped: Any, checks: dict[str, dict[str, Any]], required: set[str]
+) -> bool:
+    """Permit only explicit zero-file skips outside the requested check set."""
+    for item in _objects(skipped, "skipped_checks"):
+        identifier = item.get("id")
+        if not isinstance(identifier, str):
+            return False
+        check = checks.get(identifier, {})
+        reasons = _objects(item.get("reasons"), "skip reasons")
+        if (
+            item.get("id") in required
+            or check.get("languages") != []
+            or check.get("applicable_files") != 0
+            or not reasons
+            or any(reason.get("code") != "no_supported_files" for reason in reasons)
+        ):
+            return False
+    return True
 
 
 def _static(payload: dict[str, Any], code: int, mode: str, language: str) -> dict[str, Any]:
