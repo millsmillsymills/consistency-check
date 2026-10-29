@@ -385,13 +385,14 @@ def build_good_go(root: Path) -> Path:
         package main
 
         import (
+            "fmt"
             "log/slog"
             "os"
 
             "github.com/mark3labs/mcp-go/server"
         )
 
-        func errToMCP(err error) error { return err }
+        func errToMCP(err error) error { return fmt.Errorf("mcp: %w", err) }
 
         func main() {
             allowWrites := os.Getenv("GOOD_GO_ALLOW_WRITES")
@@ -552,7 +553,7 @@ def build_bad_go(root: Path) -> Path:
 
         func WithTools(name string) int { return 0 }
 
-        func ClientGet(id string) (string, error) {
+        func GetClient(id string) (string, error) {
             apiKey := *key
             log.Printf("using %s", apiKey)
             fmt.Println("starting")

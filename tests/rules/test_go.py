@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from consistency_check.rules.go import RULES
 from consistency_check.types import Repo
 
@@ -22,6 +23,49 @@ def _check(p: Path, rid: str) -> str | None:
 
 def test_go_001_pass(good_go_repo: Path) -> None:
     assert _check(good_go_repo, "GO-001") is None
+
+
+@pytest.mark.parametrize(
+    "statement", ["return err", "return 0, err", "return 0, nil, err", "return err;"]
+)
+def test_go_009_detects_error_returns(tmp_path: Path, statement: str) -> None:
+    (tmp_path / "api.go").write_text(
+        f"package api\nfunc fail() error {{ {statement} }}\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "GO-009") is not None
+
+
+def test_go_009_ignores_return_syntax_in_comments_and_literals(tmp_path: Path) -> None:
+    (tmp_path / "api.go").write_text(
+        "package api\n// return err\nconst example = `return err`\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "GO-009") is None
+
+
+@pytest.mark.parametrize("verb", ["Get", "List", "Create", "Update", "Delete", "Send", "Fetch"])
+@pytest.mark.parametrize("receiver", ["", "(c *Client) "])
+def test_go_010_requires_context_on_io_prefixes(tmp_path: Path, verb: str, receiver: str) -> None:
+    internal = tmp_path / "internal"
+    internal.mkdir()
+    source = internal / "api.go"
+    source.write_text(f"package api\nfunc {receiver}{verb}Items() {{}}\n", encoding="utf-8")
+    assert _check(tmp_path, "GO-010") is not None
+    source.write_text(
+        f"package api\nfunc {receiver}{verb}Items(ctx context.Context, id string) {{}}\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "GO-010") is None
+
+
+def test_go_010_ignores_prose_and_names_without_io_prefixes(tmp_path: Path) -> None:
+    internal = tmp_path / "internal"
+    internal.mkdir()
+    (internal / "api.go").write_text(
+        "package api\n// func GetExample() {}\nconst example = `func ListExample() {}`\n"
+        "func TargetGet() {}\nfunc getPrivate() {}\n",
+        encoding="utf-8",
+    )
+    assert _check(tmp_path, "GO-010") is None
 
 
 def test_go_004_pass(good_go_repo: Path) -> None:
