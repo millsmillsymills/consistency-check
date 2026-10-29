@@ -34,7 +34,7 @@ to guard against, not a list of defects still present.
 
 ## Tests
 
-- `tests/test_min_stage_map.py` pins implementation stages to a hand-copied dictionary, so a docs-only change can drift with the suite green. Update both copies until a document-derived contract replaces the dictionary; `test_meta.py` sets the precedent of parsing the docs.
+- Keep the stage contract document-derived: `tests/test_min_stage_map.py` parses the authoritative `stages.md` table and its closure default, including explicit meta-rule assignments. A hand-copied dictionary previously allowed docs-only policy changes to drift with the suite green.
 - `test_meta.py` enforces only rule-ID parity, so standards prose drifts from behavior undetected.
 - A good/bad fixture pair cannot protect every conditional branch. Keep focused deployment tests for remote-hostable, site-local, host-local, and undeclared repos alongside the broad sweep; site-local transport deliberately has no additional constraint.
 - `test_sweep.py` distinguishes `None` (pass) from `NotApplicable` (ungraded), and validates its exemption set. Preserve that distinction: a bad-fixture sweep alone still does not prove a check evaluated every relevant branch.

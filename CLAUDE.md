@@ -62,7 +62,7 @@ Rule IDs are referenced verbatim in three places that must stay in sync:
 
 1. Add/edit the `### XXX-000` section in the matching `docs/standards/*.md`. The heading regex in `test_meta.py` accepts a 3-digit id or a `MCP-STAGE-*`/`MCP-DEPLOY-*` meta-rule name, nothing else.
 2. Add/edit the `Rule(...)` in the matching `rules/*.py` module's `RULES` tuple, same id verbatim.
-3. Set `min_stage` (and `applies_to_archetype`, for deploy rules) to match the map in the standards doc; `tests/test_min_stage_map.py` pins the implementation to its own copy of that map, so a docs-only edit will not be caught — change all three.
+3. Set `min_stage` to match the authoritative table in `docs/standards/stages.md` (and `applies_to_archetype`, for deploy rules). `tests/test_min_stage_map.py` parses the table and its closure default and compares every registered rule, including meta-rules; change the standards and implementation together.
 4. If you add a new rule module, register it in `audit._RULE_MODULES`.
 5. `tests/test_meta.py` enforces that documented and implemented id sets are identical — run it.
 

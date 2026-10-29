@@ -1,62 +1,91 @@
-"""Pin the min_stage assignment so it matches docs/standards/stages.md and
-docs/standards/deployment.md."""
+"""Check every rule's stage against the authoritative standards table."""
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
+import pytest
 from consistency_check.audit import all_rules
 from consistency_check.types import Stage
 
-_EXPECTED: dict[str, Stage] = {
-    "MCP-001": Stage.S0,
-    "MCP-002": Stage.S0,
-    "MCP-005": Stage.S0,
-    "MCP-006": Stage.S0,
-    "MCP-007": Stage.S0,
-    "MCP-009": Stage.S0,
-    "MCP-010": Stage.S0,
-    "MCP-019": Stage.S0,
-    "MCP-020": Stage.S0,
-    "PROTO-001": Stage.S1,
-    "PROTO-002": Stage.S1,
-    "PROTO-003": Stage.S1,
-    "PROTO-004": Stage.S1,
-    "PROTO-018": Stage.S1,
-    "PROTO-022": Stage.S1,
-    "MCP-021": Stage.S1,
-    "MCP-022": Stage.S1,
-    "PROTO-005": Stage.S2,
-    "PROTO-006": Stage.S2,
-    "MCP-014": Stage.S2,
-    "MCP-017": Stage.S2,
-    "MCP-023": Stage.S2,
-    "PROTO-023": Stage.S4,
-    "PROTO-024": Stage.S4,
-    "PROTO-025": Stage.S4,
-    "PROTO-026": Stage.S4,
-    "MCP-018": Stage.S4,
-    "MCP-DEPLOY-ARTIFACT": Stage.S4,
-    "MCP-DEPLOY-DOCS": Stage.S4,
-    "MCP-DEPLOY-TRANSPORT": Stage.S4,
-    "MCP-DEPLOY-REGISTRY": Stage.S4,
-    "MCP-STAGE-DECL": Stage.S0,
-    "MCP-STAGE-DRIFT": Stage.S0,
-    "MCP-DEPLOY-DECL": Stage.S0,
-    "MCP-DEPLOY-DRIFT": Stage.S0,
-}
+_STANDARDS = Path(__file__).resolve().parents[1] / "docs" / "standards" / "stages.md"
+_RULE_ID = re.compile(r"[A-Z]+-(?:\d{3}|(?:STAGE|DEPLOY)-[A-Z]+)")
+
+
+def _documented_policy(text: str) -> tuple[dict[str, Stage], Stage]:
+    section = re.search(r"(?ms)^## min_stage map\s*\n(.*?)(?=^## |\Z)", text)
+    assert section is not None, "standards must contain a min_stage map section"
+    body = section.group(1)
+    closure = re.search(r"any rule not listed here defaults to `min_stage = (S[0-4])`", body)
+    assert closure is not None, "standards must declare the default min_stage"
+    default = Stage(closure.group(1))
+    rows = re.findall(r"(?m)^\|\s*(S[0-4])\s*\|([^|\n]+)\|[ \t]*$", body)
+    assert len(rows) == len(Stage), "min_stage map must have exactly one row for each stage"
+    assert {stage for stage, _ in rows} == set(Stage), (
+        "min_stage map must have exactly one row for each stage"
+    )
+    policy: dict[str, Stage] = {}
+    default_rows = []
+    for stage, cell in rows:
+        if "all rules not otherwise listed" in cell:
+            default_rows.append(Stage(stage))
+            continue
+        for token in cell.split(","):
+            rule_id = token.strip().strip("`")
+            assert _RULE_ID.fullmatch(rule_id), f"invalid rule ID in stage map: {rule_id!r}"
+            assert rule_id not in policy, f"duplicate rule ID in stage map: {rule_id}"
+            policy[rule_id] = Stage(stage)
+    assert default_rows == [default], "default table row must match the closure rule"
+    return policy, default
+
+
+def _assert_stages_match(text: str) -> None:
+    policy, default = _documented_policy(text)
+    rules = {rule.id: rule for rule in all_rules()}
+    assert not (unknown := policy.keys() - rules.keys()), f"unknown documented rules: {unknown}"
+    mismatches = {
+        rule_id: (rule.min_stage, expected)
+        for rule_id, rule in rules.items()
+        if rule.min_stage is not (expected := policy.get(rule_id, default))
+    }
+    assert not mismatches, f"min_stage mismatches (actual, documented): {mismatches}"
 
 
 def test_min_stage_assignments_match_doc() -> None:
-    by_id = {r.id: r for r in all_rules()}
-    mismatches = {
-        rid: (by_id[rid].min_stage, expected)
-        for rid, expected in _EXPECTED.items()
-        if by_id[rid].min_stage is not expected
-    }
-    assert not mismatches, f"min_stage mismatches (actual, expected): {mismatches}"
+    _assert_stages_match(_STANDARDS.read_text(encoding="utf-8"))
 
 
-def test_unlisted_rules_default_to_s3() -> None:
-    explicit = set(_EXPECTED)
-    for rule in all_rules():
-        if rule.id not in explicit:
-            assert rule.min_stage is Stage.S3, f"{rule.id} should default to S3"
+@pytest.mark.parametrize("rule_id", ["MCP-001", "MCP-STAGE-DECL", "MCP-DEPLOY-DRIFT"])
+def test_docs_only_stage_change_is_detected(rule_id: str) -> None:
+    text = _STANDARDS.read_text(encoding="utf-8")
+    text = text.replace(f"{rule_id}, ", "", 1).replace("| S1 | ", f"| S1 | {rule_id}, ", 1)
+    with pytest.raises(AssertionError, match=rule_id):
+        _assert_stages_match(text)
+
+
+def test_docs_only_default_change_is_detected() -> None:
+    text = _STANDARDS.read_text(encoding="utf-8")
+    text = text.replace("`min_stage = S3`", "`min_stage = S2`")
+    text = text.replace("| S2 |", "| TEMP |").replace("| S3 |", "| S2 |")
+    text = text.replace("| TEMP |", "| S3 |")
+    with pytest.raises(AssertionError, match="GO-001"):
+        _assert_stages_match(text)
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "message"),
+    [
+        ("| S0 |", "| S5 |", "one row for each stage"),
+        ("| S1 |", "| S0 |", "one row for each stage"),
+        ("| S1 | ", "| S1 | MCP-001, ", "duplicate rule ID"),
+        ("| S1 | ", "| S1 | UNKNOWN-999, ", "unknown documented rules"),
+        ("| S1 | ", "| S1 | malformed, ", "invalid rule ID"),
+        ("`min_stage = S3`", "`min_stage = S2`", "default table row"),
+        ("## min_stage map", "## missing map", "min_stage map section"),
+    ],
+)
+def test_invalid_documented_policy_cannot_silently_pass(old: str, new: str, message: str) -> None:
+    text = _STANDARDS.read_text(encoding="utf-8").replace(old, new, 1)
+    with pytest.raises(AssertionError, match=message):
+        _assert_stages_match(text)
