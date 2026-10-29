@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from consistency_check.sources import go_test_sources
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 
 def _check_tests_dir(repo: Repo) -> str | None:
     if repo.language == "go":
-        if any(repo.path.rglob("*_test.go")):
+        if go_test_sources(repo):
             return None
         return "no Go test files (*_test.go) found"
     tests = repo.path / "tests"
@@ -26,7 +27,7 @@ def _check_unit_integration_split(repo: Repo) -> str | None:
         has_top_integration = (repo.path / "integration").is_dir()
         has_build_tags = any(
             "//go:build integration" in p.read_text(encoding="utf-8", errors="replace")
-            for p in repo.path.rglob("*_test.go")
+            for p in go_test_sources(repo)
         )
         if has_top_integration or has_build_tags:
             return None
@@ -43,7 +44,7 @@ def _check_property_tests(repo: Repo) -> str | None:
     if repo.language == "go":
         if any(
             "func Fuzz" in p.read_text(encoding="utf-8", errors="replace")
-            for p in repo.path.rglob("*_test.go")
+            for p in go_test_sources(repo)
         ):
             return None
         return "no Go fuzz tests (func Fuzz*) found"
