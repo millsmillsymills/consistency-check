@@ -1,0 +1,950 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "cases": [
+    {
+      "id": "python-01-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "private-function",
+      "mode": "dead-code",
+      "ground_truth": "Unreferenced private helper versus a directly invoked helper.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform(value):\n    return value + 1\n"
+      }
+    },
+    {
+      "id": "python-01-control",
+      "language": "python",
+      "kind": "control",
+      "family": "private-function",
+      "mode": "dead-code",
+      "ground_truth": "Unreferenced private helper versus a directly invoked helper.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform(value):\n    return value + 1\nprint(transform(1))\n"
+      }
+    },
+    {
+      "id": "python-02-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "decorator-registration",
+      "mode": "dead-code",
+      "ground_truth": "A no-op decorator leaves an uncalled callback; a registering decorator keeps it reachable.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def identity(fn):\n    return fn\n@identity\ndef transform():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-02-control",
+      "language": "python",
+      "kind": "control",
+      "family": "decorator-registration",
+      "mode": "dead-code",
+      "ground_truth": "A no-op decorator leaves an uncalled callback; a registering decorator keeps it reachable.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "registry = {}\ndef register(fn):\n    registry[fn.__name__] = fn\n    return fn\n@register\ndef transform():\n    return 1\nregistry[\"transform\"]()\n"
+      }
+    },
+    {
+      "id": "python-03-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "factory-registration",
+      "mode": "dead-code",
+      "ground_truth": "A callback not passed into the decorator factory is dead; factory registration makes it live.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-03-control",
+      "language": "python",
+      "kind": "control",
+      "family": "factory-registration",
+      "mode": "dead-code",
+      "ground_truth": "A callback not passed into the decorator factory is dead; factory registration makes it live.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "registry = {}\ndef register(name):\n    def decorate(fn):\n        registry[name] = fn\n        return fn\n    return decorate\n@register(\"task\")\ndef transform():\n    return 1\nregistry[\"task\"]()\n"
+      }
+    },
+    {
+      "id": "python-04-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "registry-dispatch",
+      "mode": "dead-code",
+      "ground_truth": "A handler omitted from dispatch is unused; a dispatch-map entry is a live reference.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform():\n    return 1\nhandlers = {}\n"
+      }
+    },
+    {
+      "id": "python-04-control",
+      "language": "python",
+      "kind": "control",
+      "family": "registry-dispatch",
+      "mode": "dead-code",
+      "ground_truth": "A handler omitted from dispatch is unused; a dispatch-map entry is a live reference.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform():\n    return 1\nhandlers = {\"task\": transform}\nhandlers[input()]()\n"
+      }
+    },
+    {
+      "id": "python-05-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "string-lookup",
+      "mode": "dead-code",
+      "ground_truth": "A method with no use is dead; getattr with a literal name invokes it.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "class Worker:\n    def transform(self):\n        return 1\nworker = Worker()\n"
+      }
+    },
+    {
+      "id": "python-05-control",
+      "language": "python",
+      "kind": "control",
+      "family": "string-lookup",
+      "mode": "dead-code",
+      "ground_truth": "A method with no use is dead; getattr with a literal name invokes it.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "class Worker:\n    def transform(self):\n        return 1\nworker = Worker()\ngetattr(worker, \"transform\")()\n"
+      }
+    },
+    {
+      "id": "python-06-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "optional-api",
+      "mode": "verify",
+      "ground_truth": "An absent optional member is called unconditionally versus guarded with a fallback.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "class Client:\n    pass\ndef run(client: Client):\n    return client.list_items()\nrun(Client())\n"
+      }
+    },
+    {
+      "id": "python-06-control",
+      "language": "python",
+      "kind": "control",
+      "family": "optional-api",
+      "mode": "verify",
+      "ground_truth": "An absent optional member is called unconditionally versus guarded with a fallback.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "class Client:\n    pass\ndef run(client: Client):\n    if hasattr(client, \"list_items\"):\n        return client.list_items()\n    return []\nrun(Client())\n"
+      }
+    },
+    {
+      "id": "python-07-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "subprocess-timeout",
+      "mode": "verify",
+      "ground_truth": "A child operation has no deadline versus an explicit bounded timeout.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\nsubprocess.run([\"echo\", \"ok\"], check=True)\n"
+      }
+    },
+    {
+      "id": "python-07-control",
+      "language": "python",
+      "kind": "control",
+      "family": "subprocess-timeout",
+      "mode": "verify",
+      "ground_truth": "A child operation has no deadline versus an explicit bounded timeout.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\nsubprocess.run([\"echo\", \"ok\"], check=True, timeout=5)\n"
+      }
+    },
+    {
+      "id": "python-08-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "subprocess-error",
+      "mode": "verify",
+      "ground_truth": "A child failure is ignored versus raised through check=True.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\nresult = subprocess.run([\"false\"], check=False, timeout=5)\nprint(\"success\")\n"
+      }
+    },
+    {
+      "id": "python-08-control",
+      "language": "python",
+      "kind": "control",
+      "family": "subprocess-error",
+      "mode": "verify",
+      "ground_truth": "A child failure is ignored versus raised through check=True.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\ntry:\n    subprocess.run([\"false\"], check=True, timeout=5)\nexcept subprocess.CalledProcessError:\n    print(\"child failed\")\n"
+      }
+    },
+    {
+      "id": "python-09-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "subprocess-injection",
+      "mode": "security",
+      "ground_truth": "Untrusted input is composed into a shell command versus passed as an argument.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "security",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\nsubprocess.run(\"echo \" + input(), shell=True, check=True, timeout=5)\n"
+      }
+    },
+    {
+      "id": "python-09-control",
+      "language": "python",
+      "kind": "control",
+      "family": "subprocess-injection",
+      "mode": "security",
+      "ground_truth": "Untrusted input is composed into a shell command versus passed as an argument.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "security",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import subprocess\nsubprocess.run([\"echo\", input()], check=True, timeout=5)\n"
+      }
+    },
+    {
+      "id": "python-10-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "intentional-fixture",
+      "mode": "dead-code",
+      "ground_truth": "An ordinary unused helper versus a framework-registered pytest fixture.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def sample_data():\n    return {\"value\": 1}\n"
+      }
+    },
+    {
+      "id": "python-10-control",
+      "language": "python",
+      "kind": "control",
+      "family": "intentional-fixture",
+      "mode": "dead-code",
+      "ground_truth": "An ordinary unused helper versus a framework-registered pytest fixture.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "import pytest\n@pytest.fixture\ndef sample_data():\n    return {\"value\": 1}\n"
+      }
+    },
+    {
+      "id": "python-11-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "public-entrypoint",
+      "mode": "dead-code",
+      "ground_truth": "An unused private helper versus an explicit exported public entrypoint.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def _transform(value):\n    return value + 1\n"
+      }
+    },
+    {
+      "id": "python-11-control",
+      "language": "python",
+      "kind": "control",
+      "family": "public-entrypoint",
+      "mode": "dead-code",
+      "ground_truth": "An unused private helper versus an explicit exported public entrypoint.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "__all__ = [\"transform\"]\ndef transform(value):\n    return value + 1\n"
+      }
+    },
+    {
+      "id": "python-12-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "local-api-symbol",
+      "mode": "verify",
+      "ground_truth": "A local module does not define the imported symbol versus a defined import.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "from helper import missing\nprint(missing())\n",
+        "helper.py": "def available():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-12-control",
+      "language": "python",
+      "kind": "control",
+      "family": "local-api-symbol",
+      "mode": "verify",
+      "ground_truth": "A local module does not define the imported symbol versus a defined import.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "from helper import available\nprint(available())\n",
+        "helper.py": "def available():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-13-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "local-api-arity",
+      "mode": "verify",
+      "ground_truth": "A local two-argument function receives one argument versus both.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "from helper import combine\nprint(combine(1))\n",
+        "helper.py": "def combine(left, right):\n    return left + right\n"
+      }
+    },
+    {
+      "id": "python-13-control",
+      "language": "python",
+      "kind": "control",
+      "family": "local-api-arity",
+      "mode": "verify",
+      "ground_truth": "A local two-argument function receives one argument versus both.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "from helper import combine\nprint(combine(1, 2))\n",
+        "helper.py": "def combine(left, right):\n    return left + right\n"
+      }
+    },
+    {
+      "id": "python-14-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "local-import",
+      "mode": "verify",
+      "ground_truth": "A relative import names an absent package module versus an existing sibling.",
+      "expected": "finding",
+      "target_file": "pkg/main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "pkg/main.py": "from .missing import available\nprint(available())\n",
+        "pkg/__init__.py": "",
+        "pkg/helper.py": "def available():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-14-control",
+      "language": "python",
+      "kind": "control",
+      "family": "local-import",
+      "mode": "verify",
+      "ground_truth": "A relative import names an absent package module versus an existing sibling.",
+      "expected": "no_finding",
+      "target_file": "pkg/main.py",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "pkg/main.py": "from .helper import available\nprint(available())\n",
+        "pkg/__init__.py": "",
+        "pkg/helper.py": "def available():\n    return 1\n"
+      }
+    },
+    {
+      "id": "python-15-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "unreachable-statement",
+      "mode": "quality",
+      "ground_truth": "A statement follows unconditional return versus executes before return.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "quality",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform():\n    return 1\n    print(\"value\")\nprint(transform())\n"
+      }
+    },
+    {
+      "id": "python-15-control",
+      "language": "python",
+      "kind": "control",
+      "family": "unreachable-statement",
+      "mode": "quality",
+      "ground_truth": "A statement follows unconditional return versus executes before return.",
+      "expected": "no_finding",
+      "target_file": "main.py",
+      "expected_family": "quality",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "def transform():\n    print(\"value\")\n    return 1\nprint(transform())\n"
+      }
+    },
+    {
+      "id": "go-01-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "private-function",
+      "mode": "dead-code",
+      "ground_truth": "A private helper is never invoked versus called from main.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 }\nfunc main()          {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-01-control",
+      "language": "go",
+      "kind": "control",
+      "family": "private-function",
+      "mode": "dead-code",
+      "ground_truth": "A private helper is never invoked versus called from main.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 }\nfunc main()          { println(transform()) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-02-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "callback-registration",
+      "mode": "dead-code",
+      "ground_truth": "A callback is omitted from a registry versus registered and invoked.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\ntype Registry struct{ handlers map[string]func() int }\n\nfunc transform() int { return 1 }\nfunc main()          { registry := Registry{handlers: map[string]func() int{}}; _ = registry }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-02-control",
+      "language": "go",
+      "kind": "control",
+      "family": "callback-registration",
+      "mode": "dead-code",
+      "ground_truth": "A callback is omitted from a registry versus registered and invoked.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nvar registry = map[string]func() int{}\n\nfunc transform() int { return 1 }\nfunc main()          { registry[\"task\"] = transform; println(registry[\"task\"]()) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-03-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "factory-registration",
+      "mode": "dead-code",
+      "ground_truth": "An unused callback factory versus a factory result registered and invoked.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc factory() func() int { return func() int { return 1 } }\nfunc main()               {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-03-control",
+      "language": "go",
+      "kind": "control",
+      "family": "factory-registration",
+      "mode": "dead-code",
+      "ground_truth": "An unused callback factory versus a factory result registered and invoked.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc factory() func() int { return func() int { return 1 } }\nfunc main()               { registry := map[string]func() int{\"task\": factory()}; println(registry[\"task\"]()) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-04-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "registry-dispatch",
+      "mode": "dead-code",
+      "ground_truth": "An unused handler versus a literal map-dispatch reference.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 }\nfunc main() {\n\thandlers := map[string]func() int{\"other\": func() int { return 2 }}\n\tprintln(handlers[\"other\"]())\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-04-control",
+      "language": "go",
+      "kind": "control",
+      "family": "registry-dispatch",
+      "mode": "dead-code",
+      "ground_truth": "An unused handler versus a literal map-dispatch reference.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 }\nfunc main()          { handlers := map[string]func() int{\"task\": transform}; println(handlers[\"task\"]()) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-05-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "string-lookup",
+      "mode": "dead-code",
+      "ground_truth": "A method has no references versus reflection with a literal method name.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\ntype Worker struct{}\n\nfunc (Worker) Transform() int { return 1 }\nfunc main()                   { _ = Worker{} }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-05-control",
+      "language": "go",
+      "kind": "control",
+      "family": "string-lookup",
+      "mode": "dead-code",
+      "ground_truth": "A method has no references versus reflection with a literal method name.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"reflect\"\n\ntype Worker struct{}\n\nfunc (Worker) Transform() int { return 1 }\nfunc main()                   { reflect.ValueOf(Worker{}).MethodByName(\"Transform\").Call(nil) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-06-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "optional-api",
+      "mode": "verify",
+      "ground_truth": "A type assertion for an optional capability can panic versus comma-ok fallback.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\ntype Lister interface{ ListItems() []string }\n\nfunc run(client any) []string { return client.(Lister).ListItems() }\nfunc main()                   { run(struct{}{}) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-06-control",
+      "language": "go",
+      "kind": "control",
+      "family": "optional-api",
+      "mode": "verify",
+      "ground_truth": "A type assertion for an optional capability can panic versus comma-ok fallback.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\ntype Lister interface{ ListItems() []string }\n\nfunc run(client any) []string {\n\tif api, ok := client.(Lister); ok {\n\t\treturn api.ListItems()\n\t}\n\treturn nil\n}\nfunc main() { run(struct{}{}) }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-07-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "subprocess-timeout",
+      "mode": "verify",
+      "ground_truth": "A subprocess context has no deadline versus a WithTimeout context.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport (\n\t\"context\"\n\t\"os/exec\"\n)\n\nfunc main() {\n\tcmd := exec.CommandContext(context.Background(), \"echo\", \"ok\")\n\tif err := cmd.Run(); err != nil {\n\t\tpanic(err)\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-07-control",
+      "language": "go",
+      "kind": "control",
+      "family": "subprocess-timeout",
+      "mode": "verify",
+      "ground_truth": "A subprocess context has no deadline versus a WithTimeout context.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport (\n\t\"context\"\n\t\"os/exec\"\n\t\"time\"\n)\n\nfunc main() {\n\tctx, cancel := context.WithTimeout(context.Background(), time.Second)\n\tdefer cancel()\n\tif err := exec.CommandContext(ctx, \"echo\", \"ok\").Run(); err != nil {\n\t\tpanic(err)\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-08-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "subprocess-error",
+      "mode": "verify",
+      "ground_truth": "A subprocess error is discarded versus explicitly handled.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"os/exec\"\n\nfunc main() { exec.Command(\"echo\", \"ok\").Run() }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-08-control",
+      "language": "go",
+      "kind": "control",
+      "family": "subprocess-error",
+      "mode": "verify",
+      "ground_truth": "A subprocess error is discarded versus explicitly handled.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"os/exec\"\n\nfunc main() {\n\tif err := exec.Command(\"echo\", \"ok\").Run(); err != nil {\n\t\tpanic(err)\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-09-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "subprocess-injection",
+      "mode": "security",
+      "ground_truth": "An argv source becomes a shell program versus a data argument.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "security",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport (\n\t\"os\"\n\t\"os/exec\"\n)\n\nfunc main() {\n\tif err := exec.Command(\"sh\", \"-c\", \"echo \"+os.Args[1]).Run(); err != nil {\n\t\tpanic(err)\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-09-control",
+      "language": "go",
+      "kind": "control",
+      "family": "subprocess-injection",
+      "mode": "security",
+      "ground_truth": "An argv source becomes a shell program versus a data argument.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "security",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport (\n\t\"os\"\n\t\"os/exec\"\n)\n\nfunc main() {\n\tif err := exec.Command(\"echo\", os.Args[1]).Run(); err != nil {\n\t\tpanic(err)\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-10-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "intentional-fixture",
+      "mode": "dead-code",
+      "ground_truth": "An unused helper versus a helper reached through a testing entrypoint.",
+      "expected": "finding",
+      "target_file": "main_test.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main_test.go": "package main\n\nfunc sampleData() int { return 1 }\nfunc main()           {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-10-control",
+      "language": "go",
+      "kind": "control",
+      "family": "intentional-fixture",
+      "mode": "dead-code",
+      "ground_truth": "An unused helper versus a helper reached through a testing entrypoint.",
+      "expected": "no_finding",
+      "target_file": "main_test.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main_test.go": "package main\n\nimport \"testing\"\n\nfunc sampleData() int { return 1 }\nfunc TestSample(t *testing.T) {\n\tif sampleData() != 1 {\n\t\tt.Fatal(\"value\")\n\t}\n}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-11-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "public-entrypoint",
+      "mode": "dead-code",
+      "ground_truth": "An unused private library helper versus an intentionally exported library API.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package pilot\n\nfunc transform() int { return 1 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-11-control",
+      "language": "go",
+      "kind": "control",
+      "family": "public-entrypoint",
+      "mode": "dead-code",
+      "ground_truth": "An unused private library helper versus an intentionally exported library API.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package pilot\n\nfunc Transform() int { return 1 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-12-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "local-api-symbol",
+      "mode": "verify",
+      "ground_truth": "A local package member is absent versus defined.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/helper\"\n\nfunc main() { println(helper.Missing()) }\n",
+        "helper/helper.go": "package helper\n\nfunc Available() int { return 1 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-12-control",
+      "language": "go",
+      "kind": "control",
+      "family": "local-api-symbol",
+      "mode": "verify",
+      "ground_truth": "A local package member is absent versus defined.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/helper\"\n\nfunc main() { println(helper.Available()) }\n",
+        "helper/helper.go": "package helper\n\nfunc Available() int { return 1 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-13-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "local-api-arity",
+      "mode": "verify",
+      "ground_truth": "A local function is called with the wrong argument count versus its declared arity.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/helper\"\n\nfunc main() { println(helper.Combine(1)) }\n",
+        "helper/helper.go": "package helper\n\nfunc Combine(left int, right int) int { return left + right }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-13-control",
+      "language": "go",
+      "kind": "control",
+      "family": "local-api-arity",
+      "mode": "verify",
+      "ground_truth": "A local function is called with the wrong argument count versus its declared arity.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/helper\"\n\nfunc main() { println(helper.Combine(1, 2)) }\n",
+        "helper/helper.go": "package helper\n\nfunc Combine(left int, right int) int { return left + right }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-14-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "local-import",
+      "mode": "verify",
+      "ground_truth": "A module-local import is absent versus an existing helper package.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/missing\"\n\nfunc main() { println(missing.Read()) }\n",
+        "storage/storage.go": "package storage\n\nfunc Read() int { return 2 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-14-control",
+      "language": "go",
+      "kind": "control",
+      "family": "local-import",
+      "mode": "verify",
+      "ground_truth": "A module-local import is absent versus an existing helper package.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "verify",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nimport \"example.org/pilot/storage\"\n\nfunc main() { println(storage.Read()) }\n",
+        "storage/storage.go": "package storage\n\nfunc Read() int { return 2 }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-15-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "unreachable-statement",
+      "mode": "quality",
+      "ground_truth": "A statement follows unconditional return versus runs before return.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "quality",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc main() { return; println(\"value\") }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    },
+    {
+      "id": "go-15-control",
+      "language": "go",
+      "kind": "control",
+      "family": "unreachable-statement",
+      "mode": "quality",
+      "ground_truth": "A statement follows unconditional return versus runs before return.",
+      "expected": "no_finding",
+      "target_file": "main.go",
+      "expected_family": "quality",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc main() { println(\"value\"); return }\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      }
+    }
+  ]
+}
