@@ -1,8 +1,9 @@
 # Skylos advisory pilot: preregistered protocol
 
 Issue: [#75](https://github.com/millsmillsymills/consistency-check/issues/75).
-Status: protocol, snapshot inventory, and an optional synthetic runner/corpus;
-no adoption decision or real-snapshot benchmark outcomes measured.
+Status: protocol, snapshot inventory, optional runner, capability probes and
+[Python sample-0 observations](phase-2-results.md). Go corpus collection is
+gated on incomplete native coverage; no adoption or real-snapshot results exist.
 Registered: 2026-10-28, America/Los_Angeles, after completion of the two initial
 Brooks sweep cycles. This is issue-driven assessment work, not another sweep.
 
