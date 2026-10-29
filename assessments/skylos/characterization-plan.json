@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "corpus_sha256": "93233d48104537eb6cb999dd1e53381392e98d5867188c6b25b2ff66aa9c58ef",
+  "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+  "stage": "capability and suppression; separate from scored corpus",
+  "diagnostics": [
+    [
+      "--help"
+    ],
+    [
+      "verify",
+      "--help"
+    ],
+    [
+      "doctor",
+      "--format",
+      "json"
+    ]
+  ],
+  "mode_case_ids": [
+    "python-01-defect",
+    "python-06-defect",
+    "python-09-defect",
+    "python-15-defect",
+    "go-01-defect",
+    "go-06-defect",
+    "go-09-defect",
+    "go-15-defect"
+  ],
+  "probes": [
+    {
+      "id": "python-90-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "security",
+      "ground_truth": "eval(input()) is a seeded unsafe evaluation; code is never executed.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "SKY-D201",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "print(eval(input()))\n"
+      },
+      "probe": "baseline",
+      "expected_primary": "active"
+    },
+    {
+      "id": "python-91-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "security",
+      "ground_truth": "eval(input()) is a seeded unsafe evaluation; code is never executed.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "SKY-D201",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "print(eval(input()))  # skylos: ignore[SKY-D201] synthetic characterization\n"
+      },
+      "probe": "rule-specific",
+      "expected_primary": "suppressed"
+    },
+    {
+      "id": "python-92-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "security",
+      "ground_truth": "eval(input()) is a seeded unsafe evaluation; code is never executed.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "SKY-D201",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "print(eval(input()))  # skylos-ignore\n"
+      },
+      "probe": "legacy-invalid",
+      "expected_primary": "active"
+    },
+    {
+      "id": "python-93-defect",
+      "language": "python",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "security",
+      "ground_truth": "eval(input()) is a seeded unsafe evaluation; code is never executed.",
+      "expected": "finding",
+      "target_file": "main.py",
+      "expected_family": "SKY-D201",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.py": "print(eval(input()))  # skylos: ignore[SKY-D202] synthetic characterization\n"
+      },
+      "probe": "wrong-rule",
+      "expected_primary": "active"
+    },
+    {
+      "id": "go-90-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "dead-code",
+      "ground_truth": "A private helper is never invoked versus called from main.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 }\nfunc main()          {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      },
+      "probe": "baseline",
+      "expected_primary": "characterize: Go inline suppression support is not established"
+    },
+    {
+      "id": "go-91-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "dead-code",
+      "ground_truth": "A private helper is never invoked versus called from main.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 } // skylos: ignore\nfunc main()          {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      },
+      "probe": "colon-marker",
+      "expected_primary": "characterize: Go inline suppression support is not established"
+    },
+    {
+      "id": "go-92-defect",
+      "language": "go",
+      "kind": "defect",
+      "family": "suppression-characterization",
+      "mode": "dead-code",
+      "ground_truth": "A private helper is never invoked versus called from main.",
+      "expected": "finding",
+      "target_file": "main.go",
+      "expected_family": "dead-code",
+      "coverage_requirement": "Explicit completed language/check coverage; unsupported or incomplete proof is unmeasured.",
+      "files": {
+        "main.go": "package main\n\nfunc transform() int { return 1 } // skylos-ignore\nfunc main()          {}\n",
+        "go.mod": "module example.org/pilot\n\ngo 1.22\n"
+      },
+      "probe": "legacy-marker",
+      "expected_primary": "characterize: Go inline suppression support is not established"
+    }
+  ]
+}
