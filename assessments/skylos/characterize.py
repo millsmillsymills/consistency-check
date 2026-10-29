@@ -20,7 +20,7 @@ OUTPUT = Path("audit-out/skylos")
 def diagnostic_commands(scanner: Path, engine: Path) -> list[tuple[str, list[str]]]:
     """Use only local help, engine identity, and doctor with hook self-tests disabled."""
     return [
-        ("cli-help", [str(scanner), "--help"]),
+        ("cli-help", [str(scanner), ".", "--help"]),
         ("verify-help", [str(scanner), "verify", "--help"]),
         ("doctor", [str(scanner), "doctor", "--format", "json"]),
         ("engine-version", [str(engine), "--version"]),

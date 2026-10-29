@@ -5,6 +5,7 @@
   "stage": "capability and suppression; separate from scored corpus",
   "diagnostics": [
     [
+      ".",
       "--help"
     ],
     [

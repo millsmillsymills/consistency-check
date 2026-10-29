@@ -16,6 +16,11 @@ def test_probe_registration_cannot_change_the_scored_corpus() -> None:
     assert len({case["id"] for case in plan["probes"]}) == 7
     assert not {case["id"] for case in plan["probes"]} & {case["id"] for case in corpus["cases"]}
     assert set(plan["mode_case_ids"]) <= {case["id"] for case in corpus["cases"]}
+    assert plan["diagnostics"][0] == [".", "--help"]
+    assert characterize.diagnostic_commands(characterize.PLAN, characterize.PLAN)[0][1][1:] == [
+        ".",
+        "--help",
+    ]
 
 
 @pytest.mark.parametrize("failure", [None, "exit", "engine", "flags", "json"])

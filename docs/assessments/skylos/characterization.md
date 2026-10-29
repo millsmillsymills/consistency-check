@@ -25,6 +25,9 @@ deadline. The selected native engine must be available and match its hash before
 any Go observation. Help must confirm all registered static/verify flags.
 Run the capture with `uv run python -m assessments.skylos.characterize`; it also
 records capture time, host load, plan/collector hashes and environment identity.
+The first diagnostic attempt stopped before any case scan: bare `skylos --help`
+shows a command overview, so it cannot validate source-scan flags. Its raw output
+is retained; source-scan help uses the pinned CLI's documented `skylos . --help`.
 
 Use corpus cases 01, 06, 09 and 15 for each language to characterize dead-code,
 workspace proof, security and quality coverage. Retain failures, malformed
