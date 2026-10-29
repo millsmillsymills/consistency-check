@@ -13,6 +13,19 @@ _STANDARDS = Path(__file__).resolve().parents[1] / "docs" / "standards" / "stage
 _RULE_ID = re.compile(r"[A-Z]+-(?:\d{3}|(?:STAGE|DEPLOY)-[A-Z]+)")
 
 
+def _stage_rows(body: str) -> list[tuple[str, str]]:
+    lines = [line.strip() for line in body.splitlines() if line.lstrip().startswith("|")]
+    assert len(lines) == len(Stage) + 2, "min_stage map must have exactly one row for each stage"
+    assert all(line.endswith("|") for line in lines), "stage table rows must end with a pipe"
+    cells = [[cell.strip() for cell in line[1:-1].split("|")] for line in lines]
+    assert all(len(row) == 2 for row in cells), "stage table rows must have two columns"
+    assert cells[0] == ["min_stage", "Rules"], "stage table header is missing or malformed"
+    assert all(re.fullmatch(r":?-+:?", cell) for cell in cells[1]), (
+        "stage table separator is missing or malformed"
+    )
+    return [(row[0], row[1]) for row in cells[2:]]
+
+
 def _documented_policy(text: str) -> tuple[dict[str, Stage], Stage]:
     section = re.search(r"(?ms)^## min_stage map\s*\n(.*?)(?=^## |\Z)", text)
     assert section is not None, "standards must contain a min_stage map section"
@@ -20,15 +33,14 @@ def _documented_policy(text: str) -> tuple[dict[str, Stage], Stage]:
     closure = re.search(r"any rule not listed here defaults to `min_stage = (S[0-4])`", body)
     assert closure is not None, "standards must declare the default min_stage"
     default = Stage(closure.group(1))
-    rows = re.findall(r"(?m)^\|\s*(S[0-4])\s*\|([^|\n]+)\|[ \t]*$", body)
-    assert len(rows) == len(Stage), "min_stage map must have exactly one row for each stage"
+    rows = _stage_rows(body)
     assert {stage for stage, _ in rows} == set(Stage), (
         "min_stage map must have exactly one row for each stage"
     )
     policy: dict[str, Stage] = {}
     default_rows = []
     for stage, cell in rows:
-        if "all rules not otherwise listed" in cell:
+        if cell.strip("*() ") == "all rules not otherwise listed":
             default_rows.append(Stage(stage))
             continue
         for token in cell.split(","):
@@ -88,4 +100,22 @@ def test_docs_only_default_change_is_detected() -> None:
 def test_invalid_documented_policy_cannot_silently_pass(old: str, new: str, message: str) -> None:
     text = _STANDARDS.read_text(encoding="utf-8").replace(old, new, 1)
     with pytest.raises(AssertionError, match=message):
+        _assert_stages_match(text)
+
+
+@pytest.mark.parametrize(
+    "row",
+    ["| S5 | MCP-001 |", "| invalid | MCP-001 |", "| S5 | MCP-001 | extra |"],
+)
+def test_extra_invalid_table_rows_are_rejected(row: str) -> None:
+    text = _STANDARDS.read_text(encoding="utf-8").replace("| S3 |", f"{row}\n| S3 |", 1)
+    with pytest.raises(AssertionError):
+        _assert_stages_match(text)
+
+
+def test_default_row_cannot_hide_explicit_rule_assignments() -> None:
+    text = _STANDARDS.read_text(encoding="utf-8").replace(
+        "*(all rules not otherwise listed)*", "*(all rules not otherwise listed)*, MCP-001"
+    )
+    with pytest.raises(AssertionError):
         _assert_stages_match(text)
