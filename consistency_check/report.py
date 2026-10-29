@@ -189,10 +189,19 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
         return out
     at_or_below = [f for f in findings if stage_rank(f.min_stage) <= stage_rank(declared)]
     gate_fails = [f for f in at_or_below if f.tier == Tier.MUST and f.status == FindingStatus.FAIL]
+    gate_errors = [
+        f for f in at_or_below if f.tier == Tier.MUST and f.status == FindingStatus.ERROR
+    ]
     ungraded = [f for f in at_or_below if f.tier == Tier.MUST and f.unevaluated]
     if gate_fails:
         ids = ", ".join(f.rule_id for f in gate_fails)
         out.append(f"Declared **{declared.value}**; {declared.value} gates failing: {ids}.")
+    elif gate_errors:
+        ids = ", ".join(sorted({f.rule_id for f in gate_errors}))
+        out.append(
+            f"Declared **{declared.value}**; these gates raised audit errors: {ids}. "
+            f"Compliance through {declared.value} is unestablished, not shown."
+        )
     elif ungraded:
         ids = ", ".join(sorted({f.rule_id for f in ungraded}))
         out.append(
@@ -211,7 +220,7 @@ def _stage_section(findings: list[Finding], declared: Stage | None) -> list[str]
                 if f.min_stage is nxt
                 and f.applicable
                 and not f.unmechanized
-                and f.status in (FindingStatus.FAIL, FindingStatus.NA)
+                and f.status in (FindingStatus.FAIL, FindingStatus.NA, FindingStatus.ERROR)
             }
         )
         if pending:

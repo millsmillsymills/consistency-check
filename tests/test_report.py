@@ -168,3 +168,24 @@ def test_control_characters_are_dropped_from_evidence() -> None:
     assert child is not None
     assert "\x00" not in child
     assert _rendered_evidence(child) == "`name here`"
+
+
+@pytest.mark.parametrize("tier", [Tier.MUST, Tier.SHOULD])
+def test_stage_compliance_requires_must_gates_to_complete(tier: Tier) -> None:
+    finding = Finding(rule_id="MCP-014", tier=tier, status=FindingStatus.ERROR, min_stage=Stage.S2)
+    body = render_umbrella("s", [finding], declared_stage=Stage.S2)
+    assert "## Audit errors (1)" in body
+    if tier is Tier.MUST:
+        assert "these gates raised audit errors: MCP-014" in body
+        assert "compliant through S2 gates" not in body
+    else:
+        assert "compliant through S2 gates" in body
+
+
+def test_promotion_checklist_keeps_gates_that_raised_errors() -> None:
+    finding = Finding(
+        rule_id="MCP-014", tier=Tier.MUST, status=FindingStatus.ERROR, min_stage=Stage.S2
+    )
+    body = render_umbrella("s", [finding], declared_stage=Stage.S1)
+    assert "compliant through S1 gates" in body
+    assert "To reach **S2**: MCP-014." in body
