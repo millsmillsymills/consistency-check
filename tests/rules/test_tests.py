@@ -33,4 +33,11 @@ def test_mcp_013_pass_on_good_python(good_python_repo: Path) -> None:
 
 
 def test_mcp_013_pass_on_good_go(good_go_repo: Path) -> None:
-    assert _check(good_go_repo, "go", "MCP-013") is None or True
+    assert _check(good_go_repo, "go", "MCP-013") is None
+
+
+def test_mcp_013_fails_without_go_fuzz_tests(tmp_path: Path) -> None:
+    (tmp_path / "main_test.go").write_text(
+        "package main\nfunc TestOrdinary(t *testing.T) {}\n", encoding="utf-8"
+    )
+    assert _check(tmp_path, "go", "MCP-013") is not None
