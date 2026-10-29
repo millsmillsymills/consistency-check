@@ -2,6 +2,14 @@
 
 Applies to MCP servers written in Go. Built on top of `mcp.md`.
 
+Source-based Go checks across GO, MCP, and PROTO rules use the same ownership
+policy: skip dot-prefixed paths and directories named `vendor`, `third_party`,
+`testdata`, or `node_modules`, relative to the audited repository. Production
+checks exclude `*_test.go`; test checks inspect only those files. Owned nested
+modules remain in scope. GO-006 additionally excludes fuzz/property test files
+from its table-driven percentage. A dependency's tests or imports cannot satisfy
+the audited server's test or production-logging requirements.
+
 ## Project layout
 
 ### GO-001 — Layout: `cmd/<binary>/` and `internal/` [MUST]

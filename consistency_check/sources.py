@@ -21,11 +21,11 @@ def python_sources(repo: Repo) -> list[Path]:
     return list(src.rglob("*.py")) if src.is_dir() else []
 
 
-_GO_EXCLUDED_DIRS = frozenset({"vendor", "third_party", "testdata"})
+_GO_EXCLUDED_DIRS = frozenset({"vendor", "third_party", "testdata", "node_modules"})
 
 
-def go_sources(repo: Repo) -> list[Path]:
-    """Every non-test .go file the repo itself owns.
+def _go_files(repo: Repo) -> list[Path]:
+    """Every owned Go file, with one exclusion policy for production and tests.
 
     Skips dot-prefix dirs (.git, .worktrees, .venv, etc.) so stale copies
     under git worktrees or vendor caches don't poison the heuristics, and skips
@@ -37,15 +37,25 @@ def go_sources(repo: Repo) -> list[Path]:
     under a directory named ``vendor`` or ``.worktrees`` would yield no sources
     at all and pass every Go rule on an empty list.
     """
-    return [
+    return sorted(
         p
         for p in repo.path.rglob("*.go")
-        if not any(
+        if p.is_file()
+        and not any(
             part.startswith(".") or part in _GO_EXCLUDED_DIRS
             for part in p.relative_to(repo.path).parts
         )
-        and not p.name.endswith("_test.go")
-    ]
+    )
+
+
+def go_sources(repo: Repo) -> list[Path]:
+    """Owned production Go files, excluding tests and dependency/fixture trees."""
+    return [p for p in _go_files(repo) if not p.name.endswith("_test.go")]
+
+
+def go_test_sources(repo: Repo) -> list[Path]:
+    """Owned Go test files, with the same exclusions as production discovery."""
+    return [p for p in _go_files(repo) if p.name.endswith("_test.go")]
 
 
 def combined_source_text(repo: Repo) -> str:

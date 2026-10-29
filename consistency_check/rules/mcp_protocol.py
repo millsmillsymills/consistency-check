@@ -404,7 +404,9 @@ def _check_stdio_default(repo: Repo) -> str | None | NotApplicable:
             "no Python entrypoint parser; the __main__.py half of PROTO-008 is not mechanized",
             unmechanized=True,
         )
-    if next((p for p in (repo.path / "cmd").rglob("main.go")), None) is None:
+    if not any(
+        p.name == "main.go" and p.is_relative_to(repo.path / "cmd") for p in go_sources(repo)
+    ):
         return "no cmd/.../main.go found"
     return None
 

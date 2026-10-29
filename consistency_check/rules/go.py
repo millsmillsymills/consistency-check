@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from consistency_check.sources import go_sources, go_test_sources
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -14,7 +15,6 @@ if TYPE_CHECKING:
 
 _GOLANGCI_REQUIRED = ("errcheck", "govet", "staticcheck", "unused", "gocritic")
 _GO_ONLY = frozenset({"go"})
-_SKIP_DIRS = frozenset({"vendor", "node_modules"})
 
 # Matches a real `go` statement on a source line: the `go` keyword at a point
 # where a statement can begin (line start, or after `{`/`;`), then a function
@@ -54,22 +54,14 @@ def _read(p: Path) -> str:
     return p.read_text(encoding="utf-8", errors="replace") if p.is_file() else ""
 
 
-def _skipped(p: Path, root: Path) -> bool:
-    try:
-        rel_parts = p.relative_to(root).parts
-    except ValueError:
-        return True
-    # Skip dot-prefixed dirs (.git, .claude/worktrees, .venv, ...) so stale
-    # repo copies under agent worktrees or caches don't poison the heuristics.
-    return any(part.startswith(".") or part in _SKIP_DIRS for part in rel_parts)
-
-
 def _check_layout(repo: Repo) -> str | None:
     if not (repo.path / "cmd").is_dir():
         return "cmd/ missing"
     if not (repo.path / "internal").is_dir():
         return "internal/ missing"
-    if not any((repo.path / "cmd").rglob("main.go")):
+    if not any(
+        p.name == "main.go" and p.is_relative_to(repo.path / "cmd") for p in go_sources(repo)
+    ):
         return "no cmd/<binary>/main.go found"
     return None
 
@@ -127,9 +119,8 @@ def _check_table_driven(repo: Repo) -> str | None:
     # signal focused on unit + integration tests where the pattern applies.
     test_files = [
         p
-        for p in repo.path.rglob("*_test.go")
-        if not _skipped(p, repo.path)
-        and not (p.name == "fuzz_test.go" or p.name.endswith("_fuzz_test.go"))
+        for p in go_test_sources(repo)
+        if not (p.name == "fuzz_test.go" or p.name.endswith("_fuzz_test.go"))
         and not (p.name == "property_test.go" or p.name.endswith("_property_test.go"))
     ]
     if not test_files:
@@ -148,9 +139,7 @@ def _check_race_in_ci(repo: Repo) -> str | None:
 def _check_integration_split(repo: Repo) -> str | None:
     if (repo.path / "integration").is_dir():
         return None
-    for p in repo.path.rglob("*_test.go"):
-        if _skipped(p, repo.path):
-            continue
+    for p in go_test_sources(repo):
         if "//go:build integration" in _read(p):
             return None
     return "no integration/ directory and no //go:build integration tags"
@@ -166,9 +155,7 @@ def _check_error_wrapping(repo: Repo) -> str | None:
     # (directory), not per file — a bare return is a real miss only when *no*
     # file in its package wraps with %w.
     by_dir: dict[Path, list[Path]] = {}
-    for p in repo.path.rglob("*.go"):
-        if p.name.endswith("_test.go") or _skipped(p, repo.path):
-            continue
+    for p in go_sources(repo):
         by_dir.setdefault(p.parent, []).append(p)
     bad: list[str] = []
     for files in by_dir.values():
@@ -195,8 +182,8 @@ def _check_context_first(repo: Repo) -> str | None:
     internal = repo.path / "internal"
     if not internal.is_dir():
         return None
-    for p in internal.rglob("*.go"):
-        if p.name.endswith("_test.go"):
+    for p in go_sources(repo):
+        if not p.is_relative_to(internal):
             continue
         text = _read(p)
         for m in re.finditer(
@@ -211,9 +198,7 @@ def _check_context_first(repo: Repo) -> str | None:
 
 def _check_init_simple(repo: Repo) -> str | None:
     bad: list[str] = []
-    for p in repo.path.rglob("*.go"):
-        if p.name.endswith("_test.go") or _skipped(p, repo.path):
-            continue
+    for p in go_sources(repo):
         text = _read(p)
         for m in re.finditer(r"func\s+init\s*\(\)\s*\{([^}]*)\}", text, re.DOTALL):
             body = m.group(1).strip()
@@ -238,11 +223,7 @@ _GO_ERRCHAN = re.compile(r"\bchan\s+error\b")
 
 
 def _check_errgroup(repo: Repo) -> str | None:
-    sources = [
-        p
-        for p in repo.path.rglob("*.go")
-        if not p.name.endswith("_test.go") and not _skipped(p, repo.path)
-    ]
+    sources = go_sources(repo)
     if not any(_GOROUTINE_RE.search(_read(p)) for p in sources):
         return None
     # errgroup is the canonical collector, but a goroutine whose error is
@@ -257,8 +238,8 @@ def _check_no_panic(repo: Repo) -> str | None:
     internal = repo.path / "internal"
     if not internal.is_dir():
         return None
-    for p in internal.rglob("*.go"):
-        if p.name.endswith("_test.go"):
+    for p in go_sources(repo):
+        if not p.is_relative_to(internal):
             continue
         text = _read(p)
         if re.search(r"\bpanic\(", text):
@@ -267,7 +248,7 @@ def _check_no_panic(repo: Repo) -> str | None:
 
 
 def _check_log_lib(repo: Repo) -> str | None:
-    sources = [p for p in repo.path.rglob("*.go") if not _skipped(p, repo.path)]
+    sources = go_sources(repo)
     has_slog = any("log/slog" in _read(p) for p in sources)
     has_zerolog = any('"github.com/rs/zerolog' in _read(p) for p in sources)
     if has_slog or has_zerolog:

@@ -10,6 +10,7 @@ from consistency_check.sources import (
     code_only,
     combined_code_text,
     go_sources,
+    go_test_sources,
     mask_literal_braces,
     mask_literal_contents,
     strip_go_comments,
@@ -169,6 +170,26 @@ def test_go_sources_ignores_exclusions_in_the_repos_own_ancestors(tmp_path: Path
 
 def test_mask_literal_braces_only_touches_literals() -> None:
     assert mask_literal_braces('a{ x = "}" }') == 'a{ x = " " }'
+
+
+@pytest.mark.parametrize(
+    "excluded", ["vendor", "third_party", "testdata", "node_modules", ".worktrees", ".cache"]
+)
+def test_go_discovery_shares_exclusions_and_keeps_owned_nested_modules(
+    tmp_path: Path, excluded: str
+) -> None:
+    root = tmp_path / excluded / "repo"
+    for directory in (root / "nested", root / "internal" / excluded, root / excluded):
+        directory.mkdir(parents=True)
+        (directory / "source.go").write_text("package p\n", encoding="utf-8")
+        (directory / "source_test.go").write_text("package p\n", encoding="utf-8")
+    (root / "nested" / "go.mod").write_text("module nested\n", encoding="utf-8")
+    (root / "directory.go").mkdir()
+    repo = Repo(name="repo", path=root, language="go", github_slug="x/y")
+    assert [p.relative_to(root).as_posix() for p in go_sources(repo)] == ["nested/source.go"]
+    assert [p.relative_to(root).as_posix() for p in go_test_sources(repo)] == [
+        "nested/source_test.go"
+    ]
 
 
 def test_python_slash_star_is_not_a_comment() -> None:
