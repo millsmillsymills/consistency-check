@@ -21,7 +21,7 @@ def _read_workflows(repo: Repo) -> list[Path]:
     wf_dir = repo.path / ".github" / "workflows"
     if not wf_dir.is_dir():
         return []
-    return [p for p in wf_dir.iterdir() if p.suffix in {".yml", ".yaml"}]
+    return [p for p in wf_dir.iterdir() if p.suffix in {".yml", ".yaml"} and p.is_file()]
 
 
 def _check_ci_workflow(repo: Repo) -> str | None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from consistency_check.rules.ci import RULES
 from consistency_check.types import Repo, Tier
 
@@ -29,6 +30,16 @@ def _check(p: Path, lang: str, rid: str) -> str | None:
 
 def test_mcp_014_pass(good_python_repo: Path) -> None:
     assert _check(good_python_repo, "python", "MCP-014") is None
+
+
+@pytest.mark.parametrize("rule_id", ["MCP-017", "MCP-025", "MCP-026"])
+def test_workflow_named_directories_do_not_break_ci_checks(
+    good_python_repo: Path, rule_id: str
+) -> None:
+    workflows = good_python_repo / ".github" / "workflows"
+    (workflows / "archive.yml").mkdir()
+    (workflows / "archive.yaml").mkdir()
+    assert _check(good_python_repo, "python", rule_id) is None
 
 
 def test_mcp_017_pass(good_python_repo: Path) -> None:
