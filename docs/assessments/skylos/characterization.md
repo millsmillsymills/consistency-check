@@ -23,6 +23,8 @@ Disabling hook self-tests prevents doctor from running global hook commands.
 Use the runner's restricted environment, disposable Git inputs and process-group
 deadline. The selected native engine must be available and match its hash before
 any Go observation. Help must confirm all registered static/verify flags.
+Run the capture with `uv run python -m assessments.skylos.characterize`; it also
+records capture time, host load, plan/collector hashes and environment identity.
 
 Use corpus cases 01, 06, 09 and 15 for each language to characterize dead-code,
 workspace proof, security and quality coverage. Retain failures, malformed
