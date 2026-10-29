@@ -54,3 +54,16 @@ adjudication before any recall denominator is formed.
 No real server snapshot is scanned in this phase. Representative-role inventories,
 baseline-tool verification, independent real-finding adjudication, 20 timed runs,
 suite overlap and all six rollout decisions remain prerequisites for later work.
+
+## Collection boundary after capability probes
+
+Python suppression probes and four selected modes are structurally complete.
+Collect only Python sample 0 using
+`uv run python -m assessments.skylos --language python --sample 0`.
+The frozen Go case set remains gated: the pinned CLI rejects native symbol
+references on zero-reference inputs. Capture direct native `analyze --root ...
+--format json --skylos-version 5.1.5` diagnostics for the already selected Go 01
+and 09 inputs to distinguish engine output from CLI validation. Do not patch the
+engine, rewrite `null` references, change the pin, or edit registered cases to
+make them pass. Go suppression behavior is unmeasured until complete analysis is
+available; a marker disappearing from incomplete output would prove nothing.

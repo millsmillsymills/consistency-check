@@ -21,6 +21,9 @@ def main(argv: list[str] | None = None) -> int:
     """Collect observations; noncomplete units exit 2 without discarding evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", help="One registered case ID; default: all 60.")
+    parser.add_argument(
+        "--language", choices=("python", "go"), help="Limit to one frozen language."
+    )
     parser.add_argument("--environment", type=Path, default=Path(".scratch/skylos-env"))
     parser.add_argument("--engine", type=Path, default=Path(".scratch/skylos-go"))
     parser.add_argument(
@@ -42,7 +45,12 @@ def main(argv: list[str] | None = None) -> int:
             args.engine,
             Path("assessments/skylos/requirements.lock"),
         )
-        cases = [case for case in corpus["cases"] if args.case is None or case["id"] == args.case]
+        cases = [
+            case
+            for case in corpus["cases"]
+            if (args.case is None or case["id"] == args.case)
+            and (args.language is None or case["language"] == args.language)
+        ]
         if not cases or args.sample < 0:
             return _failure("unknown case or negative sample")
         runner = Runner(
