@@ -33,6 +33,11 @@ runner's empty TOML, and verification treated an unrelated TypeScript zero-file
 skip as a coverage gap. The runner now supplies an empty `[tool.skylos]` table;
 adapter revision 2 permits only explicit zero-file skips outside requested checks.
 These corrections change invocation/validation, not corpus sources or thresholds.
+Revision 3 binds the observed pinned shapes: summarized skip reasons are strings
+(the detailed check uses objects), and empty security/quality lists may be omitted
+by `reporting/result_builder.py`. An omitted list is accepted only with explicit
+complete analysis, a matching scanned category and consistent finding counts.
+Suppressed findings and the upstream assessment remain visible in observations.
 
 Use corpus cases 01, 06, 09 and 15 for each language to characterize dead-code,
 workspace proof, security and quality coverage. Retain failures, malformed

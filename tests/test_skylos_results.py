@@ -95,3 +95,23 @@ def test_a_new_upstream_schema_requires_adapter_review() -> None:
     payload["schema_version"] = 1
     with pytest.raises(ValueError, match="schema"):
         validate_output(json.dumps(payload).encode(), 0, "dead-code", "python")
+
+
+@pytest.mark.parametrize(("mode", "field"), [("security", "danger"), ("quality", "quality")])
+@pytest.mark.parametrize("gap", [None, "coverage", "count"])
+def test_omitted_optional_lists_require_explicit_complete_scan_and_zero_counts(mode, field, gap):
+    payload = _static(mode=mode)
+    del payload[field]
+    payload["analysis_summary"]["analysis_coverage"] = {"status": "complete"}
+    payload["assessment"] = {"scanned_checks": [mode]}
+    if gap == "coverage":
+        payload["analysis_summary"]["analysis_coverage"]["status"] = "incomplete"
+    if gap == "count":
+        payload["analysis_summary"][f"{field}_count"] = 1
+    if gap:
+        with pytest.raises(ValueError, match="contradicts"):
+            validate_output(json.dumps(payload).encode(), 0, mode, "python")
+    else:
+        observation = validate_output(json.dumps(payload).encode(), 0, mode, "python")
+        assert observation["state"] == "complete"
+        assert observation["findings"] == []

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-ADAPTER_VERSION = 2
+ADAPTER_VERSION = 3
 _DEAD_FIELDS = (
     "unused_functions",
     "unused_imports",
@@ -104,13 +104,12 @@ def _only_out_of_scope_skips(
         if not isinstance(identifier, str):
             return False
         check = checks.get(identifier, {})
-        reasons = _objects(item.get("reasons"), "skip reasons")
+        reasons = item.get("reasons")
         if (
             item.get("id") in required
             or check.get("languages") != []
             or check.get("applicable_files") != 0
-            or not reasons
-            or any(reason.get("code") != "no_supported_files" for reason in reasons)
+            or reasons != ["no_supported_files"]
         ):
             return False
     return True
@@ -139,7 +138,7 @@ def _static(payload: dict[str, Any], code: int, mode: str, language: str) -> dic
     fields = (
         _DEAD_FIELDS if mode == "dead-code" else ("danger" if mode == "security" else "quality",)
     )
-    findings = [item for field in fields for item in _objects(payload.get(field), field)]
+    findings = _static_findings(payload, summary, fields, category)
     complete = (
         code != 2
         and not errors
@@ -158,8 +157,32 @@ def _static(payload: dict[str, Any], code: int, mode: str, language: str) -> dic
         "findings": findings,
         "suppressed": suppressed,
         "coverage": summary,
+        "assessment": payload.get("assessment"),
         "upstream_schema": "unversioned-skylos-5.1.5",
     }
+
+
+def _static_findings(
+    payload: dict[str, Any], summary: dict[str, Any], fields: tuple[str, ...], category: str
+) -> list[dict[str, Any]]:
+    """Account for pinned builder's omitted empty security/quality lists explicitly."""
+    findings = []
+    for field in fields:
+        if field not in payload and field in {"danger", "quality"}:
+            coverage = _object(summary.get("analysis_coverage"), "analysis coverage")
+            assessment = _object(payload.get("assessment"), "assessment")
+            _require(
+                coverage.get("status") == "complete"
+                and category in assessment.get("scanned_checks", [])
+                and (
+                    summary.get(f"{field}_count", 0) == 0
+                    or (field == "quality" and summary.get("listed_quality_count") == 0)
+                ),
+                "missing findings list contradicts explicit coverage/counts",
+            )
+            continue
+        findings.extend(_objects(payload.get(field), field))
+    return findings
 
 
 def _go_complete(summary: dict[str, Any], category: str) -> bool:

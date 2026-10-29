@@ -74,9 +74,7 @@ def test_complete_observation_resumes_without_rerunning_the_scanner(tmp_path) ->
 def test_verify_skips_only_zero_file_checks_outside_requested_language(tmp_path, kind) -> None:
     payload = _payload()
     identifier = "local" if kind == "requested" else "typescript"
-    payload["coverage"]["skipped_checks"] = [
-        {"id": identifier, "reasons": [{"code": "no_supported_files"}]}
-    ]
+    payload["coverage"]["skipped_checks"] = [{"id": identifier, "reasons": ["no_supported_files"]}]
     if kind != "requested":
         payload["coverage"]["checks"].append(
             {
@@ -88,7 +86,7 @@ def test_verify_skips_only_zero_file_checks_outside_requested_language(tmp_path,
             }
         )
     if kind == "unknown":
-        payload["coverage"]["skipped_checks"][0]["reasons"][0]["code"] = "engine_missing"
+        payload["coverage"]["skipped_checks"][0]["reasons"][0] = "engine_missing"
     runner, case, root, _ = _setup(tmp_path, payload)
     record = runner.run(case, root)
     assert record["valid_measurement"] == (kind == "unrelated")
