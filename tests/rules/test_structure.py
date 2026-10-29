@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from typing import TYPE_CHECKING
 
+import pytest
 from consistency_check.rules.structure import RULES
 from consistency_check.types import Repo
 
@@ -49,6 +50,21 @@ def test_mcp_005_skips_artifacts_inside_venv(good_python_repo: Path) -> None:
     (venv_pkg / "__pycache__").mkdir()
     (venv_pkg / "__pycache__" / "x.pyc").write_bytes(b"")
     assert _run(good_python_repo, "python", "MCP-005") is None
+
+
+@pytest.mark.parametrize(
+    "directory", ["dist", ".pytest_cache", ".ruff_cache", ".ty_cache", ".venv", "node_modules"]
+)
+def test_mcp_005_flags_tracked_artifact_directories(good_python_repo: Path, directory: str) -> None:
+    artifact = good_python_repo / directory / "artifact.txt"
+    artifact.parent.mkdir()
+    artifact.write_text("generated\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "-f", f"{directory}/artifact.txt"], cwd=good_python_repo, check=True
+    )
+    evidence = _run(good_python_repo, "python", "MCP-005")
+    assert evidence is not None
+    assert directory in evidence
 
 
 def test_mcp_002_accepts_canonical_apache_text(good_python_repo: Path) -> None:
