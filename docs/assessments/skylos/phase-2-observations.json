@@ -1,0 +1,3613 @@
+{
+  "schema_version": 1,
+  "phase": "sample-0 characterization only; no scoring, timed repetitions or adoption verdict",
+  "source_commit": "d308958",
+  "registration_commit": "9db55ff",
+  "adapter_version": 3,
+  "corpus_revision": 1,
+  "corpus_sha256": "93233d48104537eb6cb999dd1e53381392e98d5867188c6b25b2ff66aa9c58ef",
+  "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+  "boundary": "synthetic sources only; no real server snapshot scans",
+  "summary": {
+    "python_corpus_units": 30,
+    "python_complete": 29,
+    "python_incomplete": [
+      "python-14-defect"
+    ],
+    "go_full_corpus": "not collected: capability prerequisites failed",
+    "selected_unique_units": 41,
+    "selected_states": {
+      "incomplete": 6,
+      "complete": 35
+    }
+  },
+  "retained_attempts": [
+    {
+      "adapter": 1,
+      "state": "incomplete",
+      "count": 2
+    },
+    {
+      "adapter": 1,
+      "state": "invalid_output",
+      "count": 13
+    },
+    {
+      "adapter": 2,
+      "state": "complete",
+      "count": 7
+    },
+    {
+      "adapter": 2,
+      "state": "incomplete",
+      "count": 5
+    },
+    {
+      "adapter": 2,
+      "state": "invalid_output",
+      "count": 3
+    },
+    {
+      "adapter": 3,
+      "state": "complete",
+      "count": 35
+    },
+    {
+      "adapter": 3,
+      "state": "incomplete",
+      "count": 7
+    }
+  ],
+  "diagnostic_contexts": [
+    {
+      "started_utc": "2026-10-29T03:08:24.655768+00:00",
+      "host_load_1_5_15": [
+        11.1396484375,
+        12.01171875,
+        12.53759765625
+      ],
+      "plan_sha256": "210e37e30645fee72194c4f06f9471f7b7d31ced9e45cdcf2cf37ea46235a9fc",
+      "collector_sha256": "829917960265a2df274f083a9162438bfb1e01df0e5789571898fc2eec923f19",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "sample": 0,
+      "hook_self_tests": "disabled",
+      "raw_context_sha256": "4293c99fbb6176d8990d6ac89f9342c2566c49a34127c52d526472b99484961a",
+      "raw_diagnostics_sha256": "408e1fea4306dd9f2ccf6598f0597978838838bb8e4c835809d48fed78c7f80d"
+    },
+    {
+      "started_utc": "2026-10-29T03:08:43.467764+00:00",
+      "host_load_1_5_15": [
+        10.76953125,
+        11.83935546875,
+        12.46142578125
+      ],
+      "plan_sha256": "25659646c7e115142045d5e6078c76c7cc64e621b8e84e4248704682ea0eb6f8",
+      "collector_sha256": "5590404e5ed21bd98aac5077e81a51363df5600b94bf3deef1a3f73e269420ec",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "sample": 0,
+      "hook_self_tests": "disabled",
+      "raw_context_sha256": "c16d17c850bc1274350b525ec6a14f49c6dcb1910a5f2ab7460caa0b2c2f8334",
+      "raw_diagnostics_sha256": "387fe6ed120afa289d2f1dbd65d4ae27f30b92c7d8c8cb7829c4799ed1aa5101"
+    },
+    {
+      "started_utc": "2026-10-29T03:09:56.513553+00:00",
+      "host_load_1_5_15": [
+        9.63134765625,
+        11.37158203125,
+        12.2421875
+      ],
+      "plan_sha256": "25659646c7e115142045d5e6078c76c7cc64e621b8e84e4248704682ea0eb6f8",
+      "collector_sha256": "55e80a341a06e2f152b2d7a144a09c9b064950dbec3b068c046454241909a636",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "sample": 0,
+      "hook_self_tests": "disabled",
+      "raw_context_sha256": "a58c7c3224a401b05701b175ebf4b6e91322a6478ac4e02742fe1ad4b4fe7b05",
+      "raw_diagnostics_sha256": "08c8ac5d6d7233bbcf10c7fff5b095acfc9840988a5528af60092113fa18e4f5"
+    },
+    {
+      "started_utc": "2026-10-29T03:11:56.015870+00:00",
+      "host_load_1_5_15": [
+        13.07568359375,
+        12.31494140625,
+        12.50830078125
+      ],
+      "plan_sha256": "25659646c7e115142045d5e6078c76c7cc64e621b8e84e4248704682ea0eb6f8",
+      "collector_sha256": "55e80a341a06e2f152b2d7a144a09c9b064950dbec3b068c046454241909a636",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "sample": 0,
+      "hook_self_tests": "disabled",
+      "raw_context_sha256": "bde3c22e97a99a22aab04bc7d5a3dd6c488a2878afde242628bd7cbdafadceab",
+      "raw_diagnostics_sha256": "3945cf587fec43fb8d566e35081e615e3957fe9b723e7bf7777e2f97b94aa072"
+    }
+  ],
+  "native_contract_diagnosis": [
+    {
+      "time_utc": "2026-10-29T03:13:38.739152+00:00",
+      "host_load_1_5_15": [
+        12.19482421875,
+        12.0712890625,
+        12.376953125
+      ],
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "kind": "native contract diagnosis, not scored corpus collection",
+      "units": [
+        {
+          "case_id": "go-01-defect",
+          "state": "exited",
+          "exit_code": 0,
+          "seconds": 0.008141124853864312,
+          "refs_type": "NoneType",
+          "refs_count": null,
+          "input_unchanged": true,
+          "stdout_sha256": "1dd8c0adb95cb62af0d52bba09b01fd4cb5b21fdcac8ad4afec053616e386352",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "case_id": "go-09-defect",
+          "state": "exited",
+          "exit_code": 0,
+          "seconds": 0.008921582950279117,
+          "refs_type": "list",
+          "refs_count": 7,
+          "input_unchanged": true,
+          "stdout_sha256": "e17e9ef6cba0f9bf5ca2922c2a93db5aae986497ffc61f7f735569f4d840cb34",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "real_resume_exercise": [
+    {
+      "exit_code": 2,
+      "units": 30,
+      "resumed": 29,
+      "incomplete": [
+        "python-14-defect"
+      ],
+      "old_raw_results_unchanged": true,
+      "new_attempts": 1
+    }
+  ],
+  "units": [
+    {
+      "case_id": "go-01-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "dead-code",
+      "key": "8ae8b1af37dff837017d3c1bd83aca64d2e4fd3893152260bafe44bbb7472de8",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 0.5221118750050664,
+      "input_sha256": "eb778babc5d76c66a274aebbb3db8082f310481df80c813671ce56b2644b8000",
+      "case_sha256": "875e0c63096744b71b0306bd3ff783526822bf2938ad8cf5d0353c91757be391",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "c6f26f0b39e5ae431d0d37ddc611dd8c8760ee1f2cdba2b0faeb9cf896fd2804",
+        "stdout.bin": "3563d91e82e018d5fa1cfcc10582acc4d4a7c4ebd275f2cff29da19d43b7e1f9",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 1,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "incomplete_languages": [
+          "go"
+        ],
+        "grade_unavailable_reason": "analysis_incomplete",
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "language_engines": {
+          "go": {
+            "status": "partial",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality"
+            ],
+            "skipped_checks": [
+              "dead_code",
+              "security"
+            ],
+            "failed_module_count": 1
+          }
+        },
+        "analysis_coverage": {
+          "status": "incomplete",
+          "exit_blocking": true,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 1,
+          "unchecked_files": [
+            {
+              "file": "main.go",
+              "line": 1,
+              "kind": "language_engine_unavailable",
+              "reason": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+              "language": "go",
+              "skipped_checks": [
+                "dead_code",
+                "security"
+              ],
+              "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+            }
+          ],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": true,
+          "warnings": [],
+          "blocking_reasons": [
+            {
+              "message": "Analysis incomplete: 1 of 1 source file could not be analysed",
+              "details": [],
+              "hint": "Most of the source files in scope could not be analysed, so this result cannot stand for the code. Fix the reasons below and rerun."
+            },
+            {
+              "message": "Incomplete language engine coverage: go",
+              "details": [
+                "go: engine incomplete; 1 file; skipped checks: dead code, security"
+              ],
+              "hint": "`skylos doctor` shows which language engines are available."
+            }
+          ]
+        }
+      },
+      "analysis_errors": [
+        {
+          "rule_id": "SKY-ANALYSIS-INCOMPLETE",
+          "severity": "HIGH",
+          "kind": "language_engine_unavailable",
+          "error_type": "ValueError",
+          "message": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+          "file": "<inputs>/go-01-defect/main.go",
+          "line": 1,
+          "column": 1,
+          "language": "go",
+          "module_root": "<inputs>/go-01-defect",
+          "affected_file_count": 1,
+          "skipped_checks": [
+            "dead_code",
+            "security"
+          ],
+          "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+        }
+      ]
+    },
+    {
+      "case_id": "go-06-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "verify",
+      "key": "f5a417876670e04d60572995aa5c4e8eb03f8571f1fe8dcd5349794aada1b04e",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6399383330717683,
+      "input_sha256": "5401b833a2719347a4462b2969abfd26dfde1b5a8cd23a02c95a2fe7e2c5532d",
+      "case_sha256": "61d98c30e6947a9991a7c587b6edd8bb2d5f6454bd3b599f499fb4cd26a7462b",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "e29bcb02ca6adb3fd9c09f96eafbbeed09e9d981440235a1fb3bac44ff74d1bb",
+        "stdout.bin": "ca1a15f30bed7c7f8a5d7c161bec207d1be457598eb0f569e4ca6b79f36f4cf6",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "go"
+        ],
+        "expected_checks": [
+          {
+            "id": "go_workspace_api_surface",
+            "languages": [
+              "go"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "go",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "go_workspace_api_surface"
+          }
+        ],
+        "completed_checks": [
+          "go_workspace_api_surface"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "go_workspace_api_surface",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "go"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "go-09-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "security",
+      "key": "2914a79b8d497d3688af2aa1fffe5fc6871533125f0c362a3e5f051599d19167",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6853466250468045,
+      "input_sha256": "2cfa813d892154eb506ec014586c6613a3d9688451f9f444604bd61780c60219",
+      "case_sha256": "15bd164ccafc4bca4c2c6b82b4508f706ccaadad15f91d5c2430525b431b6087",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "751de2bba0deffd1a7827023b5eff28a419abe1df43908fc9f6a44d8d86b9b78",
+        "stdout.bin": "fef9927986cf2bc6ac3a86b49a688aebecd9d579967a41f5de5e1d9cbf33ed4d",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-D212",
+          "file": "<inputs>/go-09-defect/main.go",
+          "line": 9,
+          "col": 12,
+          "severity": "HIGH",
+          "message": "Command Injection Shell command built from a non-constant value. If any part comes from outside the program this is command injection; pass arguments to a fixed program without a shell."
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "danger_count": 1,
+        "language_engines": {
+          "go": {
+            "status": "available",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality",
+              "dead_code",
+              "security"
+            ],
+            "skipped_checks": []
+          }
+        },
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "go-15-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "quality",
+      "key": "dc09eb470acb46d1505616b7167e84c5b5dbc09368621adb5af330b3b599b14a",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 0.6477011658716947,
+      "input_sha256": "7a7cc75471262314ed329f056ec95fa274ccc1b61f9a6e5cd364a061f56c3092",
+      "case_sha256": "40a929475d1136158ce8252abe115ed853dde9297ed64d8a10a024c5926ec4e7",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "0567fa0d8e0bc6c0d7558d3060476228643af0351497f9b3cafec206274f672a",
+        "stdout.bin": "1c6cb7c928d1a12dfa3148bf4382145330b733ce2e6a007a01ab8edd74aea44b",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-R103",
+          "name": "skylos-gate-policy",
+          "simple_name": "skylos-gate-policy",
+          "type": "policy",
+          "file": "<inputs>/go-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "No [tool.skylos.gate] policy is configured for repository quality gates."
+        },
+        {
+          "rule_id": "SKY-R104",
+          "name": "pre-commit-policy",
+          "simple_name": "pre-commit-policy",
+          "type": "policy",
+          "file": "<inputs>/go-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "Repository has no pre-commit policy file."
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 1,
+        "grade_categories": [
+          "quality",
+          "dead_code"
+        ],
+        "incomplete_languages": [
+          "go"
+        ],
+        "grade_unavailable_reason": "analysis_incomplete",
+        "quality_count": 2,
+        "listed_quality_count": 0,
+        "language_engines": {
+          "go": {
+            "status": "partial",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality"
+            ],
+            "skipped_checks": [
+              "dead_code",
+              "security"
+            ],
+            "failed_module_count": 1
+          }
+        },
+        "analysis_coverage": {
+          "status": "incomplete",
+          "exit_blocking": true,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 1,
+          "unchecked_files": [
+            {
+              "file": "main.go",
+              "line": 1,
+              "kind": "language_engine_unavailable",
+              "reason": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+              "language": "go",
+              "skipped_checks": [
+                "dead_code",
+                "security"
+              ],
+              "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+            }
+          ],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": true,
+          "warnings": [],
+          "blocking_reasons": [
+            {
+              "message": "Analysis incomplete: 1 of 1 source file could not be analysed",
+              "details": [],
+              "hint": "Most of the source files in scope could not be analysed, so this result cannot stand for the code. Fix the reasons below and rerun."
+            },
+            {
+              "message": "Incomplete language engine coverage: go",
+              "details": [
+                "go: engine incomplete; 1 file; skipped checks: dead code, security"
+              ],
+              "hint": "`skylos doctor` shows which language engines are available."
+            }
+          ]
+        }
+      },
+      "analysis_errors": [
+        {
+          "rule_id": "SKY-ANALYSIS-INCOMPLETE",
+          "severity": "HIGH",
+          "kind": "language_engine_unavailable",
+          "error_type": "ValueError",
+          "message": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+          "file": "<inputs>/go-15-defect/main.go",
+          "line": 1,
+          "column": 1,
+          "language": "go",
+          "module_root": "<inputs>/go-15-defect",
+          "affected_file_count": 1,
+          "skipped_checks": [
+            "dead_code",
+            "security"
+          ],
+          "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+        }
+      ]
+    },
+    {
+      "case_id": "go-90-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "dead-code",
+      "key": "15485a83cef9305967d830ad9c43837a0cea5e33ace11f0ae5d495c5d86c7a56",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 0.9020769998896867,
+      "input_sha256": "a53de5df9c1e3bdb1e3232ccf157a9e13e113f9cca461971c5de866218f61289",
+      "case_sha256": "4ef91ad5096821a8c659759f03333901683e77e4b1ed67bee9e835cf48d2b5b0",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "9f430497338fb918056fd1a20419148023517551b0457b49f751cd976457cfdb",
+        "stdout.bin": "26dd68d858f4d1547ad69fd0e029e8f542df41c2435d1326ac3ac3b509564271",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 1,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "incomplete_languages": [
+          "go"
+        ],
+        "grade_unavailable_reason": "analysis_incomplete",
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "language_engines": {
+          "go": {
+            "status": "partial",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality"
+            ],
+            "skipped_checks": [
+              "dead_code",
+              "security"
+            ],
+            "failed_module_count": 1
+          }
+        },
+        "analysis_coverage": {
+          "status": "incomplete",
+          "exit_blocking": true,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 1,
+          "unchecked_files": [
+            {
+              "file": "main.go",
+              "line": 1,
+              "kind": "language_engine_unavailable",
+              "reason": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+              "language": "go",
+              "skipped_checks": [
+                "dead_code",
+                "security"
+              ],
+              "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+            }
+          ],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": true,
+          "warnings": [],
+          "blocking_reasons": [
+            {
+              "message": "Analysis incomplete: 1 of 1 source file could not be analysed",
+              "details": [],
+              "hint": "Most of the source files in scope could not be analysed, so this result cannot stand for the code. Fix the reasons below and rerun."
+            },
+            {
+              "message": "Incomplete language engine coverage: go",
+              "details": [
+                "go: engine incomplete; 1 file; skipped checks: dead code, security"
+              ],
+              "hint": "`skylos doctor` shows which language engines are available."
+            }
+          ]
+        }
+      },
+      "analysis_errors": [
+        {
+          "rule_id": "SKY-ANALYSIS-INCOMPLETE",
+          "severity": "HIGH",
+          "kind": "language_engine_unavailable",
+          "error_type": "ValueError",
+          "message": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+          "file": "<inputs>/go-90-defect/main.go",
+          "line": 1,
+          "column": 1,
+          "language": "go",
+          "module_root": "<inputs>/go-90-defect",
+          "affected_file_count": 1,
+          "skipped_checks": [
+            "dead_code",
+            "security"
+          ],
+          "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+        }
+      ]
+    },
+    {
+      "case_id": "go-91-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "dead-code",
+      "key": "201131c5d1b44c1e7415283ebde150c620f451f001e7a92372e3b55702c449a4",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 0.8205187078565359,
+      "input_sha256": "47b477007b541343b6ff05169da6dfc94730e17f6b86f948c372de621866d486",
+      "case_sha256": "15a5e31a057839bed7cb04f00a34286ca42753aec19df7a6bde9f53c1298a47c",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "cf928a4c03b1aa51be31e7e06e24985e6b3ce490964e8960b78d7bcdb833d84a",
+        "stdout.bin": "d4404e64bfc18606c4149e516dd130ba41d38e725e339f96e6bb307bfe9014da",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 1,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "incomplete_languages": [
+          "go"
+        ],
+        "grade_unavailable_reason": "analysis_incomplete",
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "language_engines": {
+          "go": {
+            "status": "partial",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality"
+            ],
+            "skipped_checks": [
+              "dead_code",
+              "security"
+            ],
+            "failed_module_count": 1
+          }
+        },
+        "analysis_coverage": {
+          "status": "incomplete",
+          "exit_blocking": true,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 1,
+          "unchecked_files": [
+            {
+              "file": "main.go",
+              "line": 1,
+              "kind": "language_engine_unavailable",
+              "reason": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+              "language": "go",
+              "skipped_checks": [
+                "dead_code",
+                "security"
+              ],
+              "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+            }
+          ],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": true,
+          "warnings": [],
+          "blocking_reasons": [
+            {
+              "message": "Analysis incomplete: 1 of 1 source file could not be analysed",
+              "details": [],
+              "hint": "Most of the source files in scope could not be analysed, so this result cannot stand for the code. Fix the reasons below and rerun."
+            },
+            {
+              "message": "Incomplete language engine coverage: go",
+              "details": [
+                "go: engine incomplete; 1 file; skipped checks: dead code, security"
+              ],
+              "hint": "`skylos doctor` shows which language engines are available."
+            }
+          ]
+        }
+      },
+      "analysis_errors": [
+        {
+          "rule_id": "SKY-ANALYSIS-INCOMPLETE",
+          "severity": "HIGH",
+          "kind": "language_engine_unavailable",
+          "error_type": "ValueError",
+          "message": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+          "file": "<inputs>/go-91-defect/main.go",
+          "line": 1,
+          "column": 1,
+          "language": "go",
+          "module_root": "<inputs>/go-91-defect",
+          "affected_file_count": 1,
+          "skipped_checks": [
+            "dead_code",
+            "security"
+          ],
+          "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+        }
+      ]
+    },
+    {
+      "case_id": "go-92-defect",
+      "sample": 0,
+      "language": "go",
+      "mode": "dead-code",
+      "key": "6c46df0f36ff707f66edc1d1a8ee8891f16555ff6fa75c33a12879d2e1f2f501",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 1.0457730409689248,
+      "input_sha256": "28c7d41bbde317e00dbecf600fdee3c56fc005eb8f04bb242d43e127459086df",
+      "case_sha256": "bac8eb57530a79c081e365d26cd49587ffa73cf3e0257a6f6df76118d926c703",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "90efcfb335f468c64336aaa8c545b5f671f354b77a8fd642778f35f739bbce0e",
+        "stdout.bin": "9fa023c689f548e573ecb68bc2d145d35ecceeedfac348d7ce3a8c137808bba0",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Go": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 1,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "incomplete_languages": [
+          "go"
+        ],
+        "grade_unavailable_reason": "analysis_incomplete",
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "language_engines": {
+          "go": {
+            "status": "partial",
+            "file_count": 1,
+            "engine": {
+              "status": "available",
+              "binary": "<workspace>/.scratch/skylos-go",
+              "configured_by": "SKYLOS_GO_BIN"
+            },
+            "completed_checks": [
+              "quality"
+            ],
+            "skipped_checks": [
+              "dead_code",
+              "security"
+            ],
+            "failed_module_count": 1
+          }
+        },
+        "analysis_coverage": {
+          "status": "incomplete",
+          "exit_blocking": true,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 1,
+          "unchecked_files": [
+            {
+              "file": "main.go",
+              "line": 1,
+              "kind": "language_engine_unavailable",
+              "reason": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+              "language": "go",
+              "skipped_checks": [
+                "dead_code",
+                "security"
+              ],
+              "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+            }
+          ],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": true,
+          "warnings": [],
+          "blocking_reasons": [
+            {
+              "message": "Analysis incomplete: 1 of 1 source file could not be analysed",
+              "details": [],
+              "hint": "Most of the source files in scope could not be analysed, so this result cannot stand for the code. Fix the reasons below and rerun."
+            },
+            {
+              "message": "Incomplete language engine coverage: go",
+              "details": [
+                "go: engine incomplete; 1 file; skipped checks: dead code, security"
+              ],
+              "hint": "`skylos doctor` shows which language engines are available."
+            }
+          ]
+        }
+      },
+      "analysis_errors": [
+        {
+          "rule_id": "SKY-ANALYSIS-INCOMPLETE",
+          "severity": "HIGH",
+          "kind": "language_engine_unavailable",
+          "error_type": "ValueError",
+          "message": "Go analysis incomplete: Go engine symbols missing/invalid refs list. Skipped checks: dead code, security.",
+          "file": "<inputs>/go-92-defect/main.go",
+          "line": 1,
+          "column": 1,
+          "language": "go",
+          "module_root": "<inputs>/go-92-defect",
+          "affected_file_count": 1,
+          "skipped_checks": [
+            "dead_code",
+            "security"
+          ],
+          "suggestion": "Run `skylos doctor`, then retry the Go scan after fixing the reported engine error."
+        }
+      ]
+    },
+    {
+      "case_id": "python-01-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "e16ce3c624d12e47861434d92d7f4a9952e8e4a69d63ef4304dfe4eb2636e479",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7980344579555094,
+      "input_sha256": "5474bd6b95d473fb1701fd97933fd9466dd34b14ec5d7eb0bf58c55c38014501",
+      "case_sha256": "4aec426f7d2c49641f8f546872e0e53240ea7aaa8d6fb18c2d2652b2a82fc3d2",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "ebe201fb4f109e3b2814f285cb6b7272844fa3d7081b3ef39469affe85bdbb1b",
+        "stdout.bin": "390d42c5ef3ac9cc4628bd4db60e833fe2d85a5a93730ba045f72d944f28fd40",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-01-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "abbcfde0e012ef25e96a001977a4eb965b66a0e8f13c7fff5ec17eaa33369d97",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8433418751228601,
+      "input_sha256": "c47ce6aeadda1f57f91f6379f2ab0b7ad4cfa912d48d59c68f3fdf96a9fcc862",
+      "case_sha256": "642882dcf96be1fecb47341b428b4e495c9c8526ac9b6432acce975bf8cd4cff",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "d2551630fd3dca1ddb5d5b6c8ad681a83549d1fe5a7d45355113968c4e6fefea",
+        "stdout.bin": "705c31223f78d4879d3f7f37ff98a0f490ca91e49ac69b912488d347594e75f1",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "transform",
+          "simple_name": "transform",
+          "type": "function",
+          "file": "<inputs>/python-01-defect/main.py",
+          "line": 1
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-02-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "0bf67466006a0600c544f0bf685564ac23f1f95fa6d53aadaf013441fe06a891",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8735919580794871,
+      "input_sha256": "b0e611cc59f3aaa4ae3060daf43f9db951f4be2ab37b2603b70062b6981b67a9",
+      "case_sha256": "7ae94430ca8e37926502b4ace87b8aa982d2fe05ce998ab50621b56dc6366a48",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "b0282a1b248989da66fd3aebf5b011cbbcf4ac7dc74a294182bcacb9e826520c",
+        "stdout.bin": "12a5f9575fdcf08f5b657149a1c234994d2d84cef134e36ccfa1258bffd2d20b",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-02-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "c69e5d245761dcd250e85dfbd976a40252934c8a5814ff71c3ec3d90c8f1b6e9",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.9872548750136048,
+      "input_sha256": "c4a2965cecf6076f9ee9fe84493871de5d3941db308dbd4eb1a2d5da495c1954",
+      "case_sha256": "f07f68570204bcd6179efea03e460c0b76c6c5f902f296e787dd36ce54216814",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "7945d676fdedd7ea2febe395a334ac3e28d5b0640f1784f089fd06617f100654",
+        "stdout.bin": "0c919d9a22839650ac0e562817819f6d8cd224a6c4cc41fff22e883dd6c1a165",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "transform",
+          "simple_name": "transform",
+          "type": "function",
+          "file": "<inputs>/python-02-defect/main.py",
+          "line": 4
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-03-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "202aecce5bbee08f57dba8d6a05744403a50f495795639e1472732586c5c5925",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8226329588796943,
+      "input_sha256": "8c8f09d08bd5aa72e9f1692f159af27c0a664c9e5425f037d76e0f366eabb324",
+      "case_sha256": "1a9ecf6b7547a442aa52cf940bc99816d07e4eae40aa50d310a80e457c4ac08b",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "47682701c903eb16bf33dd799d5f227cd06d96937766c20e4fcc78c49c9fea65",
+        "stdout.bin": "558a181a010dd4bbf01e095d086279fb62c219b4dc668a7580e0fb3c080717f4",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-03-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "2fd3a35cd2a4b55b9943e290abe206f02bea8c6cda7f4fe65d5f438cb378e35f",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.0459699160419405,
+      "input_sha256": "ac1812d98b7a95d23df09eb57538ecfa7547426bb6b7a4dae64d8000a0ca29f3",
+      "case_sha256": "d7c9b99a9ae3e82f809f53bcba254c719b8c76db71e2fe7016d2afa4a8a5935c",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "77c14810863ef1854a5ab9193a4af10af95bb8fe6d218a821586829881f81b56",
+        "stdout.bin": "c1312334328f5a448aa5b0a2572c377f861f40e2d6e820d1e4d9ab4d1b63c1e2",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "transform",
+          "simple_name": "transform",
+          "type": "function",
+          "file": "<inputs>/python-03-defect/main.py",
+          "line": 1
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-04-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "f39b29a56b03faf0f06a3fa062e71a446ebe0e167223109cd0e85eae778fdcfd",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6533714581746608,
+      "input_sha256": "99319457a0a79c54e5130b55eb2d496152a7d6b52d05435878f1d83a948a3e89",
+      "case_sha256": "00aabc8516883b2df92d84725670f3160b769e07fbceca790c6969b1b0009c05",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "2504f277236702c27c1a66c69b2677f844e1198fe9ac2b02613b4d0137719f63",
+        "stdout.bin": "3fa97c9f8606002bfe10b0f54b26cc9078f17549d2e76eda138bb1576b014964",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-04-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "062f2e9ba726e8e34c83e0050f7eda612e8265ddf31d789ce8f2cdc34f84a2e5",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.1586456671357155,
+      "input_sha256": "e2650805d2e5ec152d7b398234bd25d95b895432796a4618834f3395da8d2ac7",
+      "case_sha256": "f81e109c0b90a2f7f114d991d4540192049348966c12f560faf82f4b7e4f0e48",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "8ca8f11fd16e1d074e177d694429e714d4cfd3bbab183763f717a6b3c967f690",
+        "stdout.bin": "6d519084a04ae1266af5b6cb20e9e630253e074de13333de6e9964ca3abf0c90",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "transform",
+          "simple_name": "transform",
+          "type": "function",
+          "file": "<inputs>/python-04-defect/main.py",
+          "line": 1
+        },
+        {
+          "name": "handlers",
+          "simple_name": "handlers",
+          "type": "variable",
+          "file": "<inputs>/python-04-defect/main.py",
+          "line": 3
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-05-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "eb9225b1e6ff208b90d54e72e1df7ca730a5c7f0b5b18d1ec887d82292cf60a1",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.5517168748192489,
+      "input_sha256": "34b01f56648a2f3ba4840bf58964f5281e1fd0681b0b07feff6e933b22cf6e6e",
+      "case_sha256": "f32d54cdd815e0f1f6be96ca3cac7ac770ccf3888e983b359fc60f6148a24cb8",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "990700af39c7f4fe146aa8c7ef29ad2045051d73c47b950f5464e2987baf7f24",
+        "stdout.bin": "952b93cf9566c82036fe294d4f5e8834d5c402cd20bdc6c09d8da4141229f570",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-05-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "3f98eba261abb779b6790b52c31b00ca2ea45303f78d17f4a55bf453c6916b1d",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.702999500092119,
+      "input_sha256": "88c42c2bfa926a727ed9be3b0f8b9d1a588807796e76f555c5f2072b36c6092c",
+      "case_sha256": "5f9695efe62243fb4581831729c8653ac3ae839f5e9353f12d8bac59fb045e88",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "2144dcac30544c4924d50195f6ddf34919fbf8757dd70282edeb02f2190d83a4",
+        "stdout.bin": "ad00a7d82018c71fc24ffdd608c68884fafa2460669efbb5728fc528f306ebd9",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "Worker.transform",
+          "simple_name": "transform",
+          "type": "method",
+          "file": "<inputs>/python-05-defect/main.py",
+          "line": 2
+        },
+        {
+          "name": "worker",
+          "simple_name": "worker",
+          "type": "variable",
+          "file": "<inputs>/python-05-defect/main.py",
+          "line": 4
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-06-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "73ae70f1c5a18643c7da802e1b52c79c48ede2b7f282d74a10ede9d79a4deaef",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7429874159861356,
+      "input_sha256": "e0628184e7fc83858ded96f8728ef65ffec44b3156d4ac2c19cb2e9babce2abc",
+      "case_sha256": "eedbc6a764950ec4d7378edbdf2f2d9c7f30f68fdc2bd1d06749a062e105fd29",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "681e921ab6205e009b0fcf611963ee210ba6dab20d125952d120fe9c7591e742",
+        "stdout.bin": "a312587c73d33f0b3d91a89e61968a33a575bd89e4f3c8e9ec023308b56d0f2b",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-06-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "97f5080c4f9756acb5e2dc757f5070fa9d7f2f2e98594809b22a7fd8c6d72f2f",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8376063331961632,
+      "input_sha256": "d2edf45a3bbc2b6e029fd61d665b577061639d63a56b5b135926ab1365425253",
+      "case_sha256": "ccd9b9d1bf6fbae13e937aeb5245ebec151f4471696fd6632be668ce8960f73a",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "17490ddb561c40a1fbde8eba4e03355ec2b3d2ee727b5cfdbb73f4e9f2204159",
+        "stdout.bin": "d69f2d8695aceca12f4f4df597ea176265d9a1680f8b150fceddb0b5531e727f",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-07-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "2301f77feb49cdcd52fad1a15e89ff33ae1a73b78f90fe777128eaf53a3b5aa8",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7122454999480397,
+      "input_sha256": "f8b74eea758b00f505913c580ddaf238126ec523ffb7cf39067c389e25d0473b",
+      "case_sha256": "ee3a3f729f828e23f367ab048ee03d4681e189ef978c62f27d7b9a18d8cda238",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "08cc4fbbc3fc73e7423636d236002d29afab0c3690be58d61ea9368d843dc6c5",
+        "stdout.bin": "4f25681bb95fef7c48b00a6b45d13dcbfcab188e0f5a86c14007798a1e7d0065",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-07-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "ae62f02ffa6b1aa313ccca5c32774570ae0378e60620375c0dabf65321fb2593",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6921307921875268,
+      "input_sha256": "79f12ed987effeeeb18f70bd4d1de694e0d47c97493fb8f05ad49b5426b21ee2",
+      "case_sha256": "faa4b44a94cf74e15ae2c59787ab78e27ba2194aa7404073c6f51e763aeaa7d7",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "7d964d462ad59b87aeadbe19894bf20c4153dae181e67cb2abfc2d1f25fe61a8",
+        "stdout.bin": "2fb9e6c618f11f3bbda39a6eb9eac0390a7e67411ac26e5ce0da97798dc13b4c",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-08-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "b1542afbca0811c6367f1caf7875bacd690051a28bf1e4626d0aaee2078da47a",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7126903331372887,
+      "input_sha256": "137add2d89e63e0d78a0ec714f61d09db144458e261f7970e4299a805397d8ad",
+      "case_sha256": "8be37defe8bdd7a4985df58dc2b789ed01f7f906490a0905cce1110b5d5c0333",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "37a0336ead4c51fda16a9f50e2a338df4150d5c44746660ab7351a0130a94156",
+        "stdout.bin": "7a082abb824c5d601227155cfcfe6ce75e9a1d9648f77d46d2afd946f255e1d8",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-08-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "d1bc455f255a6e92595a2bcf8f9b55156bbe678c0503828c716d15ad97d36458",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7461683750152588,
+      "input_sha256": "76866799a46c3c31f9788e613d7c0e15903504498e4957fb61306afbbd4b69e4",
+      "case_sha256": "99d91447d1aac820d0ce5cfe4597d7d8c58bc59ec2dcc95308c0bcccaf3d66f1",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "187b5f4c9bd7885dcb2d265ea722238fb486050477dd193929c57375127ef02f",
+        "stdout.bin": "b8919004dff7f4cbdd4c49abe258b7196606f2f36e4d3486409092daf5098671",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 1,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 1
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-09-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "19ad688f077f199741093714e4caac49113a5f27cd28c6f9baaa09e0eabcf43c",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7517181669827551,
+      "input_sha256": "16933015805e97b0ea1fe98cf2785fc7b3215dab3e8a209472c6e44ef2574c0f",
+      "case_sha256": "b562998469ad7c3e8e7866c71edc2b3c85bd213332e6044070913cb0ed5d3245",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "c25dc713144d9e86464c48ad7b94adf08c840eae8c49bbe0df130dfcf859671e",
+        "stdout.bin": "4a697c0a23fce7d3cd4a3def97a2cd89b898d7cdce198f418120ea6aff2ae458",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-09-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "03266b678fc78dd21f1384f5c371c48c6a78eb86cce2e6c7b832966edd1d98b9",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.993847250007093,
+      "input_sha256": "0c2cc19e7c7d6fd137b7fbbc92b315d083ec587db85a1372549b967af1dc3437",
+      "case_sha256": "3ac74d48cf090b2a4fc25668e753a03c60d08d3dc682119d4c875581cf91423b",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "bea1a307654ebab6c7710cf897eca25c074107a182d37f6fa65ce26f39dc4978",
+        "stdout.bin": "76d9b65beb53e78fc9ec1bd403f8c0c265a2d50bb8c8f8ff99cdf8a5b64ff63e",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-D209",
+          "file": "<inputs>/python-09-defect/main.py",
+          "line": 2,
+          "col": 0,
+          "severity": "HIGH",
+          "message": "subprocess call with shell=True"
+        },
+        {
+          "rule_id": "SKY-D212",
+          "file": "<inputs>/python-09-defect/main.py",
+          "line": 2,
+          "col": 0,
+          "severity": "CRITICAL",
+          "message": "Possible command injection (subprocess shell=True): tainted input."
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "danger_count": 2,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-10-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "95123ed01c79247be874274a5af93673143766eca5f43a61c04de3998ff4cbf8",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.5644518749322742,
+      "input_sha256": "556a80411c95dc07f1edafd53593128c7c52ceca08d2407dc80875f0fb2146c2",
+      "case_sha256": "789d7bf9574c08078838f641d430f3c95ced64a36251c85c2e15b19fde32b466",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "7837a622a25e64d03fc268e2a88aa52be65ab49469944b04db62af1c208fa5e5",
+        "stdout.bin": "f440c7786a6fc3683b8ff6704a7960aea114d7330218b4f3571ac9254900f6b3",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-10-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "d7052bb1ecb44c5e0d667f0d78e7df28c73fcc9a81d224b7d1f7b25ffe654816",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6783761249389499,
+      "input_sha256": "e1e92be5480924cd05b8d9ab719977f485c31931bb6c82c1aac4dd11dd98ccb2",
+      "case_sha256": "a076b999f83c7a2ade60dd3f03c08f71cf02d1432a2c3f237dac5441040591e0",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "6bf188e45c0961148d64c228a903a3c7c8187dcde6d3a0790d0e0f4c6aaf8691",
+        "stdout.bin": "3ea0a9d967a3fe5f9e9ac712be84ab797f4c6a3b9523e93118fe054e28730a5d",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "sample_data",
+          "simple_name": "sample_data",
+          "type": "function",
+          "file": "<inputs>/python-10-defect/main.py",
+          "line": 1
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-11-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "845aa6febabffb17f3dfef69413dd9193a8f2b4e152ae9a421e69a4a6a20bb6a",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.575044667115435,
+      "input_sha256": "677f2df274a18676dda0c9fc816a65d71d55617eafc9cbdc80bf358617e38e00",
+      "case_sha256": "45a166febb317ca43fe69865e31881aed668c4749c5a1064827fe418330d6dc5",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "d1e178cd46037b79e5a09fdf0676806eafbd2c72947dd5e6e944c2e2dd522a56",
+        "stdout.bin": "ab6b3141bd30df84d6a817a761f5cf8444bb99d8ced7e4d517ce86ff0c62b730",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-11-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "dead-code",
+      "key": "a4197c1ff9616a5c748bdbd12ccc21511cb67d83db547439e59226a15ec88f50",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.6620842081028968,
+      "input_sha256": "ea14d6a97c8a345ef8a870eeb5a5582454318c9dd5c9e722b97e2fe95f004c9d",
+      "case_sha256": "96bf478f0f6b8ea0513aa319c562537d1c37e6e0a744d90e7e1aa69508abfbf4",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "ca3efac0c09cd3da554af9d77c41c8e2fbe335cb807e8c8790813320104333b1",
+        "stdout.bin": "bab10e1064a6cd3d5cf6b21c5b1b810a39f935b3b336fd1fbdc4dbd9d0c4e489",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "name": "_transform",
+          "simple_name": "_transform",
+          "type": "function",
+          "file": "<inputs>/python-11-defect/main.py",
+          "line": 1
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-12-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "4d4348d910d80d6aab75dea72864f0e7d708a04cb426e262fcc7fe9f9561a670",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.064031541813165,
+      "input_sha256": "6d7f2284ce0f13e8a124a0f85aeee20eccd7a3cbfe1c3b1043475d03d9c0ec3d",
+      "case_sha256": "98e8565c7bec52fddc27667f94d115a35e62689dea23ad84ad3dd23942831a50",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "1459050123670c3ee1787ae145e261009519f4aab8739113e7f9c3da96d8b3a0",
+        "stdout.bin": "58e8fcd40ec6f05143f7462b433479d030a064ce5845c7541ab8f02bd849c886",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 1,
+            "verified_references": 1,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 2
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-12-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "1fbce4b518c40562fa7786a81091aea5fde0a6992d300846bd6636757f26db94",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 1,
+      "seconds": 1.0622356249950826,
+      "input_sha256": "4a7935adf6c115bcc1be6dc5aed4e2ef2cdc6098d93c0768d0047df6ececb4f5",
+      "case_sha256": "72de91524776c23d5f83ab528b799050d42efa706ed7689534cfc32525965756",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "a490a184b37ba8b7585b03ccc664d136740e93d93c44dbdbfe7edad798506976",
+        "stdout.bin": "74540917072398d3449850dd86cc31fa16c309ee1c076a3c3eee2a3d01705628",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "fail",
+      "upstream_schema": 2,
+      "findings": [
+        {
+          "rule_id": "SKY-L012",
+          "severity": "CRITICAL",
+          "message": "Import from local module 'helper' requests 'missing', but that name is not defined or re-exported there.",
+          "category": "ai_defect",
+          "range": {
+            "file": "main.py",
+            "start_line": 1,
+            "start_col": 0,
+            "end_line": 1,
+            "end_col": 0
+          }
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "fail",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 1,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "finding_count": 1,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 2
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-13-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "ec4cfbed1eec33c8c3d8765541024f16f6ac72f177138d2188139c08dbcd36b1",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.1398599171079695,
+      "input_sha256": "b9c3427604d045cbbf6676c136c0c28b8580d52864cc336047c9888c348c8405",
+      "case_sha256": "6c527ab40986ac1423c6112ebab3b71dd2210a68dd8421f0ae5b800ee5bba806",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "4efba86a402b22e616b265d31fd8c5c71a3186a7fae02d5d2288834c03a7316b",
+        "stdout.bin": "b717a22f06f58f69c965b13b3fba865aa07e40c15f774b411b8a6bed1b99b5cb",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 1,
+            "verified_references": 1,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 2
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-13-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "bd7d777f67869bf0617bb057381655e93d44f69a874e491236a4b8dbdab52e53",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.1133339579682797,
+      "input_sha256": "f48b1c24668ad915ffb02bb26aef62386a794b64a2f2b6aaceea83ead2ca8dae",
+      "case_sha256": "1d6a3796312cb99ea31e8881d6c980491a57ff27caa5031dd17af0a7484ff5db",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "8f39b60060b0805c05be0686d98d0fd8f1935c3aa718ad2df023a39691f9ade0",
+        "stdout.bin": "c7b24df6ad6fdcca1698bb50910d161a46f8eefbf789fc74547f384b3e07b819",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 2,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 1,
+            "verified_references": 1,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 2
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-14-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "470f425e9ee9497b3fab7ef85b805a3655e13390a0995fbb58dc3a3299249c30",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.1935401670634747,
+      "input_sha256": "6b0d8b3cc84494c96e01a8d56507111b7693b192d10d36e9665dc0508c5bbf05",
+      "case_sha256": "4e88663826313b6e1d6a02c5bbd4206244835e207063856d6382446e1a553b1f",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "f48b108e8e5319496c58bee05c21860ca4e9169df51d87744b7e7b845406c0b1",
+        "stdout.bin": "dbc2d905411d15a683cb49ba4d4e5377bcf89321c637216b545a2d127c7d93e7",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "pass",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "complete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 3,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "pass",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 3,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 1,
+            "verified_references": 1,
+            "skipped_references": 0,
+            "finding_count": 0,
+            "reasons": [],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 3
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-14-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "verify",
+      "key": "fa20096a6604337da457d8aaa9a34a2416c06ae1b372719f60a9c3668c581730",
+      "state": "incomplete",
+      "reason": "incomplete coverage",
+      "valid_measurement": false,
+      "exit_code": 2,
+      "seconds": 2.041349417064339,
+      "input_sha256": "6d04d7a80945f0fae6d6706081ee43385268a1c849d912126c398077b29bec43",
+      "case_sha256": "83a65113cffc1d50535d18ae57292aa68278786dd26681ca5bedaa00571243a0",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "85cc560edaccbbd20dc4bb62c623a57cc4f1c283a6cdb1be267f4ef625fa4147",
+        "stdout.bin": "e0d83aa8d961772afda80dfaa61982cb86aff3afc61eaddcb2fca056e7e13697",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "incomplete",
+      "upstream_schema": 2,
+      "findings": [],
+      "suppressed": [],
+      "coverage": {
+        "schema_version": 1,
+        "state": "incomplete",
+        "detected_languages": [
+          "python"
+        ],
+        "expected_checks": [
+          {
+            "id": "python_local_api_reference",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 3,
+            "capability": "local_workspace_api_surface",
+            "support": "supported"
+          }
+        ],
+        "missing_checks": [],
+        "language_support": [
+          {
+            "language": "python",
+            "capability": "local_workspace_api_surface",
+            "status": "supported",
+            "check_id": "python_local_api_reference"
+          }
+        ],
+        "completed_checks": [
+          "python_local_api_reference"
+        ],
+        "skipped_checks": [
+          {
+            "id": "typescript_local_api_surface",
+            "reasons": [
+              "no_supported_files"
+            ]
+          }
+        ],
+        "limitations": [],
+        "checks": [
+          {
+            "id": "python_local_api_reference",
+            "status": "completed",
+            "outcome": "incomplete",
+            "scope": "local_workspace_api_surface",
+            "languages": [
+              "python"
+            ],
+            "applicable_files": 3,
+            "raw_imports": 0,
+            "references": 1,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 1,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "unresolved_relative_import",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0,
+            "expected_applicable_files": 3
+          },
+          {
+            "id": "typescript_local_api_surface",
+            "status": "skipped",
+            "outcome": "pass",
+            "scope": "local_workspace_static_exports",
+            "languages": [],
+            "applicable_files": 0,
+            "raw_imports": 0,
+            "references": 0,
+            "checked_references": 0,
+            "verified_references": 0,
+            "skipped_references": 0,
+            "out_of_scope_references": 0,
+            "finding_count": 0,
+            "reasons": [
+              {
+                "code": "no_supported_files",
+                "count": 1
+              }
+            ],
+            "suppressed_findings": 0
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "python-15-control",
+      "sample": 0,
+      "language": "python",
+      "mode": "quality",
+      "key": "36ed9cad54c123f2d52fefb7d2bbd4272d5a1e7ee1c0372f133c9c89e1762712",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8179555421229452,
+      "input_sha256": "61caf54380107c7edfb2ff51f79c96a7098ba0b0d8f93a572e558ec8df71f329",
+      "case_sha256": "ec14c89ff6cf65378a84d12ce9ee23b5a4d1e175fdce3b4dcdef9d0fdfd61619",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "fd2de68be6a62fd323247d4955ab4c513baf4e4aaece707eefe1e6834cbd6050",
+        "stdout.bin": "0679a00622bb063be7658e175543e96c8cdce1196c3b5701bfc0f82ef39142cb",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-R101",
+          "name": "python-type-check-policy",
+          "simple_name": "python-type-check-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-control",
+          "line": 1,
+          "col": 0,
+          "severity": "MEDIUM",
+          "message": "Python project has no mypy or pyright policy configured. Add a checked type policy for public code paths."
+        },
+        {
+          "rule_id": "SKY-R102",
+          "name": "python-lint-policy",
+          "simple_name": "python-lint-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-control",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "Python project has no detected Ruff, Flake8 or Pylint policy configured."
+        },
+        {
+          "rule_id": "SKY-R103",
+          "name": "skylos-gate-policy",
+          "simple_name": "skylos-gate-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-control",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "No [tool.skylos.gate] policy is configured for repository quality gates."
+        },
+        {
+          "rule_id": "SKY-R104",
+          "name": "pre-commit-policy",
+          "simple_name": "pre-commit-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-control",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "Repository has no pre-commit policy file."
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "quality",
+          "dead_code"
+        ],
+        "quality_count": 4,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-15-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "quality",
+      "key": "898ae512328d7c8bc42db7a6fa94f8bb521276943730d65b35e22ff806a1c1f2",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.7021225418429822,
+      "input_sha256": "f47623d57bbfe0c82ab08c454cdb99d18d8bcbef5ec5bce1e611b279a9b60ad4",
+      "case_sha256": "66f90b9538350a68302b8b5be40265f47f019e3cb97a7f6f9897ba27c56977f5",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "0607e168c40a42a08d20e21b2ec1c5d25efcb01ca8d864a24e39d8d6211ccd22",
+        "stdout.bin": "d2cbffd265ebe207010373c96463809ede7dfdb51c6572968b97c1deeb36baac",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-UC001",
+          "name": "unreachable",
+          "simple_name": "unreachable",
+          "type": "unreachable",
+          "file": "<inputs>/python-15-defect/main.py",
+          "line": 3,
+          "col": 4,
+          "severity": "MEDIUM",
+          "message": "Unreachable code: statement follows a return"
+        },
+        {
+          "rule_id": "SKY-R101",
+          "name": "python-type-check-policy",
+          "simple_name": "python-type-check-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "MEDIUM",
+          "message": "Python project has no mypy or pyright policy configured. Add a checked type policy for public code paths."
+        },
+        {
+          "rule_id": "SKY-R102",
+          "name": "python-lint-policy",
+          "simple_name": "python-lint-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "Python project has no detected Ruff, Flake8 or Pylint policy configured."
+        },
+        {
+          "rule_id": "SKY-R103",
+          "name": "skylos-gate-policy",
+          "simple_name": "skylos-gate-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "No [tool.skylos.gate] policy is configured for repository quality gates."
+        },
+        {
+          "rule_id": "SKY-R104",
+          "name": "pre-commit-policy",
+          "simple_name": "pre-commit-policy",
+          "type": "policy",
+          "file": "<inputs>/python-15-defect",
+          "line": 1,
+          "col": 0,
+          "severity": "LOW",
+          "message": "Repository has no pre-commit policy file."
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "quality",
+          "dead_code"
+        ],
+        "quality_count": 5,
+        "listed_quality_count": 1,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-90-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "854b33c27cf1a4b996b42221ce02eae39a5884cfcf7163ba2b053b230f65504d",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 0.8889056670013815,
+      "input_sha256": "af70539a226583cf07e82d2627481f62d9a08e63deb088f7d9bec86574f58601",
+      "case_sha256": "3eccce0c5d98b3fdd466bf231c1a0c2add1f9a1a3d71aad5077bebc484022430",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "f19cb9803b1cc5bc40863b8ff7bc7cbbe20ec99740754b555c5cec508336ba92",
+        "stdout.bin": "492f118804e32248bbe61698668341f7c4a1fefb13f9274047345514e57501c1",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-D201",
+          "file": "<inputs>/python-90-defect/main.py",
+          "line": 1,
+          "col": 6,
+          "severity": "HIGH",
+          "message": "Use of eval()"
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "danger_count": 1,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-91-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "b84ee494e4ebf6dc2603d821e405b595441c397221651fe72fb284c07eca8c5e",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.3606532078702003,
+      "input_sha256": "d37e3a6c6683af40bdd395d811a65401460bbb5531552d806320362805ebf128",
+      "case_sha256": "9f99adc7c3abdd33a0e320644359ac6d5ca5fc68e58566e85470a385fba65919",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "0f6f39f64d5710c8874f30b2f7bdde2181486a9b6bf1317786b532db3c4e5353",
+        "stdout.bin": "c459cc4439706f9fdb55c92aaba6748dabde0c598f5f5d07cca8d327e87900d0",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "no_findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [],
+      "suppressed": [
+        {
+          "rule_id": "SKY-D201",
+          "file": "<inputs>/python-91-defect/main.py",
+          "line": 1,
+          "col": 6,
+          "severity": "HIGH",
+          "message": "Use of eval()",
+          "category": "security",
+          "reason": "inline ignore comment"
+        }
+      ],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-92-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "882b56196c86f889ef49ff414afa631448f496714465752c0d878bef2c50186d",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.2098614589776844,
+      "input_sha256": "4123f5f1002b98590b2881cb4d0c61eae361398f260576be265b29c039387a29",
+      "case_sha256": "a1b1b60cf2bce3df6726c5a5824b161c37c03ded0fe189565a851d01e2228640",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "e2d2e64c3d2967a55d7b469cbbe0b5adc6254c37e7a41a478a3ecdfe03ac5d1b",
+        "stdout.bin": "efbed25a3c1ffc0a5773118ff5fe0344a436ba0e3d877f93efcaf83da6e1ea7e",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-D201",
+          "file": "<inputs>/python-92-defect/main.py",
+          "line": 1,
+          "col": 6,
+          "severity": "HIGH",
+          "message": "Use of eval()"
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "danger_count": 1,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    },
+    {
+      "case_id": "python-93-defect",
+      "sample": 0,
+      "language": "python",
+      "mode": "security",
+      "key": "fe49a735921289a9cdf0c1ceba96c5be2ca18c9a09715d6b110a8d51f6e2c020",
+      "state": "complete",
+      "reason": "validated output",
+      "valid_measurement": true,
+      "exit_code": 0,
+      "seconds": 1.2363275000825524,
+      "input_sha256": "d221e4c5b0ff61735f2284af6432948e3be4bb9e999c690e869c06ed392fddcf",
+      "case_sha256": "126b9434bb139824296a6bf333e7de0fa9f5f7c588fa4dd47470da4a45d0ca6b",
+      "environment_sha256": "6b12b155131cc4274a27d4de86d6ceae13318fef8219989bb5f7afea09e119ca",
+      "adapter_version": 3,
+      "raw_sha256": {
+        "result.json": "ec41d8344b803198d6b4055035c5b351aa38dae9228508ff499ffdb3cf1da998",
+        "stdout.bin": "c355eedb03c5e555c9439ff79d94ef281f28da13c26feeacd63a9b5a140c6a47",
+        "stderr.bin": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "scanner_verdict": "findings",
+      "upstream_schema": "unversioned-skylos-5.1.5",
+      "findings": [
+        {
+          "rule_id": "SKY-D201",
+          "file": "<inputs>/python-93-defect/main.py",
+          "line": 1,
+          "col": 6,
+          "severity": "HIGH",
+          "message": "Use of eval()"
+        }
+      ],
+      "suppressed": [],
+      "coverage": {
+        "languages": {
+          "Python": 1
+        },
+        "total_files": 1,
+        "analysis_error_count": 0,
+        "grade_categories": [
+          "security",
+          "dead_code"
+        ],
+        "quality_count": 0,
+        "listed_quality_count": 0,
+        "danger_count": 1,
+        "analysis_coverage": {
+          "status": "complete",
+          "exit_blocking": false,
+          "diff_scoped": false,
+          "source_file_count": 1,
+          "unchecked_file_count": 0,
+          "unchecked_files": [],
+          "unverified_dead_code_candidates": 0,
+          "most_code_unchecked": false,
+          "warnings": [],
+          "blocking_reasons": []
+        }
+      },
+      "analysis_errors": []
+    }
+  ]
+}

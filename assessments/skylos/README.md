@@ -103,8 +103,9 @@ The runner intentionally supplies no automatic ground-truth scoring. A matching
 rule family is only candidate evidence; a reviewer must adjudicate incidental,
 duplicate, unsupported, suppressed, and unknown findings before calculating any
 pilot gate. Real-snapshot inventories, baseline-tool comparisons, independent
-finding adjudication, suppression characterization, and all six rollout decisions
-remain later measured work under #75.
+finding adjudication, Go suppression support and all six rollout decisions
+remain later work under #75. See the limited
+[Python sample-0 results](../../docs/assessments/skylos/phase-2-results.md).
 The separate [characterization phase](../../docs/assessments/skylos/characterization.md)
 registers suppression probes and bounded diagnostic capture before collecting
 sample-0 corpus observations. It never starts real-snapshot collection.
