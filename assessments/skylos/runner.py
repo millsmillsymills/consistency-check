@@ -49,9 +49,10 @@ def command(scanner: Path, root: Path, mode: str, config: Path) -> list[str]:
     return args + ({"security": ["--danger"], "quality": ["--quality"]}.get(mode, []))
 
 
-def _process(
+def capture_process(
     args: list[str], environment: dict[str, str], timeout: float, root: Path
 ) -> dict[str, Any]:
+    """Capture a bounded process group, retaining partial bytes on timeout or error."""
     started = time.perf_counter()
     try:
         process = subprocess.Popen(
@@ -116,7 +117,9 @@ class Runner:
             raise ValueError("verified scanner or engine changed")
         config = store / "trusted-empty.toml"
         store.mkdir(parents=True, exist_ok=True)
-        config.write_text("# Pilot deliberately overrides target scan configuration.\n")
+        config.write_text(
+            "# Pilot deliberately overrides target scan configuration.\n[tool.skylos]\n"
+        )
         args = command(self.scanner.absolute(), root, case["mode"], config)
         contract = {
             name: file_hash(Path(__file__).with_name(name))
@@ -143,13 +146,14 @@ class Runner:
         rejected = resume and receipt.is_file()
         if rejected:
             (attempt / "rejected-receipt.bin").write_bytes(receipt.read_bytes())
-        outcome = _process(args, self._environment(store), self.timeout, root)
+        outcome = capture_process(args, self.environment(store), self.timeout, root)
         record = self._record(case, root, source, key, args, sample, outcome)
         record["resume_rejected"] = rejected
         self._persist(attempt, record, outcome)
         return {**record, "resumed": False}
 
-    def _environment(self, store: Path) -> dict[str, str]:
+    def environment(self, store: Path) -> dict[str, str]:
+        """Build the credential-free local scanner environment shared by diagnostics."""
         environment = {
             key: os.environ[key] for key in ("PATH", "TMPDIR", "LANG") if key in os.environ
         }

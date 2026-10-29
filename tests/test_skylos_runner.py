@@ -6,6 +6,7 @@ import copy
 import json
 import sys
 import time
+import tomllib
 
 import pytest
 from assessments.skylos.corpus import load_corpus, materialize
@@ -64,6 +65,31 @@ def test_complete_observation_resumes_without_rerunning_the_scanner(tmp_path) ->
     assert second["resumed"]
     assert counter.read_text() == "1"
     assert (runner.store / first["key"] / "complete.json").is_file()
+    assert tomllib.loads((runner.store / "trusted-empty.toml").read_text()) == {
+        "tool": {"skylos": {}}
+    }
+
+
+@pytest.mark.parametrize("kind", ["unrelated", "requested", "unknown"])
+def test_verify_skips_only_zero_file_checks_outside_requested_language(tmp_path, kind) -> None:
+    payload = _payload()
+    identifier = "local" if kind == "requested" else "typescript"
+    payload["coverage"]["skipped_checks"] = [{"id": identifier, "reasons": ["no_supported_files"]}]
+    if kind != "requested":
+        payload["coverage"]["checks"].append(
+            {
+                "id": identifier,
+                "languages": [],
+                "applicable_files": 0,
+                "status": "skipped",
+                "outcome": "pass",
+            }
+        )
+    if kind == "unknown":
+        payload["coverage"]["skipped_checks"][0]["reasons"][0] = "engine_missing"
+    runner, case, root, _ = _setup(tmp_path, payload)
+    record = runner.run(case, root)
+    assert record["valid_measurement"] == (kind == "unrelated")
 
 
 def test_complete_scan_with_findings_is_preserved_as_findings_not_a_clean_verdict(tmp_path) -> None:
