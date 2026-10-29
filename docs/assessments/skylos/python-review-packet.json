@@ -1,0 +1,1228 @@
+{
+  "schema_version": 1,
+  "status": "review packet, not independent approval or scores",
+  "source_pin": "4f32409b5aaf913ca249483dc15221118c6c56db",
+  "corpus_sha256": "93233d48104537eb6cb999dd1e53381392e98d5867188c6b25b2ff66aa9c58ef",
+  "observations_sha256": "fd357ba5795f3493c8731840340300195fd432c2eaebc7304092bff28faf60c2",
+  "method": "Source-backed proposals from the collecting agent, preserving every frozen case and reported finding; no new scanner runs.",
+  "independent_reviewer": null,
+  "independent_reviewed_at": null,
+  "scoring_authorized": false,
+  "go_status": "defer: pinned zero-reference native output fails the CLI contract; no changed pin, engine, input or replacement observations",
+  "source_evidence": [
+    {
+      "id": "dead-candidate",
+      "path": "skylos/reporting/dead_code_result.py",
+      "start_line": 138,
+      "end_line": 166,
+      "file_sha256": "1ae0a13a993102a5b42e1dce7136ce6706cd4ac7fc4dd1984e9d232db5e680f3",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/reporting/dead_code_result.py#L138-L166",
+      "source_inference": "Reported candidates have zero references, are not exported, and meet the confidence threshold; uncertain evidence abstains."
+    },
+    {
+      "id": "decorator-names",
+      "path": "skylos/visitors/base.py",
+      "start_line": 1778,
+      "end_line": 1807,
+      "file_sha256": "3bacf9d84ea1fc007413c8fba2ae4b166dcd1baecf811099e9f021d113f6d21a",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/visitors/base.py#L1778-L1807",
+      "source_inference": "Framework decorator names include fixture and register."
+    },
+    {
+      "id": "decorator-credit",
+      "path": "skylos/visitors/base.py",
+      "start_line": 1866,
+      "end_line": 1881,
+      "file_sha256": "3bacf9d84ea1fc007413c8fba2ae4b166dcd1baecf811099e9f021d113f6d21a",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/visitors/base.py#L1866-L1881",
+      "source_inference": "Framework-name matches and recognized local registration decorators receive references."
+    },
+    {
+      "id": "registration-patterns",
+      "path": "skylos/visitors/registration_decorators.py",
+      "start_line": 21,
+      "end_line": 29,
+      "file_sha256": "1c2841299f3d565f50b88f0816578d1c9bd012263f223f9ee1fa4c090f0f13a6",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/visitors/registration_decorators.py#L21-L29",
+      "source_inference": "Collect local registration decorator patterns from module functions."
+    },
+    {
+      "id": "literal-dispatch",
+      "path": "skylos/core/grep_verify_python_strategy.py",
+      "start_line": 417,
+      "end_line": 435,
+      "file_sha256": "ad8507ec01f291fa2a6768f5e39c794ddbc2078250bfe88d111b3f042da39ff1",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/core/grep_verify_python_strategy.py#L417-L435",
+      "source_inference": "Reference search includes literal getattr and dispatch string patterns."
+    },
+    {
+      "id": "explicit-exports",
+      "path": "skylos/core/grep_verify_python_strategy.py",
+      "start_line": 465,
+      "end_line": 478,
+      "file_sha256": "ad8507ec01f291fa2a6768f5e39c794ddbc2078250bfe88d111b3f042da39ff1",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/core/grep_verify_python_strategy.py#L465-L478",
+      "source_inference": "Reference search includes explicit __all__ exports."
+    },
+    {
+      "id": "local-member-resolution",
+      "path": "skylos/rules/ai_defect/phantom_refs.py",
+      "start_line": 2280,
+      "end_line": 2330,
+      "file_sha256": "f82d838dda79716f6657ed2d11ae584452b81fa10da6c4d27f3fdbde35691ff4",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/phantom_refs.py#L2280-L2330",
+      "source_inference": "Resolve attribute chains through locally imported module aliases, not arbitrary typed receiver instances."
+    },
+    {
+      "id": "imported-alias-only",
+      "path": "skylos/rules/ai_defect/phantom_refs.py",
+      "start_line": 2332,
+      "end_line": 2351,
+      "file_sha256": "f82d838dda79716f6657ed2d11ae584452b81fa10da6c4d27f3fdbde35691ff4",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/phantom_refs.py#L2332-L2351",
+      "source_inference": "Visible aliases are resolved from local_imports; a function parameter is not an imported module alias."
+    },
+    {
+      "id": "member-not-arity",
+      "path": "skylos/rules/ai_defect/python_api_hallucination.py",
+      "start_line": 352,
+      "end_line": 375,
+      "file_sha256": "2ae2bef920276256468c59ff7bfdd2d545efd338376ad4581852090f5d070042",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/python_api_hallucination.py#L352-L375",
+      "source_inference": "Import coverage verifies module member existence; this branch does not bind call arguments."
+    },
+    {
+      "id": "signature-gate",
+      "path": "skylos/analyzer.py",
+      "start_line": 5452,
+      "end_line": 5500,
+      "file_sha256": "2c6fa8b5c38823d74b3b5a5d0191dee8daa4ac67bd1e01c9b8ff0062f87dd2b9",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/analyzer.py#L5452-L5500",
+      "source_inference": "Installed API signature scanning is nested under enable_dependency_hallucinations, disabled in the registered verifier command."
+    },
+    {
+      "id": "signature-keywords",
+      "path": "skylos/rules/ai_defect/api_signature_hallucination.py",
+      "start_line": 557,
+      "end_line": 584,
+      "file_sha256": "7076fadb4df394e4b3eb2d2d50ad50e93b36087ee96099e7c20401ff1f5a02c9",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/api_signature_hallucination.py#L557-L584",
+      "source_inference": "The installed signature checker inspects keyword acceptance, not local required positional-argument counts."
+    },
+    {
+      "id": "network-timeout",
+      "path": "skylos/rules/quality/logic_security.py",
+      "start_line": 3879,
+      "end_line": 3903,
+      "file_sha256": "68ca66b1a04dd4cf2bf32fb7dcf0e63fb06eba255faf033129dddddc441a5912",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/quality/logic_security.py#L3879-L3903",
+      "source_inference": "Missing-timeout detection first restricts the call to the configured network-call set."
+    },
+    {
+      "id": "timeout-callset",
+      "path": "skylos/rules/vibe_dictionary.py",
+      "start_line": 331,
+      "end_line": 350,
+      "file_sha256": "06407843a690e8693c6d214c1859c674cc3f076e2646341237741f59f2f79d1a",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/vibe_dictionary.py#L331-L350",
+      "source_inference": "Default timeout-call set lists network APIs; subprocess.run is absent."
+    },
+    {
+      "id": "trivial-except",
+      "path": "skylos/rules/quality/logic_maintainability.py",
+      "start_line": 3317,
+      "end_line": 3343,
+      "file_sha256": "45931d54dc9a39b4d3f76fd980c8a7ff30591250c0ba4624e475fae616ab8c73",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/quality/logic_maintainability.py#L3317-L3343",
+      "source_inference": "Swallowed-error detector handles broad ExceptHandler nodes with trivial handlers, not check=False return-code handling."
+    },
+    {
+      "id": "verify-options",
+      "path": "skylos/verify_change.py",
+      "start_line": 491,
+      "end_line": 513,
+      "file_sha256": "3b1ebbdc824f87c360913b2601dba5b35f509e01e50baaec775bff28244a8893",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/verify_change.py#L491-L513",
+      "source_inference": "Verify enables AI and quality checks, disables grep/trace, and forwards the selected dependency/security switches."
+    },
+    {
+      "id": "verify-selector",
+      "path": "skylos/core/verify_change_schema.py",
+      "start_line": 230,
+      "end_line": 248,
+      "file_sha256": "06d65bba0a5ab0dd35b123c74ea1965ae440f1002abef2613d67b541794f2fd9",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/core/verify_change_schema.py#L230-L248",
+      "source_inference": "Verify emits AI findings, explicitly selected quality IDs, and enabled security findings; generic quality output is not universally reported."
+    },
+    {
+      "id": "command-pattern",
+      "path": "skylos/rules/danger/calls.py",
+      "start_line": 102,
+      "end_line": 107,
+      "file_sha256": "a80f50862902fd065a2e63aa0d710665f514cf4edc12d0c8d9c3a68c76e7c8c7",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/danger/calls.py#L102-L107",
+      "source_inference": "SKY-D209 identifies subprocess calls with shell=True."
+    },
+    {
+      "id": "command-taint",
+      "path": "skylos/rules/danger/danger_cmd/cmd_flow.py",
+      "start_line": 60,
+      "end_line": 82,
+      "file_sha256": "3b993381b9fd54358fa0fb0e8471557f4ac466b1b06b9e336f0007704b6e23b3",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/danger/danger_cmd/cmd_flow.py#L60-L82",
+      "source_inference": "SKY-D212 identifies tainted subprocess shell calls."
+    },
+    {
+      "id": "missing-import",
+      "path": "skylos/rules/ai_defect/phantom_refs.py",
+      "start_line": 560,
+      "end_line": 629,
+      "file_sha256": "f82d838dda79716f6657ed2d11ae584452b81fa10da6c4d27f3fdbde35691ff4",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/phantom_refs.py#L560-L629",
+      "source_inference": "A missing symbol from a known local module produces an import finding after guards and package uncertainties are checked."
+    },
+    {
+      "id": "relative-gap",
+      "path": "skylos/rules/ai_defect/python_api_hallucination.py",
+      "start_line": 339,
+      "end_line": 347,
+      "file_sha256": "2ae2bef920276256468c59ff7bfdd2d545efd338376ad4581852090f5d070042",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/ai_defect/python_api_hallucination.py#L339-L347",
+      "source_inference": "A missing relative-import target with a local package prefix is recorded as unresolved_relative_import and skipped."
+    },
+    {
+      "id": "unreachable-rule",
+      "path": "skylos/rules/quality/unreachable.py",
+      "start_line": 207,
+      "end_line": 231,
+      "file_sha256": "d4afc05e96465716512a9f40ec18ae81ec25bb1324e35ff007787b64758b94c6",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/quality/unreachable.py#L207-L231",
+      "source_inference": "The first statement after a terminating statement is reported as unreachable."
+    },
+    {
+      "id": "policy-emission",
+      "path": "skylos/rules/quality/policy.py",
+      "start_line": 419,
+      "end_line": 482,
+      "file_sha256": "f432f240c31e3325147158c98bdee7a50c3f2d1929d90b7ec12bde9332e788a1",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/quality/policy.py#L419-L482",
+      "source_inference": "Emit absent type/lint/gate/pre-commit policy findings on minimal Python repositories."
+    },
+    {
+      "id": "policy-advice",
+      "path": "skylos/rules/catalog.py",
+      "start_line": 438,
+      "end_line": 453,
+      "file_sha256": "f2f1e92b4a24190e01d6cf877978886e2225ddc0f999bd13740346a8d364b8c9",
+      "url": "https://github.com/duriantaco/skylos/blob/4f32409b5aaf913ca249483dc15221118c6c56db/skylos/rules/catalog.py#L438-L453",
+      "source_inference": "SKY-R101 through SKY-R104 are catalogued as advice, separately from unreachable defects."
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "python-01-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "private-function",
+      "case_sha256": "4aec426f7d2c49641f8f546872e0e53240ea7aaa8d6fb18c2d2652b2a82fc3d2",
+      "observation_key": "e16ce3c624d12e47861434d92d7f4a9952e8e4a69d63ef4304dfe4eb2636e479",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Uncalled transform is a candidate unused helper; the control directly calls it.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-01-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "private-function",
+      "case_sha256": "642882dcf96be1fecb47341b428b4e495c9c8526ac9b6432acce975bf8cd4cff",
+      "observation_key": "abbcfde0e012ef25e96a001977a4eb965b66a0e8f13c7fff5ec17eaa33369d97",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Uncalled transform is a candidate unused helper; the control directly calls it.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-02-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "decorator-registration",
+      "case_sha256": "7ae94430ca8e37926502b4ace87b8aa982d2fe05ce998ab50621b56dc6366a48",
+      "observation_key": "0bf67466006a0600c544f0bf685564ac23f1f95fa6d53aadaf013441fe06a891",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Identity decorator returns its function without registering or invoking it. The control stores and calls the registered callback. Name heuristics and direct references limit attribution.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-02-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "decorator-registration",
+      "case_sha256": "f07f68570204bcd6179efea03e460c0b76c6c5f902f296e787dd36ce54216814",
+      "observation_key": "c69e5d245761dcd250e85dfbd976a40252934c8a5814ff71c3ec3d90c8f1b6e9",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Identity decorator returns its function without registering or invoking it. The control stores and calls the registered callback. Name heuristics and direct references limit attribution.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-03-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "factory-registration",
+      "case_sha256": "1a9ecf6b7547a442aa52cf940bc99816d07e4eae40aa50d310a80e457c4ac08b",
+      "observation_key": "202aecce5bbee08f57dba8d6a05744403a50f495795639e1472732586c5c5925",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "The positive is an ordinary uncalled helper; the control registers through a factory and calls a dispatch entry. This does not isolate factory inference from direct references.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-03-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "factory-registration",
+      "case_sha256": "d7c9b99a9ae3e82f809f53bcba254c719b8c76db71e2fe7016d2afa4a8a5935c",
+      "observation_key": "2fd3a35cd2a4b55b9943e290abe206f02bea8c6cda7f4fe65d5f438cb378e35f",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "The positive is an ordinary uncalled helper; the control registers through a factory and calls a dispatch entry. This does not isolate factory inference from direct references.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-04-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "registry-dispatch",
+      "case_sha256": "00aabc8516883b2df92d84725670f3160b769e07fbceca790c6969b1b0009c05",
+      "observation_key": "f39b29a56b03faf0f06a3fa062e71a446ebe0e167223109cd0e85eae778fdcfd",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Transform is unreferenced in the defect; the control stores it in a dispatch map and invokes it. The unused handlers binding is additional evidence, not a second seeded callback defect.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-04-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "registry-dispatch",
+      "case_sha256": "f81e109c0b90a2f7f114d991d4540192049348966c12f560faf82f4b7e4f0e48",
+      "observation_key": "062f2e9ba726e8e34c83e0050f7eda612e8265ddf31d789ce8f2cdc34f84a2e5",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Transform is unreferenced in the defect; the control stores it in a dispatch map and invokes it. The unused handlers binding is additional evidence, not a second seeded callback defect.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-05-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "string-lookup",
+      "case_sha256": "f32d54cdd815e0f1f6be96ca3cac7ac770ccf3888e983b359fc60f6148a24cb8",
+      "observation_key": "eb9225b1e6ff208b90d54e72e1df7ca730a5c7f0b5b18d1ec887d82292cf60a1",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "literal-dispatch"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Worker.transform is never invoked in the defect; the control invokes literal getattr. The extra worker binding is a separate unused-value candidate.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-05-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "string-lookup",
+      "case_sha256": "5f9695efe62243fb4581831729c8653ac3ae839f5e9353f12d8bac59fb045e88",
+      "observation_key": "3f98eba261abb779b6790b52c31b00ca2ea45303f78d17f4a55bf453c6916b1d",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "literal-dispatch"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Worker.transform is never invoked in the defect; the control invokes literal getattr. The extra worker binding is a separate unused-value candidate.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-06-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "optional-api",
+      "case_sha256": "eedbc6a764950ec4d7378edbdf2f2d9c7f30f68fdc2bd1d06749a062e105fd29",
+      "observation_key": "73ae70f1c5a18643c7da802e1b52c79c48ede2b7f282d74a10ede9d79a4deaef",
+      "observation_state": "complete",
+      "support_proposal": "outside_identified_local_module_surface",
+      "source_evidence": [
+        "local-member-resolution",
+        "imported-alias-only"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The missing attribute is on a typed Client parameter, not an imported local module alias. Both units report zero checked references. No demonstrated instance-member coverage.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-06-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "optional-api",
+      "case_sha256": "ccd9b9d1bf6fbae13e937aeb5245ebec151f4471696fd6632be668ce8960f73a",
+      "observation_key": "97f5080c4f9756acb5e2dc757f5070fa9d7f2f2e98594809b22a7fd8c6d72f2f",
+      "observation_state": "complete",
+      "support_proposal": "outside_identified_local_module_surface",
+      "source_evidence": [
+        "local-member-resolution",
+        "imported-alias-only"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The missing attribute is on a typed Client parameter, not an imported local module alias. Both units report zero checked references. No demonstrated instance-member coverage.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-07-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "subprocess-timeout",
+      "case_sha256": "ee3a3f729f828e23f367ab048ee03d4681e189ef978c62f27d7b9a18d8cda238",
+      "observation_key": "2301f77feb49cdcd52fad1a15e89ff33ae1a73b78f90fe777128eaf53a3b5aa8",
+      "observation_state": "complete",
+      "support_proposal": "no_matching_selected_detector_identified",
+      "source_evidence": [
+        "network-timeout",
+        "timeout-callset",
+        "verify-selector"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The identified timeout rule covers network-call names, excluding subprocess.run. The registered verifier produces zero checked local references. This is bounded source evidence, not a claim that all Skylos modes lack such a rule.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-07-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "subprocess-timeout",
+      "case_sha256": "faa4b44a94cf74e15ae2c59787ab78e27ba2194aa7404073c6f51e763aeaa7d7",
+      "observation_key": "ae62f02ffa6b1aa313ccca5c32774570ae0378e60620375c0dabf65321fb2593",
+      "observation_state": "complete",
+      "support_proposal": "no_matching_selected_detector_identified",
+      "source_evidence": [
+        "network-timeout",
+        "timeout-callset",
+        "verify-selector"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The identified timeout rule covers network-call names, excluding subprocess.run. The registered verifier produces zero checked local references. This is bounded source evidence, not a claim that all Skylos modes lack such a rule.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-08-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "subprocess-error",
+      "case_sha256": "8be37defe8bdd7a4985df58dc2b789ed01f7f906490a0905cce1110b5d5c0333",
+      "observation_key": "b1542afbca0811c6367f1caf7875bacd690051a28bf1e4626d0aaee2078da47a",
+      "observation_state": "complete",
+      "support_proposal": "no_matching_selected_detector_identified",
+      "source_evidence": [
+        "trivial-except",
+        "verify-selector"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The identified swallowed-error rule examines broad exception handlers; the defect ignores a child return code without such a handler. A subprocess check=False correctness detector was not established in this selected mode.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-08-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "subprocess-error",
+      "case_sha256": "99d91447d1aac820d0ce5cfe4597d7d8c58bc59ec2dcc95308c0bcccaf3d66f1",
+      "observation_key": "d1bc455f255a6e92595a2bcf8f9b55156bbe678c0503828c716d15ad97d36458",
+      "observation_state": "complete",
+      "support_proposal": "no_matching_selected_detector_identified",
+      "source_evidence": [
+        "trivial-except",
+        "verify-selector"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "The identified swallowed-error rule examines broad exception handlers; the defect ignores a child return code without such a handler. A subprocess check=False correctness detector was not established in this selected mode.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-09-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "subprocess-injection",
+      "case_sha256": "b562998469ad7c3e8e7866c71edc2b3c85bd213332e6044070913cb0ed5d3245",
+      "observation_key": "19ad688f077f199741093714e4caac49113a5f27cd28c6f9baaa09e0eabcf43c",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "command-pattern",
+        "command-taint"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "One input-controlled shell command causes both the shell-enabled and taint findings. Preserve both reports; underlying-defect deduplication remains proposed.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-09-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "subprocess-injection",
+      "case_sha256": "3ac74d48cf090b2a4fc25668e753a03c60d08d3dc682119d4c875581cf91423b",
+      "observation_key": "03266b678fc78dd21f1384f5c371c48c6a78eb86cce2e6c7b832966edd1d98b9",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "command-pattern",
+        "command-taint"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "One input-controlled shell command causes both the shell-enabled and taint findings. Preserve both reports; underlying-defect deduplication remains proposed.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-10-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "intentional-fixture",
+      "case_sha256": "789d7bf9574c08078838f641d430f3c95ced64a36251c85c2e15b19fde32b466",
+      "observation_key": "95123ed01c79247be874274a5af93673143766eca5f43a61c04de3998ff4cbf8",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Ordinary sample_data is uncalled. The control uses pytest.fixture, whose decorator name gets reference credit; framework-wide runtime reachability is not established.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-10-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "intentional-fixture",
+      "case_sha256": "a076b999f83c7a2ade60dd3f03c08f71cf02d1432a2c3f237dac5441040591e0",
+      "observation_key": "d7052bb1ecb44c5e0d667f0d78e7df28c73fcc9a81d224b7d1f7b25ffe654816",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Ordinary sample_data is uncalled. The control uses pytest.fixture, whose decorator name gets reference credit; framework-wide runtime reachability is not established.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-11-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "public-entrypoint",
+      "case_sha256": "45a166febb317ca43fe69865e31881aed668c4749c5a1064827fe418330d6dc5",
+      "observation_key": "845aa6febabffb17f3dfef69413dd9193a8f2b4e152ae9a421e69a4a6a20bb6a",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "explicit-exports"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "Private _transform is unused; the control explicitly exports transform through __all__, which the pinned dead-code logic respects.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-11-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "public-entrypoint",
+      "case_sha256": "96bf478f0f6b8ea0513aa319c562537d1c37e6e0a744d90e7e1aa69508abfbf4",
+      "observation_key": "a4197c1ff9616a5c748bdbd12ccc21511cb67d83db547439e59226a15ec88f50",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "dead-candidate",
+        "explicit-exports"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "Private _transform is unused; the control explicitly exports transform through __all__, which the pinned dead-code logic respects.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-12-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "local-api-symbol",
+      "case_sha256": "98e8565c7bec52fddc27667f94d115a35e62689dea23ad84ad3dd23942831a50",
+      "observation_key": "4d4348d910d80d6aab75dea72864f0e7d708a04cb426e262fcc7fe9f9561a670",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "missing-import",
+        "member-not-arity"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "helper defines available but not missing. The detector reports the missing import; the control imports an existing local symbol.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-12-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "local-api-symbol",
+      "case_sha256": "72de91524776c23d5f83ab528b799050d42efa706ed7689534cfc32525965756",
+      "observation_key": "1fbce4b518c40562fa7786a81091aea5fde0a6992d300846bd6636757f26db94",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "missing-import",
+        "member-not-arity"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "helper defines available but not missing. The detector reports the missing import; the control imports an existing local symbol.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-13-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "local-api-arity",
+      "case_sha256": "6c527ab40986ac1423c6112ebab3b71dd2210a68dd8421f0ae5b800ee5bba806",
+      "observation_key": "ec4cfbed1eec33c8c3d8765541024f16f6ac72f177138d2188139c08dbcd36b1",
+      "observation_state": "complete",
+      "support_proposal": "outside_identified_local_existence_check",
+      "source_evidence": [
+        "member-not-arity",
+        "signature-gate",
+        "signature-keywords"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "Both imports resolve combine and count as verified existence. Local required positional arity is not checked by that receipt. Installed signature checks are disabled with dependency checks and do not establish this local positional-arity feature.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-13-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "local-api-arity",
+      "case_sha256": "1d6a3796312cb99ea31e8881d6c980491a57ff27caa5031dd17af0a7484ff5db",
+      "observation_key": "bd7d777f67869bf0617bb057381655e93d44f69a874e491236a4b8dbdab52e53",
+      "observation_state": "complete",
+      "support_proposal": "outside_identified_local_existence_check",
+      "source_evidence": [
+        "member-not-arity",
+        "signature-gate",
+        "signature-keywords"
+      ],
+      "proposed_case_assessment": "silent_feature_unmeasured",
+      "rationale": "Both imports resolve combine and count as verified existence. Local required positional arity is not checked by that receipt. Installed signature checks are disabled with dependency checks and do not establish this local positional-arity feature.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-14-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "local-import",
+      "case_sha256": "4e88663826313b6e1d6a02c5bbd4206244835e207063856d6382446e1a553b1f",
+      "observation_key": "470f425e9ee9497b3fab7ef85b805a3655e13390a0995fbb58dc3a3299249c30",
+      "observation_state": "complete",
+      "support_proposal": "incomplete_for_missing_relative_target",
+      "source_evidence": [
+        "relative-gap",
+        "missing-import"
+      ],
+      "proposed_case_assessment": "control_reference_verified_candidate",
+      "rationale": "The missing sibling module is skipped as unresolved_relative_import; the existing sibling control is checked. Keep the defect incomplete, not a true negative or successful recall sample.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-14-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "local-import",
+      "case_sha256": "83a65113cffc1d50535d18ae57292aa68278786dd26681ca5bedaa00571243a0",
+      "observation_key": "fa20096a6604337da457d8aaa9a34a2416c06ae1b372719f60a9c3668c581730",
+      "observation_state": "incomplete",
+      "support_proposal": "incomplete_for_missing_relative_target",
+      "source_evidence": [
+        "relative-gap",
+        "missing-import"
+      ],
+      "proposed_case_assessment": "incomplete_unmeasured",
+      "rationale": "The missing sibling module is skipped as unresolved_relative_import; the existing sibling control is checked. Keep the defect incomplete, not a true negative or successful recall sample.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-15-control",
+      "registered_kind": "control",
+      "registered_expected": "no_finding",
+      "registered_family": "unreachable-statement",
+      "case_sha256": "ec14c89ff6cf65378a84d12ce9ee23b5a4d1e175fdce3b4dcdef9d0fdfd61619",
+      "observation_key": "36ed9cad54c123f2d52fefb7d2bbd4272d5a1e7ee1c0372f133c9c89e1762712",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "unreachable-rule",
+        "policy-emission",
+        "policy-advice"
+      ],
+      "proposed_case_assessment": "control_no_seed_report_candidate",
+      "rationale": "The defect prints after unconditional return; the control prints before return. Both minimal repositories also lack four policies; these advice reports require independent classification.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    },
+    {
+      "case_id": "python-15-defect",
+      "registered_kind": "defect",
+      "registered_expected": "finding",
+      "registered_family": "unreachable-statement",
+      "case_sha256": "66f90b9538350a68302b8b5be40265f47f019e3cb97a7f6f9897ba27c56977f5",
+      "observation_key": "898ae512328d7c8bc42db7a6fa94f8bb521276943730d65b35e22ff806a1c1f2",
+      "observation_state": "complete",
+      "support_proposal": "implemented_for_this_shape",
+      "source_evidence": [
+        "unreachable-rule",
+        "policy-emission",
+        "policy-advice"
+      ],
+      "proposed_case_assessment": "seed_report_candidate",
+      "rationale": "The defect prints after unconditional return; the control prints before return. Both minimal repositories also lack four policies; these advice reports require independent classification.",
+      "denominator_eligibility": "pending_independent_review",
+      "review_status": "pending_independent_review"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "python-01-defect:finding-01",
+      "case_id": "python-01-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "8f04ab131e9aa2477fafb574c671bac05a6b2136d93c31210cbc79399efc5d27",
+      "reported_rule_id": null,
+      "reported_symbol": "transform",
+      "reported_location": {
+        "file": "<inputs>/python-01-defect/main.py",
+        "line": 1,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-01-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-02-defect:finding-01",
+      "case_id": "python-02-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "a6dc7ee84a4eef32f059c618e094c693030931d9da062d2bb4000329a224e556",
+      "reported_rule_id": null,
+      "reported_symbol": "transform",
+      "reported_location": {
+        "file": "<inputs>/python-02-defect/main.py",
+        "line": 4,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-02-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-03-defect:finding-01",
+      "case_id": "python-03-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "f9e2488d3b2552594b8107e7066b2436777fe2eff466ecc7b755d399d5993cf8",
+      "reported_rule_id": null,
+      "reported_symbol": "transform",
+      "reported_location": {
+        "file": "<inputs>/python-03-defect/main.py",
+        "line": 1,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-03-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-credit",
+        "registration-patterns"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-04-defect:finding-01",
+      "case_id": "python-04-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "f03dff2aff23cb1ad733a76e84c991aaa2a28bcc1480d1d1381844ed61228591",
+      "reported_rule_id": null,
+      "reported_symbol": "transform",
+      "reported_location": {
+        "file": "<inputs>/python-04-defect/main.py",
+        "line": 1,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-04-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-04-defect:finding-02",
+      "case_id": "python-04-defect",
+      "observation_finding_index": 1,
+      "finding_sha256": "1c0a57a644914319fe6ab7662c8b5df10b7c9f564c3d5fe79c04c6e938946fd2",
+      "reported_rule_id": null,
+      "reported_symbol": "handlers",
+      "reported_location": {
+        "file": "<inputs>/python-04-defect/main.py",
+        "line": 3,
+        "col": null
+      },
+      "proposed_classification": "additional_unused_binding_candidate",
+      "proposed_underlying_defect_group": "python-04-defect-handlers",
+      "rationale": "The binding is never read in the frozen source. Review truth/usefulness separately from the seeded unused callback or method.",
+      "source_evidence": [
+        "dead-candidate"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-05-defect:finding-01",
+      "case_id": "python-05-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "841d297dff8446f53b4eeed853d8dbe77f16b8ccfd7b28c92d51809dff69c91d",
+      "reported_rule_id": null,
+      "reported_symbol": "transform",
+      "reported_location": {
+        "file": "<inputs>/python-05-defect/main.py",
+        "line": 2,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-05-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate",
+        "literal-dispatch"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-05-defect:finding-02",
+      "case_id": "python-05-defect",
+      "observation_finding_index": 1,
+      "finding_sha256": "d91594bfdb5de6dddd4ab20225d6c95de2bd0e44452067fa18acf6c0785b0c9e",
+      "reported_rule_id": null,
+      "reported_symbol": "worker",
+      "reported_location": {
+        "file": "<inputs>/python-05-defect/main.py",
+        "line": 4,
+        "col": null
+      },
+      "proposed_classification": "additional_unused_binding_candidate",
+      "proposed_underlying_defect_group": "python-05-defect-worker",
+      "rationale": "The binding is never read in the frozen source. Review truth/usefulness separately from the seeded unused callback or method.",
+      "source_evidence": [
+        "dead-candidate",
+        "literal-dispatch"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-09-defect:finding-01",
+      "case_id": "python-09-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "424e81f05a5d8b60aeb8ac98aae183b7651fcd313fd556e3d67c350be64b6a97",
+      "reported_rule_id": "SKY-D209",
+      "reported_symbol": null,
+      "reported_location": {
+        "file": "<inputs>/python-09-defect/main.py",
+        "line": 2,
+        "col": 0
+      },
+      "proposed_classification": "overlapping_seed_report_candidate",
+      "proposed_underlying_defect_group": "python-09-defect-seed",
+      "rationale": "Both rules flag the same input-controlled shell call on line 2; independent review must decide underlying-defect deduplication.",
+      "source_evidence": [
+        "command-pattern",
+        "command-taint"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-09-defect:finding-02",
+      "case_id": "python-09-defect",
+      "observation_finding_index": 1,
+      "finding_sha256": "ac3ecf21f7d72859afdcd23fcfcf676a238f24e8cdc3df97951789a14116812f",
+      "reported_rule_id": "SKY-D212",
+      "reported_symbol": null,
+      "reported_location": {
+        "file": "<inputs>/python-09-defect/main.py",
+        "line": 2,
+        "col": 0
+      },
+      "proposed_classification": "overlapping_seed_report_candidate",
+      "proposed_underlying_defect_group": "python-09-defect-seed",
+      "rationale": "Both rules flag the same input-controlled shell call on line 2; independent review must decide underlying-defect deduplication.",
+      "source_evidence": [
+        "command-pattern",
+        "command-taint"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-10-defect:finding-01",
+      "case_id": "python-10-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "b636c7549384b76103fc6df434050394b9460d8a410feec44e07cc026cc69435",
+      "reported_rule_id": null,
+      "reported_symbol": "sample_data",
+      "reported_location": {
+        "file": "<inputs>/python-10-defect/main.py",
+        "line": 1,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-10-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate",
+        "decorator-names",
+        "decorator-credit"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-11-defect:finding-01",
+      "case_id": "python-11-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "d9b61182ebdb2d7fc948aa3f34a821c11c96e94447a7e663dcd2e44995992874",
+      "reported_rule_id": null,
+      "reported_symbol": "_transform",
+      "reported_location": {
+        "file": "<inputs>/python-11-defect/main.py",
+        "line": 1,
+        "col": null
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-11-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "dead-candidate",
+        "explicit-exports"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-12-defect:finding-01",
+      "case_id": "python-12-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "c6423259024fba7fcf3bdb9c877b8b0d68c8bc5d1c452e09ae4f0578a8634ce5",
+      "reported_rule_id": "SKY-L012",
+      "reported_symbol": null,
+      "reported_location": {
+        "file": "main.py",
+        "start_line": 1,
+        "start_col": 0,
+        "end_line": 1,
+        "end_col": 0
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-12-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "missing-import",
+        "member-not-arity"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-control:finding-01",
+      "case_id": "python-15-control",
+      "observation_finding_index": 0,
+      "finding_sha256": "d8919d3ed82251b6d8e0fe54479dea351ff500669d590533fa7de068300955db",
+      "reported_rule_id": "SKY-R101",
+      "reported_symbol": "python-type-check-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-control",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-control-SKY-R101",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-control:finding-02",
+      "case_id": "python-15-control",
+      "observation_finding_index": 1,
+      "finding_sha256": "4b55a6774a566e7ed4771eee81a2b7d798dc2e9a4e7b89c4ce91c9737b3e2984",
+      "reported_rule_id": "SKY-R102",
+      "reported_symbol": "python-lint-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-control",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-control-SKY-R102",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-control:finding-03",
+      "case_id": "python-15-control",
+      "observation_finding_index": 2,
+      "finding_sha256": "8dc9c53897da4642ccfefc87d1913a616d968828c1c282de09bec2ea171be03c",
+      "reported_rule_id": "SKY-R103",
+      "reported_symbol": "skylos-gate-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-control",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-control-SKY-R103",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-control:finding-04",
+      "case_id": "python-15-control",
+      "observation_finding_index": 3,
+      "finding_sha256": "7b349a6bc7902f53c4a6a21c70389b2e9cd7fdab24598bae7b10ce0ab3145747",
+      "reported_rule_id": "SKY-R104",
+      "reported_symbol": "pre-commit-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-control",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-control-SKY-R104",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-defect:finding-01",
+      "case_id": "python-15-defect",
+      "observation_finding_index": 0,
+      "finding_sha256": "74a5b662154c86776aa776f18d7c87e286cabf253d845c9a52f36bf80fa2b89b",
+      "reported_rule_id": "SKY-UC001",
+      "reported_symbol": "unreachable",
+      "reported_location": {
+        "file": "<inputs>/python-15-defect/main.py",
+        "line": 3,
+        "col": 4
+      },
+      "proposed_classification": "seed_match_candidate",
+      "proposed_underlying_defect_group": "python-15-defect-seed",
+      "rationale": "Reported location/symbol matches the frozen seeded defect.",
+      "source_evidence": [
+        "unreachable-rule",
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-defect:finding-02",
+      "case_id": "python-15-defect",
+      "observation_finding_index": 1,
+      "finding_sha256": "e1f3cc1331894f6dae7233fe144a273034070ad72932cd62efb62ef939fe5139",
+      "reported_rule_id": "SKY-R101",
+      "reported_symbol": "python-type-check-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-defect",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-defect-SKY-R101",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-defect:finding-03",
+      "case_id": "python-15-defect",
+      "observation_finding_index": 2,
+      "finding_sha256": "48464a3a87fabc85739c0a82cb12f0070d7dfeee26c238d6f37068db7f982632",
+      "reported_rule_id": "SKY-R102",
+      "reported_symbol": "python-lint-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-defect",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-defect-SKY-R102",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-defect:finding-04",
+      "case_id": "python-15-defect",
+      "observation_finding_index": 3,
+      "finding_sha256": "344f35aca935dc2314c3f0445ce2f3edea7074cf3b39530eb6e5df6c41c3039a",
+      "reported_rule_id": "SKY-R103",
+      "reported_symbol": "skylos-gate-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-defect",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-defect-SKY-R103",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    },
+    {
+      "finding_id": "python-15-defect:finding-05",
+      "case_id": "python-15-defect",
+      "observation_finding_index": 4,
+      "finding_sha256": "e7a02211104acd7ea2881c2eb52cb3372bcf302e94db6088d492de70b1fc517c",
+      "reported_rule_id": "SKY-R104",
+      "reported_symbol": "pre-commit-policy",
+      "reported_location": {
+        "file": "<inputs>/python-15-defect",
+        "line": 1,
+        "col": 0
+      },
+      "proposed_classification": "incidental_policy_advice_pending_judgment",
+      "proposed_underlying_defect_group": "python-15-defect-SKY-R104",
+      "rationale": "The fixture lacks this policy and the rule is advice. It does not diagnose the seeded unreachable-statement class. Do not silently drop it from reported positives or call it a false positive.",
+      "source_evidence": [
+        "policy-emission",
+        "policy-advice"
+      ],
+      "review_status": "pending_independent_review"
+    }
+  ],
+  "review_decisions_needed": [
+    "Confirm or dispute the four silent-family support proposals without retroactively narrowing a scoring denominator.",
+    "Keep the missing-relative-import defect incomplete and decide its support status.",
+    "Judge extra unused bindings for truth/usefulness, and classify all eight policy advice findings without hiding them.",
+    "Approve or reject grouping the two shell-call reports as one underlying seeded defect, consistently with the registered protocol.",
+    "Confirm toy registration controls support only those shapes and do not establish real-server reachability.",
+    "An owner or independent reviewer must record reviewer identity, date, evidence, per-case/per-finding decisions and unresolved judgments before scoring; merging this packet does not sign that review."
+  ]
+}
