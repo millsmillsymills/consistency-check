@@ -64,6 +64,8 @@ workspace verification disables dependency lookups, behavior execution/compariso
 and contract discovery. Child processes do not inherit API credentials and Go
 package-network access is disabled. These controls are not a general OS network
 sandbox; no real-snapshot measurement is authorized by a synthetic result alone.
+`--language python` or `--language go` limits collection to one frozen language;
+use this when the other language's capability prerequisites are blocked.
 
 Sample 0 is a warm-up/characterization observation. Distinct `--sample` values
 identify the preregistered timed repetitions; this slice does not compute p95,
@@ -87,6 +89,10 @@ the explicitly **unversioned** static-result shape of that release. Missing
 requested language/check coverage and missing Go engine phases are not passes.
 Suppressed findings remain visible instead of becoming unreported true negatives.
 Unknown/malformed suppression output is rejected.
+Adapter revision 3 also accounts for the pinned release's omitted empty
+security/quality arrays, requiring explicit complete coverage and consistent
+counts. A verifier skip is harmless only when it explicitly covers zero files
+outside the requested checks; requested-language gaps remain incomplete.
 
 Resume keys bind source files, complete case metadata, command/configuration,
 toolchain identity, timeout, sample, and adapter source hashes. Reuse checks the
@@ -99,3 +105,6 @@ duplicate, unsupported, suppressed, and unknown findings before calculating any
 pilot gate. Real-snapshot inventories, baseline-tool comparisons, independent
 finding adjudication, suppression characterization, and all six rollout decisions
 remain later measured work under #75.
+The separate [characterization phase](../../docs/assessments/skylos/characterization.md)
+registers suppression probes and bounded diagnostic capture before collecting
+sample-0 corpus observations. It never starts real-snapshot collection.
