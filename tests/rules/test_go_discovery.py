@@ -26,7 +26,7 @@ def test_excluded_production_cannot_introduce_rule_failures(
     source.parent.mkdir(parents=True)
     source.write_text(
         "package poison\n"
-        "func BadGet() { panic(1) }\n"
+        "func GetBad() { panic(1) }\n"
         "func start() { go run() }\n"
         "func init() {\n a()\n b()\n c()\n d()\n}\n"
         "func get() (int, error) {\n return 0, err\n}\n"
@@ -65,7 +65,7 @@ def test_excluded_sources_cannot_satisfy_repository_requirements(
 def test_owned_internal_code_is_still_graded(tmp_path: Path) -> None:
     source = tmp_path / "internal" / "owned" / "main.go"
     source.parent.mkdir(parents=True)
-    source.write_text("package owned\nfunc BadGet() { panic(1) }\n", encoding="utf-8")
+    source.write_text("package owned\nfunc GetBad() { panic(1) }\n", encoding="utf-8")
     repo = Repo(name="x", path=tmp_path, language="go", github_slug="x/y")
     for rule in GO_RULES:
         if rule.id in {"GO-010", "GO-014"}:

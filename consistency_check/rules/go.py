@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from consistency_check.sources import go_sources, go_test_sources
+from consistency_check.sources import code_only, go_sources, go_test_sources
 from consistency_check.types import Rule, Tier
 
 if TYPE_CHECKING:
@@ -145,7 +145,9 @@ def _check_integration_split(repo: Repo) -> str | None:
     return "no integration/ directory and no //go:build integration tags"
 
 
-_BARE_RETURN_ERR = re.compile(r"return\s+(\w+),?\s*err\s*$", re.MULTILINE)
+_BARE_RETURN_ERR = re.compile(
+    r"\breturn[ \t]+(?:[^;\n{}]*,[ \t]*)?err[ \t]*(?:$|[;}])", re.MULTILINE
+)
 
 
 def _check_error_wrapping(repo: Repo) -> str | None:
@@ -165,7 +167,7 @@ def _check_error_wrapping(repo: Repo) -> str | None:
         bad.extend(
             p.relative_to(repo.path).as_posix()
             for p, text in texts.items()
-            if _BARE_RETURN_ERR.search(text)
+            if _BARE_RETURN_ERR.search(code_only(text, "//"))
         )
     return f"functions returning unwrapped errors (heuristic): {sorted(bad)[:5]}" if bad else None
 
@@ -185,10 +187,10 @@ def _check_context_first(repo: Repo) -> str | None:
     for p in go_sources(repo):
         if not p.is_relative_to(internal):
             continue
-        text = _read(p)
+        text = code_only(_read(p), "//")
         for m in re.finditer(
             r"func\s+(?:\([^)]+\)\s+)?"
-            r"([A-Z]\w*?(?:Get|List|Create|Update|Delete|Send|Fetch)\w*)\s*\(([^)]*)\)",
+            r"((?:Get|List|Create|Update|Delete|Send|Fetch)\w*)\s*\(([^)]*)\)",
             text,
         ):
             if not _ctx_first(m.group(2)):
