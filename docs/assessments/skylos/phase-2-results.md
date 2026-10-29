@@ -127,3 +127,7 @@ Real-server work remains gated on representative-role/registration inventories,
 baseline verification and independent finding adjudication, followed by suite
 overlap, complete runtime sampling and all six rollout decisions. No new MUST or
 MAY/advisory standard is proposed by these limited observations.
+
+The [source-backed Python review packet](python-review-packet.md) supplies
+per-case/per-finding proposals and the concrete independent decisions still
+needed. It preserves the observations and does not authorize scoring.

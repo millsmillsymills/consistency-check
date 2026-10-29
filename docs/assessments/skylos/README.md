@@ -4,6 +4,8 @@ Issue: [#75](https://github.com/millsmillsymills/consistency-check/issues/75).
 Status: protocol, snapshot inventory, optional runner, capability probes and
 [Python sample-0 observations](phase-2-results.md). Go corpus collection is
 gated on incomplete native coverage; no adoption or real-snapshot results exist.
+The [Python support/adjudication packet](python-review-packet.md) preserves all
+frozen cases/findings and lists owner/independent decisions still required.
 Registered: 2026-10-28, America/Los_Angeles, after completion of the two initial
 Brooks sweep cycles. This is issue-driven assessment work, not another sweep.
 
