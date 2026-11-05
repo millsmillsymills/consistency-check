@@ -44,15 +44,36 @@ def verify_identity(manifest: Path, environment: Path, engine: Path, lock: Path)
     expected = json.loads(manifest.read_text())
     if expected.get("schema_version") != 1 or expected.get("scanner_version") != "5.1.5":
         raise ValueError("unsupported environment manifest")
+    native = expected.get("go_engine", {})
+    if native.get("source_commit") != SOURCE_COMMIT or native.get("sha256") != file_hash(engine):
+        raise ValueError("native Go engine missing or changed")
+    return _verify_python_payloads(expected, environment, lock)
+
+
+def verify_python_preflight(manifest: Path, environment: Path, lock: Path) -> dict[str, Any]:
+    """Check a separately registered Python identity without approving collection."""
+    expected = json.loads(manifest.read_text())
+    if (
+        expected.get("schema_version") != 2
+        or expected.get("purpose") != "python-identity-preflight"
+        or expected.get("go_evaluation") != "deferred"
+        or expected.get("collection_authorized") is not False
+        or "go_engine" in expected
+        or expected.get("scanner_version") != "5.1.5"
+    ):
+        raise ValueError("expected a Python-only preflight manifest; collection remains disabled")
+    return _verify_python_payloads(expected, environment, lock)
+
+
+def _verify_python_payloads(
+    expected: dict[str, Any], environment: Path, lock: Path
+) -> dict[str, Any]:
     if expected.get("source_commit") != SOURCE_COMMIT:
         raise ValueError("scanner source revision differs from preregistration")
     if expected.get("lock_sha256") != file_hash(lock):
         raise ValueError("dependency lock changed")
     if expected.get("scanner_sha256") != file_hash(environment / "bin" / "skylos"):
         raise ValueError("scanner launcher changed")
-    native = expected.get("go_engine", {})
-    if native.get("source_commit") != SOURCE_COMMIT or native.get("sha256") != file_hash(engine):
-        raise ValueError("native Go engine missing or changed")
     actual = _probe(environment / "bin" / "python")
     _verify_packages(expected, actual, lock.read_text())
     for field in ("python", "os", "os_release", "machine"):
