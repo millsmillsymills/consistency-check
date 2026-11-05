@@ -64,6 +64,15 @@ def test_missing_native_engine_is_unmeasured_even_with_no_findings() -> None:
     assert result["state"] == "incomplete"
 
 
+@pytest.mark.parametrize("field", ["completed_checks", "skipped_checks"])
+@pytest.mark.parametrize("malformed", ["dead_code", {"dead_code": True}, [1], None])
+def test_go_engine_check_arrays_are_typed(field, malformed) -> None:
+    payload = _static("go")
+    payload["analysis_summary"]["language_engines"]["go"][field] = malformed
+    with pytest.raises(ValueError, match="Go engine"):
+        validate_output(json.dumps(payload).encode(), 0, "dead-code", "go")
+
+
 def test_suppressed_findings_remain_visible_in_an_observation() -> None:
     payload = _static()
     payload["suppressed"] = [{"rule_id": "example", "reason": "registered exception"}]

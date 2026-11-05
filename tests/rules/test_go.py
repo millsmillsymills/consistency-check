@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from typing import TYPE_CHECKING
 
 import pytest
@@ -40,6 +42,22 @@ def test_go_009_ignores_return_syntax_in_comments_and_literals(tmp_path: Path) -
         "package api\n// return err\nconst example = `return err`\n", encoding="utf-8"
     )
     assert _check(tmp_path, "GO-009") is None
+
+
+def test_go_009_long_statements_remain_bounded() -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from consistency_check.rules.go import _has_bare_return_err as check; "
+            "assert not check('return ' * 50000 + 'x'); "
+            "assert check('return ' * 50000 + 'nil, err'); "
+            "assert not check('return err {'); "
+            "assert check('return err;')",
+        ],
+        check=True,
+        timeout=5,
+    )
 
 
 @pytest.mark.parametrize("verb", ["Get", "List", "Create", "Update", "Delete", "Send", "Fetch"])

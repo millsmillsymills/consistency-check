@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from consistency_check.rules.mcp_protocol import RULES, _tool_names
+import pytest
+from consistency_check.rules import mcp_protocol
+from consistency_check.rules.mcp_protocol import RULES, _go_tool_names, _tool_names
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -18,6 +20,37 @@ def _check(p: Path, lang: str, rid: str) -> str | None:
         next(r for r in RULES if r.id == rid),
         Repo(name=p.name, path=p, language=lang, github_slug="x/y"),
     )
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "f\"{FastMCP('x')}\"",
+        "f\"{0:{Server(name='x')}}\"",
+        "f\"{(server := FastMCP('x'))}\"",
+        '(FastMCP)("x")',
+    ],
+)
+def test_proto_022_inspects_python_expression_calls(tmp_path: Path, expression: str) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "server.py").write_text(f"value = {expression}\n", encoding="utf-8")
+    assert _check(tmp_path, "python", "PROTO-022") is not None
+
+
+def test_nested_multiwriters_are_scanned_once(monkeypatch) -> None:
+    original = mcp_protocol._balanced
+    calls = []
+
+    def counted(*args):
+        calls.append(args[1])
+        return original(*args)
+
+    monkeypatch.setattr(mcp_protocol, "_balanced", counted)
+    nested = "io.MultiWriter(" * 1000 + "writer" + ")" * 1000
+    assert not mcp_protocol._go_writes_stdout(nested)
+    assert len(calls) == 1
+    assert mcp_protocol._go_writes_stdout(nested + "\nio.MultiWriter(w, os.Stdout)")
+    assert mcp_protocol._go_writes_stdout("io.MultiWriter(io.MultiWriter(w), os.Stdout")
 
 
 def test_proto_002_pass_on_namespaced_tools(tmp_path: Path) -> None:
@@ -1403,3 +1436,12 @@ def test_a_tool_registration_does_not_publish_a_nested_calls_literal(tmp_path: P
     )
     evidence = _check(tmp_path, "go", "PROTO-001")
     assert evidence is None or "token=abc" not in evidence
+
+
+def test_nested_go_tool_sites_are_discovered_once_without_recursion() -> None:
+    text = "Tool{" * 2000 + 'Name: "x"' + "}" * 2000
+    assert _go_tool_names(text) == ["x"]
+    assert _go_tool_names('Tool{Name: "outer", Child: Tool{Name: "inner"}}') == ["outer", "inner"]
+    assert _go_tool_names('Tool{Name: dynamic, Child: Meta{Name: "hidden"}}') == []
+    assert _go_tool_names('Tool{Name: dynamic, Child: Tool{Name: "inner"}}') == ["inner"]
+    assert _go_tool_names('[]Tool{{Name: "a"}, {Name: "b"}}') == ["a", "b"]

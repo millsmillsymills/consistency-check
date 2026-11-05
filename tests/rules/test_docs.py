@@ -144,3 +144,38 @@ def test_mcp_027_permits_your_tool(tmp_path: Path) -> None:
 def test_mcp_027_still_flags_our_tool(tmp_path: Path) -> None:
     (tmp_path / "README.md").write_text("our tool does the rest.\n", encoding="utf-8")
     assert _check(tmp_path, "python", "MCP-027") is not None
+
+
+def test_mcp_027_retains_bounded_evidence_with_exact_total(tmp_path: Path) -> None:
+    (tmp_path / "README.md").write_text("leverage\n" * 2000, encoding="utf-8")
+    git_init(tmp_path)
+    evidence = _check(tmp_path, "python", "MCP-027")
+    expected = "; ".join(f"README.md:{line} 'leverage' (banned: leverage)" for line in range(1, 6))
+    assert evidence == f"banned writing-voice phrases: {expected} and 1995 more"
+
+
+def test_mcp_027_formats_only_displayed_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    formatted: list[int] = []
+
+    class Evidence:
+        def __repr__(self) -> str:
+            formatted.append(1)
+            return "'phrase'"
+
+    class Match:
+        def group(self, _index: int) -> Evidence:
+            return Evidence()
+
+    class Pattern:
+        def search(self, _line: str) -> Match:
+            return Match()
+
+    monkeypatch.setattr(docs, "_banned_phrase_patterns", lambda: [("phrase", Pattern())])
+    (tmp_path / "README.md").write_text("phrase\n" * 100, encoding="utf-8")
+    git_init(tmp_path)
+    evidence = _check(tmp_path, "python", "MCP-027")
+    assert evidence is not None
+    assert evidence.endswith(" and 95 more")
+    assert len(formatted) == docs._MAX_PROSE_HITS

@@ -66,67 +66,45 @@ def _expected_namespace(repo: Repo) -> str:
     return repo.path.name.removesuffix("-mcp").replace("-", "_") + "_"
 
 
-def _mask_nested(region: str) -> str:
-    """Blank every character inside a nested brace group, keeping offsets stable."""
-    out: list[str] = []
-    depth = 0
-    for ch in region:
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-        out.append(" " if depth or ch in "{}" else ch)
-    return "".join(out)
-
-
-def _brace_groups(region: str) -> list[str]:
-    """Return the contents of each top-level brace group in ``region``."""
-    groups: list[str] = []
-    depth = 0
-    start = 0
-    for i, ch in enumerate(region):
-        if ch == "{":
-            if depth == 0:
-                start = i
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                groups.append(region[start + 1 : i])
-    return groups
-
-
-def _literal_tool_names(region: str) -> list[str]:
-    """Tool names carried by one ``Tool{...}`` region.
-
-    Only the literal's *own* fields name it, so the region is masked before the
-    ``Name`` scan: an inner ``&mcp.Meta{Name: ...}`` would otherwise be read as
-    the tool's name. When the region has no ``Name`` of its own it is a slice
-    literal (``[]mcp.Tool{{...}, {...}}``), whose elements each name a tool.
-    """
-    top = _mask_nested(region)
-    own = [m.group(1) for m in _GO_TOOL_LITERAL_NAME.finditer(top)]
-    if own:
-        return own
-    # A literal that has a Name field the auditor cannot read — ``Name: toolName``
-    # — names exactly one tool, and it is not any nested literal's. Recursing
-    # would grade an inner ``&mcp.Meta{Name: "internal_id"}`` as the tool name.
-    if _GO_TOOL_LITERAL_NAME_FIELD.search(top):
-        return []
-    return [name for group in _brace_groups(region) for name in _literal_tool_names(group)]
-
-
 def _go_tool_names(text: str) -> list[str]:
-    """Tool names registered in one Go source file.
-
-    ``Tool{...}`` literals are read with balanced brace matching: Go struct
-    fields are unordered, so ``Name`` may sit after a nested composite that a
-    ``[^{}]*`` window would stop at.
-    """
+    """Read each literal site once, including independently nested Tool literals."""
     text = mask_literal_braces(text)
     names = [next(g for g in m.groups() if g is not None) for m in _GO_TOOL_REGISTER.finditer(text)]
-    for m in _GO_TOOL_LITERAL.finditer(text):
-        names.extend(_literal_tool_names(_balanced(text, m.end() - 1, "{", "}")))
+    explicit = {m.end() - 1 for m in _GO_TOOL_LITERAL.finditer(text)}
+    # Each character belongs to only one node's direct text. Nested contents
+    # become a space, preserving field boundaries without copying subtrees.
+    parts: list[list[str]] = [[]]
+    children: list[list[int]] = [[]]
+    roots: list[bool] = [False]
+    closed: list[bool] = [True]
+    stack = [0]
+    start = 0
+    for match in re.finditer(r"[{}]", text):
+        pos = match.start()
+        parts[stack[-1]].append(text[start:pos])
+        if match.group() == "{":
+            parts[stack[-1]].append(" ")
+            node = len(parts)
+            children[stack[-1]].append(node)
+            parts.append([])
+            children.append([])
+            roots.append(pos in explicit)
+            closed.append(False)
+            stack.append(node)
+        elif len(stack) > 1:
+            closed[stack.pop()] = True
+        start = pos + 1
+    parts[stack[-1]].append(text[start:])
+    pending = [(0, False)]
+    while pending:
+        node, inherited = pending.pop()
+        active = roots[node] or (inherited and closed[node])
+        top = "".join(parts[node])
+        own = list(_GO_TOOL_LITERAL_NAME.finditer(top)) if active else []
+        if active:
+            names.extend(match.group(1) for match in own)
+        descend = active and not own and not _GO_TOOL_LITERAL_NAME_FIELD.search(top)
+        pending.extend((child, descend) for child in reversed(children[node]))
     return names
 
 
@@ -520,10 +498,16 @@ _GO_STDOUT_REF = re.compile(r"\bos\.Stdout\b")
 def _go_writes_stdout(text: str) -> bool:
     if _GO_STDOUT.search(text):
         return True
-    return any(
-        _GO_STDOUT_REF.search(_balanced(text, m.end() - 1, "(", ")"))
-        for m in _GO_MULTIWRITER.finditer(text)
-    )
+    scanned_until = 0
+    for match in _GO_MULTIWRITER.finditer(text):
+        if match.start() < scanned_until:
+            continue
+        args = _balanced(text, match.end() - 1, "(", ")")
+        if _GO_STDOUT_REF.search(args):
+            return True
+        # Nested calls were already searched as part of this argument span.
+        scanned_until = match.end() + len(args)
+    return False
 
 
 def _stdout_writers(repo: Repo) -> list[str]:
@@ -706,18 +690,40 @@ _SERVER_MARKER = re.compile(
 )
 
 
+def _python_server_call(node: ast.AST) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id == "FastMCP" or (func.id == "Server" and bool(node.args or node.keywords))
+    return isinstance(func, ast.Attribute) and (
+        func.attr == "FastMCP"
+        or (
+            isinstance(func.value, ast.Name)
+            and (func.value.id, func.attr) in {("mcp", "NewServer"), ("server", "NewMCPServer")}
+        )
+    )
+
+
 def _check_tools_detected(repo: Repo) -> str | None:
+    trees: list[ast.Module] = []
     if repo.language == "python":
         if not python_sources(repo):
             return "no Python source under src/, so no tool rule read anything"
-        if unparseable := _python_trees(repo)[1]:
+        trees, unparseable = _python_trees(repo)
+        if unparseable:
             return f"source the tool rules could not parse, so never graded: {unparseable[:5]}"
     if _tool_names(repo):
         return None
     # Literal *contents* are masked: an error message that quotes a constructor
     # — ``raise RuntimeError("FastMCP(...) not initialised")`` — made a toolless
     # client library fail a MUST with evidence reading "server constructed".
-    if not _SERVER_MARKER.search(mask_literal_contents(combined_code_text(repo))):
+    constructed = (
+        any(_python_server_call(node) for tree in trees for node in ast.walk(tree))
+        if repo.language == "python"
+        else bool(_SERVER_MARKER.search(mask_literal_contents(combined_code_text(repo))))
+    )
+    if not constructed:
         return None
     return (
         "server constructed but no tool registration detected — every tool-surface "
