@@ -109,3 +109,35 @@ remain later work under #75. See the limited
 The separate [characterization phase](../../docs/assessments/skylos/characterization.md)
 registers suppression probes and bounded diagnostic capture before collecting
 sample-0 corpus observations. It never starts real-snapshot collection.
+
+## Python-only identity preflight (no collection)
+
+A new host can verify its pinned Python payloads while Go evaluation remains
+deferred, using a separate schema-2 manifest and entry point:
+
+```bash
+python -m assessments.skylos.preflight_python \
+  --identity <new-reviewed-python-manifest.json> \
+  --environment <isolated-environment>
+```
+
+The manifest retains the recorded `scanner_version`, `source_commit`, lock and
+launcher hashes, host fields and package artifact/installed hashes. It must set
+`schema_version: 2`, `purpose: "python-identity-preflight"`,
+`go_evaluation: "deferred"` and `collection_authorized: false`, with no
+`go_engine` entry. Register observed values separately; never overwrite the
+historical profile or relabel its receipts.
+
+This command reads local hashes and Python distribution metadata. It neither
+imports the scanner nor runs it, materializes fixtures, collects timings or
+authorizes observations. Success means only that the supplied identity matches
+the local Python environment; it does not independently establish the provenance
+or approval of that identity. Independent host/package and registration-census
+review, collector readiness, baseline evidence and applicable approvals remain
+required before measurements.
+
+The existing collection entry point still requires its original schema-1 identity
+and verified Go engine. It deliberately rejects a schema-2 preflight manifest.
+Any future Python-only collection path needs separate review, explicit Go
+deferral and distinct observation/cache identities. Frozen cases, classification
+records and existing results are unchanged by this preflight.
