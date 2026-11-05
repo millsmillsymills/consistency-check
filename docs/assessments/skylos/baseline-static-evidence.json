@@ -142,7 +142,16 @@
         }
       ],
       "registry_without_wheels": [],
-      "bandit": []
+      "bandit": [],
+      "additional_ci_tool_identity": {
+        "workflow": ".github/workflows/ci.yml",
+        "job": "security",
+        "command": "uvx bandit -c pyproject.toml -r src",
+        "application_lock_contains_bandit": false,
+        "resolution": "separate uvx tool environment; version and artifacts unpinned",
+        "historical_identity": "unknown",
+        "readiness": "blocked pending separately reviewed pinned tool identity"
+      }
     },
     {
       "repo": "flipperzero-mcp",
