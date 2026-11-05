@@ -145,9 +145,25 @@ def _check_integration_split(repo: Repo) -> str | None:
     return "no integration/ directory and no //go:build integration tags"
 
 
-_BARE_RETURN_ERR = re.compile(
-    r"\breturn[ \t]+(?:[^;\n{}]*,[ \t]*)?err[ \t]*(?:$|[;}])", re.MULTILINE
-)
+_RETURN_START = re.compile(r"\breturn[ \t]+")
+_DIRECT_RETURN_ERR = re.compile(r"\breturn[ \t]+err[ \t]*$")
+
+
+def _has_bare_return_err(text: str) -> bool:
+    """Inspect each statement once, including malformed source statements."""
+    parts = re.split(r"([;\n{}])", text)
+    for index in range(0, len(parts), 2):
+        if index + 1 < len(parts) and parts[index + 1] == "{":
+            continue
+        statement = parts[index].rstrip(" \t")
+        if not statement.endswith("err"):
+            continue
+        prefix, comma, last = statement.rpartition(",")
+        if comma and last.strip(" \t") == "err" and _RETURN_START.search(prefix):
+            return True
+        if _DIRECT_RETURN_ERR.search(statement):
+            return True
+    return False
 
 
 def _check_error_wrapping(repo: Repo) -> str | None:
@@ -167,7 +183,7 @@ def _check_error_wrapping(repo: Repo) -> str | None:
         bad.extend(
             p.relative_to(repo.path).as_posix()
             for p, text in texts.items()
-            if _BARE_RETURN_ERR.search(code_only(text, "//"))
+            if _has_bare_return_err(code_only(text, "//"))
         )
     return f"functions returning unwrapped errors (heuristic): {sorted(bad)[:5]}" if bad else None
 

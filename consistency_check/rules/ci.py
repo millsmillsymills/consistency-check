@@ -124,21 +124,61 @@ def _make_targets(body: str) -> list[str]:
     return targets
 
 
-def _make_recipe(makefile: str, target: str) -> tuple[str, list[str]]:
-    """Return the commands of ``target`` and the prerequisite targets it depends on."""
-    recipe: list[str] = []
-    prereqs: list[str] = []
-    collecting = False
-    for line in makefile.splitlines():
-        m = re.match(rf"^{re.escape(target)}\s*:=?(.*)$", line)
-        if m:
-            collecting = True
-            prereqs = m.group(1).split()
-        elif collecting:
-            if line.strip() and not line.startswith((" ", "\t")):
+class _MakeIndex:
+    """Index header prefixes without copying each possible colon-bearing name."""
+
+    def __init__(self, text: str) -> None:
+        self.lines = text.splitlines()
+        self.edges: list[dict[str, int]] = [{}]
+        self.headers: list[list[tuple[int, int]]] = [[]]
+        self.ends: dict[int, int] = {}
+        previous: int | None = None
+        for number, line in enumerate(self.lines):
+            if not line.strip() or line.startswith((" ", "\t")):
+                continue
+            if previous is not None:
+                self.ends[previous] = number
+            previous = number
+            self._index_header(number, line)
+        if previous is not None:
+            self.ends[previous] = len(self.lines)
+
+    def _index_header(self, number: int, line: str) -> None:
+        node = 0
+        for offset, char in enumerate(line):
+            if char.isspace():
+                rest = line[offset:].lstrip()
+                if rest.startswith(":"):
+                    self.headers[node].append((number, len(line) - len(rest) + 1))
                 break
-            recipe.append(_strip_comment(line))
-    return "\n".join(recipe), prereqs
+            if char == ":":
+                self.headers[node].append((number, offset + 1))
+            if char not in self.edges[node]:
+                self.edges[node][char] = len(self.edges)
+                self.edges.append({})
+                self.headers.append([])
+            node = self.edges[node][char]
+
+    def recipe(self, target: str) -> tuple[str, list[str]]:
+        node = 0
+        for char in target:
+            following = self.edges[node].get(char)
+            if following is None:
+                return "", []
+            node = following
+        matches = self.headers[node]
+        if not matches:
+            return "", []
+        recipe: list[str] = []
+        prereqs: list[str] = []
+        end = matches[0][0]
+        for number, offset in matches:
+            if number != end:
+                break
+            prereqs = self.lines[number][offset:].removeprefix("=").split()
+            end = self.ends[number]
+            recipe.extend(_strip_comment(line) for line in self.lines[number + 1 : end])
+        return "\n".join(recipe), prereqs
 
 
 def _read_makefile(repo: Repo) -> str:
@@ -149,7 +189,7 @@ def _read_makefile(repo: Repo) -> str:
     return ""
 
 
-def _expand_make_targets(makefile: str, targets: list[str]) -> tuple[list[str], list[str]]:
+def _expand_make_targets(makefile: _MakeIndex, targets: list[str]) -> tuple[list[str], list[str]]:
     """Recipes for ``targets`` and their prerequisites, following one extra level."""
     recipes: list[str] = []
     scripts: list[str] = []
@@ -159,7 +199,7 @@ def _expand_make_targets(makefile: str, targets: list[str]) -> tuple[list[str], 
         following, pending = [t for t in pending if t not in seen], []
         seen.update(following)
         for target in following:
-            recipe, prereqs = _make_recipe(makefile, target)
+            recipe, prereqs = makefile.recipe(target)
             pending.extend(prereqs)
             if recipe.strip():
                 recipes.append(recipe)
@@ -171,9 +211,10 @@ def _indirect_refs(workflows: str, makefile: str) -> tuple[list[str], list[str]]
     """Recipes and script paths the workflow ``run:`` steps reach."""
     recipes: list[str] = []
     scripts: list[str] = []
+    index = _MakeIndex(makefile)
     for body in _run_command_bodies(workflows):
         scripts.extend(_SCRIPT_CALL.findall(body))
-        target_recipes, target_scripts = _expand_make_targets(makefile, _make_targets(body))
+        target_recipes, target_scripts = _expand_make_targets(index, _make_targets(body))
         recipes.extend(target_recipes)
         scripts.extend(target_scripts)
     return recipes, scripts

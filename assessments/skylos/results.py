@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-ADAPTER_VERSION = 3
+ADAPTER_VERSION = 4
 _DEAD_FIELDS = (
     "unused_functions",
     "unused_imports",
@@ -190,6 +190,12 @@ def _go_complete(summary: dict[str, Any], category: str) -> bool:
     _require(isinstance(engines, dict), "missing Go engine coverage")
     engine = engines.get("go", {})
     _require(isinstance(engine, dict), "invalid Go engine coverage")
+    for field in ("completed_checks", "skipped_checks"):
+        checks = engine.get(field, [])
+        _require(
+            isinstance(checks, list) and all(isinstance(check, str) for check in checks),
+            f"invalid Go engine {field}",
+        )
     return (
         engine.get("status") == "available"
         and category in engine.get("completed_checks", [])

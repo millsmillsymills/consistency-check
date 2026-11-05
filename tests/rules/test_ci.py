@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
-from consistency_check.rules.ci import RULES
+from consistency_check.rules.ci import RULES, _MakeIndex
 from consistency_check.types import Repo, Tier
 
 from tests.rules.verdict import verdict
@@ -300,3 +300,18 @@ def test_mcp_017_names_the_workflow_not_the_uses_line(good_python_repo: Path) ->
     assert "ci.yml" in evidence
     assert "internal-org" not in evidence
     assert "private-build-action" not in evidence
+
+
+def test_make_index_preserves_colon_targets_and_repeated_headers() -> None:
+    index = _MakeIndex(
+        "a:b: first\n\techo one\na:b: second\n\techo two\nother:\n\tstop\na:b: later\n"
+    )
+    assert index.recipe("a:b") == ("\techo one\n\techo two", ["second"])
+    assert index.recipe("missing") == ("", [])
+
+
+def test_make_index_stores_shared_prefixes_once() -> None:
+    text = "a:" * 2000 + "\n\techo ok\n"
+    index = _MakeIndex(text)
+    assert len(index.edges) <= len(text) + 1
+    assert sum(len(entries) for entries in index.headers) == 2000

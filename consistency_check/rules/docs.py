@@ -144,17 +144,18 @@ def _prose_lines(text: str) -> list[str]:
 def _check_writing_voice(repo: Repo) -> str | None:
     patterns = _banned_phrase_patterns()
     hits: list[str] = []
+    hit_count = 0
     for rel in _prose_surfaces(repo):
         for lineno, line in enumerate(_prose_lines(_read(repo.path / rel)), start=1):
-            hits.extend(
-                f"{rel}:{lineno} {match.group(0)!r} (banned: {raw})"
-                for raw, pattern in patterns
-                if (match := pattern.search(line))
-            )
-    if not hits:
+            for raw, pattern in patterns:
+                if match := pattern.search(line):
+                    hit_count += 1
+                    if len(hits) < _MAX_PROSE_HITS:
+                        hits.append(f"{rel}:{lineno} {match.group(0)!r} (banned: {raw})")
+    if not hit_count:
         return None
-    tail = f" and {len(hits) - _MAX_PROSE_HITS} more" if len(hits) > _MAX_PROSE_HITS else ""
-    return f"banned writing-voice phrases: {'; '.join(hits[:_MAX_PROSE_HITS])}{tail}"
+    tail = f" and {hit_count - _MAX_PROSE_HITS} more" if hit_count > _MAX_PROSE_HITS else ""
+    return f"banned writing-voice phrases: {'; '.join(hits)}{tail}"
 
 
 RULES: tuple[Rule, ...] = (
