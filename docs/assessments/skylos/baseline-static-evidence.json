@@ -1,0 +1,196 @@
+{
+  "method": "read-only frozen Git objects; no resolver, install or execution",
+  "snapshots": [
+    {
+      "repo": "unraid-mcp",
+      "commit": "cf8fca1b43ee66ceb9bd2d8e7752df1ccb42eeae",
+      "build_system": {
+        "requires": [
+          "hatchling"
+        ],
+        "build-backend": "hatchling.build"
+      },
+      "lock_python": ">=3.13",
+      "resolution_markers": [
+        "python_full_version >= '3.14' and sys_platform == 'win32'",
+        "python_full_version >= '3.14' and sys_platform != 'win32'",
+        "python_full_version < '3.14' and sys_platform == 'win32'",
+        "python_full_version < '3.14' and sys_platform != 'win32'"
+      ],
+      "packages": 124,
+      "extras": [
+        "dev"
+      ],
+      "groups": [],
+      "nonregistry": [
+        {
+          "name": "unraid-mcp",
+          "source": {
+            "editable": "."
+          }
+        }
+      ],
+      "registry_without_wheels": [],
+      "bandit": [
+        {
+          "name": "bandit",
+          "version": "1.9.4"
+        }
+      ]
+    },
+    {
+      "repo": "unifi-mcp",
+      "commit": "7ed5438d46138c872ad74116cb336063ae42417e",
+      "build_system": {
+        "requires": [
+          "hatchling"
+        ],
+        "build-backend": "hatchling.build"
+      },
+      "lock_python": ">=3.13",
+      "resolution_markers": [
+        "python_full_version >= '3.15' and sys_platform == 'win32'",
+        "python_full_version == '3.14.*' and sys_platform == 'win32'",
+        "python_full_version >= '3.15' and sys_platform != 'win32'",
+        "python_full_version == '3.14.*' and sys_platform != 'win32'",
+        "python_full_version < '3.14' and sys_platform == 'win32'",
+        "python_full_version < '3.14' and sys_platform != 'win32'"
+      ],
+      "packages": 110,
+      "extras": [
+        "dev"
+      ],
+      "groups": [],
+      "nonregistry": [
+        {
+          "name": "unifi-mcp",
+          "source": {
+            "editable": "."
+          }
+        }
+      ],
+      "registry_without_wheels": [],
+      "bandit": [
+        {
+          "name": "bandit",
+          "version": "1.9.4"
+        }
+      ]
+    },
+    {
+      "repo": "gandi-mcp",
+      "commit": "c4ac81d767c2f5ff9a67f672faa2b10dfc698ea1",
+      "build_system": {
+        "requires": [
+          "hatchling"
+        ],
+        "build-backend": "hatchling.build"
+      },
+      "lock_python": ">=3.13",
+      "resolution_markers": [
+        "python_full_version >= '3.14'",
+        "python_full_version < '3.14'"
+      ],
+      "packages": 127,
+      "extras": [
+        "dev"
+      ],
+      "groups": [],
+      "nonregistry": [
+        {
+          "name": "gandi-mcp",
+          "source": {
+            "editable": "."
+          }
+        }
+      ],
+      "registry_without_wheels": [],
+      "bandit": [
+        {
+          "name": "bandit",
+          "version": "1.9.4"
+        }
+      ]
+    },
+    {
+      "repo": "shortcut-mcp",
+      "commit": "16bac27070f94d1ed204a8419f8c42283906e0e9",
+      "build_system": {
+        "requires": [
+          "hatchling"
+        ],
+        "build-backend": "hatchling.build"
+      },
+      "lock_python": ">=3.13",
+      "resolution_markers": [
+        "python_full_version >= '3.14' and sys_platform == 'win32'",
+        "python_full_version >= '3.14' and sys_platform != 'win32'",
+        "python_full_version < '3.14' and sys_platform == 'win32'",
+        "python_full_version < '3.14' and sys_platform != 'win32'"
+      ],
+      "packages": 95,
+      "extras": [
+        "dev"
+      ],
+      "groups": [],
+      "nonregistry": [
+        {
+          "name": "shortcut-mcp",
+          "source": {
+            "editable": "."
+          }
+        }
+      ],
+      "registry_without_wheels": [],
+      "bandit": [],
+      "additional_ci_tool_identity": {
+        "workflow": ".github/workflows/ci.yml",
+        "job": "security",
+        "command": "uvx bandit -c pyproject.toml -r src",
+        "application_lock_contains_bandit": false,
+        "resolution": "separate uvx tool environment; version and artifacts unpinned",
+        "historical_identity": "unknown",
+        "readiness": "blocked pending separately reviewed pinned tool identity"
+      }
+    },
+    {
+      "repo": "flipperzero-mcp",
+      "commit": "30532820e3f162630a28caf3afc49da953d53e29",
+      "build_system": {
+        "requires": [
+          "hatchling"
+        ],
+        "build-backend": "hatchling.build"
+      },
+      "lock_python": ">=3.13",
+      "resolution_markers": [
+        "python_full_version >= '3.14' and sys_platform == 'win32'",
+        "python_full_version >= '3.14' and sys_platform != 'win32'",
+        "python_full_version < '3.14' and sys_platform == 'win32'",
+        "python_full_version < '3.14' and sys_platform != 'win32'"
+      ],
+      "packages": 116,
+      "extras": [
+        "dev"
+      ],
+      "groups": [
+        "dev"
+      ],
+      "nonregistry": [
+        {
+          "name": "flipperzero-mcp",
+          "source": {
+            "editable": "."
+          }
+        }
+      ],
+      "registry_without_wheels": [],
+      "bandit": [
+        {
+          "name": "bandit",
+          "version": "1.9.4"
+        }
+      ]
+    }
+  ]
+}
